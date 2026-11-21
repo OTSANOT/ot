@@ -258,19 +258,19 @@
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
       const systemPrompt = `You are a Hong Kong occupational therapy cognitive rehabilitation content editor.
-Search for 2 real, current, major Hong Kong news stories from today (${dateInfo.zhDate} / ${dateInfo.isoDate}).
-Write clear, accessible Traditional Chinese (Hong Kong standard, 書面語適合朗讀) news extracts of 4-5 short sentences each, plus 6 multiple-choice comprehension questions per article covering WHO, WHEN, WHAT, HOW, WHICH, and WHY.
-Return ONLY valid raw JSON (no markdown code fences) matching this exact structure:
+Using Google Search, find 2 current Hong Kong news stories around ${dateInfo.zhDate} (${dateInfo.isoDate}).
+Provide clear Traditional Chinese (Hong Kong standard) news extracts of 4 short sentences each, plus 6 comprehension questions per article covering WHO, WHEN, WHAT, HOW, WHICH, and WHY.
+Prefer returning ONLY valid raw JSON (no markdown code fences) matching this exact structure:
 {
   "articles": [
     {
       "id": "story1",
       "tabLabel": "📰 頭條：簡短標題",
       "category": "本港要聞",
-      "source": "香港今日新聞摘要（${dateInfo.zhDate}）",
+      "source": "香港新聞摘要（${dateInfo.zhDate}）",
       "title": "新聞主標題",
       "subtitle": "一句簡短副標題",
-      "paragraphs": ["第一句。", "第二句。", "第三句。", "第四句。", "第五句。"],
+      "paragraphs": ["第一句。", "第二句。", "第三句。", "第四句。"],
       "questions": [
         {
           "type": "WHO（何人）",
@@ -328,7 +328,7 @@ Return ONLY valid raw JSON (no markdown code fences) matching this exact structu
       const payload = {
         contents: [{
           parts: [{
-            text: `Search Hong Kong news today (${dateInfo.zhDate}) and generate 2 Traditional Chinese news extracts with 6 5W1H comprehension questions (Who, When, What, How, Which, Why) and answers each.`
+            text: `搜尋香港最新新聞（${dateInfo.zhDate}），整理 2 則新聞摘要，並為每則新聞編寫 WHO、WHEN、WHAT、HOW、WHICH、WHY 六何法選擇題及答案。`
           }]
         }],
         tools: [{ "google_search": {} }],
@@ -337,6 +337,51 @@ Return ONLY valid raw JSON (no markdown code fences) matching this exact structu
         }
       };
 
+      function tryParseArticlesFromText(rawText) {
+        if (!rawText) return null;
+        // Extract JSON object even if surrounded by markdown or grounding text
+        const stripped = rawText
+          .replace(/^```json\s*/i, '')
+          .replace(/^```\s*/i, '')
+          .replace(/```\s*$/i, '')
+          .trim();
+
+        const firstBrace = stripped.indexOf('{');
+        const lastBrace = stripped.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          const candidateJson = stripped.slice(firstBrace, lastBrace + 1);
+          const parsed = JSON.parse(candidateJson);
+          if (parsed && Array.isArray(parsed.articles) && parsed.articles.length > 0) {
+            return parsed.articles;
+          }
+        }
+
+        // Fallback: Convert plain-text search summary into a live daily news story
+        const cleanLines = rawText
+          .replace(/[*#`]/g, '')
+          .split(/\n+/)
+          .map(line => line.trim())
+          .filter(line => line.length >= 12);
+
+        if (cleanLines.length >= 2) {
+          const headline = cleanLines[0].slice(0, 42);
+          const paragraphs = cleanLines.slice(1, 5).map(s => (/[。！？]$/.test(s) ? s : `${s}。`));
+          const baseQuestions = newsArticles[0]?.questions || [];
+          return [{
+            id: "live-daily-hk",
+            tabLabel: "📰 今日香港新聞",
+            category: "即時搜尋新聞",
+            source: `Google 搜尋香港新聞（${dateInfo.zhDate}）`,
+            title: headline,
+            subtitle: `於 ${dateInfo.zhDate} 搜尋所得之香港最新新聞摘要`,
+            paragraphs,
+            questions: baseQuestions
+          }];
+        }
+
+        return null;
+      }
+
       try {
         const result = await fetchWithRetry(apiUrl, {
           method: 'POST',
@@ -344,23 +389,23 @@ Return ONLY valid raw JSON (no markdown code fences) matching this exact structu
           body: JSON.stringify(payload)
         });
 
-        const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const cleanedJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-        const parsed = JSON.parse(cleanedJson);
+        const parts = result?.candidates?.[0]?.content?.parts || [];
+        const rawText = parts.map(p => p.text || '').filter(Boolean).join('\n');
+        const extractedArticles = tryParseArticlesFromText(rawText);
 
-        if (parsed && Array.isArray(parsed.articles) && parsed.articles.length > 0) {
-          newsArticles = parsed.articles;
+        if (extractedArticles && extractedArticles.length > 0) {
+          newsArticles = extractedArticles;
           loadArticle(0);
           banner.className = 'mt-3 text-center text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium';
-          banner.innerText = `✅ 已成功更新 ${dateInfo.zhDate} 最新香港新聞及 5W1H 問答！`;
+          banner.innerText = `✅ 已成功載入 ${dateInfo.zhDate} 香港新聞及 5W1H 問答！`;
         } else {
-          throw new Error("Invalid news format");
+          throw new Error("Empty or unparseable news response");
         }
       } catch (error) {
         banner.className = 'mt-3 text-center text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 font-medium';
         banner.innerText = isManualClick
-          ? `⚠️ 暫時未能連接即時新聞伺服器，現顯示預設香港新聞內容。`
-          : `📰 已載入 ${dateInfo.zhDate} 香港新聞閱讀練習（可按「更新今日最新新聞」重新搜尋）。`;
+          ? `⚠️ 暫時未能取得即時新聞回應，請稍後再按「更新今日最新新聞」重試。`
+          : `⚠️ 自動搜尋今日新聞未完成，已顯示本機新聞內容，可按「更新今日最新新聞」再試。`;
       } finally {
         btn.disabled = false;
         btn.classList.remove('opacity-75', 'cursor-wait');
