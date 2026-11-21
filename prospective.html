@@ -211,17 +211,18 @@
     .kettle-alert {
       background: #fed7d7;
       color: #9b2c2c;
-      border: 1px solid #feb2b2;
-      padding: 12px 16px;
+      border: 2px solid #f56565;
+      padding: 14px 16px;
       border-radius: 10px;
-      font-weight: 700;
+      font-size: 18px;
+      font-weight: 800;
       text-align: center;
       margin-bottom: 16px;
-      animation: pulse 1s infinite;
+      animation: pulse 0.8s infinite;
     }
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.65; }
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.75; transform: scale(1.01); }
     }
 
     /* Ongoing Sorting Area */
@@ -308,6 +309,72 @@
     .metric-card:last-child {
       margin-bottom: 0;
     }
+
+    /* Difficulty Selector */
+    .difficulty-box {
+      background: #edf2f7;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    .difficulty-box label {
+      display: block;
+      margin-bottom: 8px;
+      color: #2b6cb0;
+      font-size: 16px;
+    }
+
+    /* Interruption Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 32, 44, 0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+      border-top: 8px solid #dd6b20;
+      text-align: center;
+      animation: popIn 0.25s ease-out;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-icon {
+      font-size: 46px;
+      margin-bottom: 8px;
+    }
+    .modal-title {
+      font-size: 21px;
+      font-weight: 800;
+      color: #9c4221;
+      margin-bottom: 10px;
+    }
+    .modal-desc {
+      font-size: 16px;
+      color: #2d3748;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn-trash {
+      background: #c53030;
+    }
   </style>
 </head>
 <body>
@@ -360,7 +427,7 @@
       </div>
 
       <div class="form-group">
-        <label for="ori-place">你而家身處喺邊度？</label>
+        <label for="ori-place">你而家身處喺邊度？（地點定向力）</label>
         <select id="ori-place">
           <option value="">-- 請選擇地點 --</option>
           <option value="Home / Clinic">屋企 / 治療室</option>
@@ -384,9 +451,18 @@
       <h3>🧠 請記實以下兩項前瞻性記憶任務：</h3>
       <ul>
         <li><strong>任務一（時間性前瞻記憶）：</strong> 當廚房個鐘去到 <strong id="briefing-med-time">08:15 AM</strong>（<span id="briefing-med-window">08:15 AM 至 08:18 AM</span> 之間），請撳<em>「💊 食朝早藥」</em>。</li>
-        <li><strong>任務二（事件性前瞻記憶）：</strong> 你喺爐頭煲緊水。當聽到水煲響或者見到<strong>水滾提示</strong>嗰陣，請撳<em>「🫖 熄火（水煲）」</em>。</li>
+        <li><strong>任務二（事件性前瞻記憶）：</strong> 你喺爐頭煲緊水（水滾時間每次隨機）。當聽到水煲響或者見到<strong>水滾提示</strong>嗰陣，請撳<em>「🫖 熄火（水煲）」</em>。</li>
       </ul>
       <p style="margin-bottom: 0;"><em>提示：一撳「開始」，呢個提示框就會收埋，你要靠自己記憶力去完成呢兩項任務！</em></p>
+    </div>
+
+    <div class="difficulty-box">
+      <label for="difficulty-select">🎚️ 選擇練習難度（認知負荷分級）：</label>
+      <select id="difficulty-select">
+        <option value="easy">初階：基本兩分類（雪櫃／廚櫃），無突發干擾</option>
+        <option value="medium" selected>中階：三分類（加入過期食物丟垃圾桶）＋ 1 次生活干擾</option>
+        <option value="hard">高階：三分類（過期食物檢查）＋ 2 次突發生活干擾</option>
+      </select>
     </div>
 
     <button class="btn btn-success btn-block" onclick="startGame()">開始廚房練習（同時開啟音效）</button>
@@ -396,34 +472,45 @@
   <div id="phase-game" class="hidden">
     <div class="hud">
       <div class="hud-info">
-        <strong>地點：</strong> 屋企廚房<br>
+        <strong>地點：</strong> 屋企廚房（<span id="hud-level-label">中階</span>）<br>
         <strong>已執好物品：</strong> <span id="sort-score">0</span> 件
       </div>
       <div class="clock" id="sim-clock">08:00 AM</div>
     </div>
 
     <div id="kettle-banner" class="kettle-alert hidden">
-      ♨️ 蒸氣同水煲聲：水滾啦！
+      ♨️ 嗶——！水煲大聲響緊：水滾啦！請即刻熄火！
     </div>
 
     <!-- Ongoing Distractor Task -->
     <div class="sorting-area">
-      <div class="sorting-subtitle">日常家務：將買返嚟嘅食物雜貨放去啱嘅位置</div>
+      <div class="sorting-subtitle" id="sorting-subtitle">日常家務：將買返嚟或執出嚟嘅食物放去啱嘅位置</div>
       <div class="item-display" id="current-item">🥛 新鮮牛奶</div>
       <div class="sort-buttons">
         <button class="btn" onclick="sortItem('fridge')">❄️ 放入雪櫃</button>
         <button class="btn" onclick="sortItem('pantry')">🗄️ 放入廚櫃</button>
+        <button class="btn btn-trash hidden" id="btn-sort-trash" onclick="sortItem('trash')">🗑️ 掉入垃圾桶</button>
       </div>
       <div id="sort-feedback" class="sort-feedback"></div>
     </div>
 
     <!-- Prospective Memory Action Controls -->
-    <div class="pm-section-title">前瞻性記憶任務操作（記住食藥時間同留意水滾聲）：</div>
+    <div class="pm-section-title">前瞻性記憶任務操作（記住時間同留意水滾聲）：</div>
     <div class="pm-controls">
       <button class="btn btn-action" id="btn-meds" onclick="triggerMeds()">💊 食朝早藥</button>
       <button class="btn btn-action" id="btn-kettle" onclick="triggerKettle()">🫖 熄火（水煲）</button>
     </div>
     <div id="pm-toast" class="pm-toast"></div>
+  </div>
+
+  <!-- INTERRUPT MODAL (Phone Call / Doorbell Distractor) -->
+  <div id="interrupt-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-icon" id="interrupt-icon">📞</div>
+      <div class="modal-title" id="interrupt-title">屋企人打電話嚟！</div>
+      <div class="modal-desc" id="interrupt-desc">阿女打電話嚟問：「媽咪／爹哋，今晚返唔返屋企食飯呀？」</div>
+      <div class="modal-actions" id="interrupt-actions"></div>
+    </div>
   </div>
 
   <!-- PHASE 4: OT CLINICAL SUMMARY -->
@@ -437,14 +524,14 @@
 <script>
   // Audio Synthesizer for Kettle Whistle & Feedback
   let audioCtx;
-  function playTone(freq, duration, type = 'sine') {
+  function playTone(freq, duration, type = 'sine', peakGain = 0.18) {
     if (!audioCtx) return;
     try {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = type;
       osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+      gain.gain.setValueAtTime(peakGain, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
@@ -455,9 +542,60 @@
     }
   }
 
+  // Loud, multi-harmonic, long kettle whistle sound so elderly/patients can clearly hear it
   function playKettleWhistle() {
-    playTone(1760, 0.45, 'sine');
-    setTimeout(() => playTone(1975.5, 0.55, 'sine'), 220);
+    if (!audioCtx) return;
+    try {
+      const now = audioCtx.currentTime;
+      const masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(0.75, now); // Much louder volume
+      masterGain.gain.setValueAtTime(0.75, now + 1.1);
+      masterGain.gain.exponentialRampToValueAtTime(0.001, now + 1.45);
+      masterGain.connect(audioCtx.destination);
+
+      // Primary whistle tone (triangle wave cuts through better than pure sine)
+      const osc1 = audioCtx.createOscillator();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(1650, now);
+      osc1.frequency.linearRampToValueAtTime(1980, now + 0.35);
+      osc1.frequency.setValueAtTime(1980, now + 1.45);
+
+      // Secondary harmonic overtone for realistic kettle whistle piercing sound
+      const osc2 = audioCtx.createOscillator();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(3300, now);
+      osc2.frequency.linearRampToValueAtTime(3960, now + 0.35);
+      osc2.frequency.setValueAtTime(3960, now + 1.45);
+
+      const overtoneGain = audioCtx.createGain();
+      overtoneGain.gain.setValueAtTime(0.35, now);
+
+      osc1.connect(masterGain);
+      osc2.connect(overtoneGain);
+      overtoneGain.connect(masterGain);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 1.45);
+      osc2.stop(now + 1.45);
+    } catch (e) {
+      // Fallback loud tones
+      playTone(1760, 0.7, 'triangle', 0.65);
+      setTimeout(() => playTone(1975.5, 0.8, 'triangle', 0.65), 350);
+    }
+  }
+
+  // Phone ring & Doorbell sounds for Interruption Distractors
+  function playPhoneRing() {
+    playTone(880, 0.22, 'sine', 0.35);
+    setTimeout(() => playTone(1108.73, 0.22, 'sine', 0.35), 240);
+    setTimeout(() => playTone(880, 0.22, 'sine', 0.35), 550);
+    setTimeout(() => playTone(1108.73, 0.25, 'sine', 0.35), 790);
+  }
+
+  function playDoorbell() {
+    playTone(659.25, 0.45, 'triangle', 0.45); // Ding
+    setTimeout(() => playTone(523.25, 0.75, 'triangle', 0.45), 420); // Dong
   }
 
   // Populate 1-31 date options on load
@@ -535,8 +673,8 @@
     }
   }
 
-  // Grocery Sorting Data
-  const groceries = [
+  // Grocery Sorting Data (Basic + Upgraded Expired/Spoiled items for Inhibition Training)
+  const basicGroceries = [
     { name: "🥛 新鮮牛奶", loc: "fridge" },
     { name: "🥫 罐頭豆", loc: "pantry" },
     { name: "🧀 車打芝士", loc: "fridge" },
@@ -549,18 +687,119 @@
     { name: "🥜 花生醬", loc: "pantry" }
   ];
 
+  const expiredGroceries = [
+    { name: "🍞 發霉方包", loc: "trash" },
+    { name: "🥛 過期變酸牛奶", loc: "trash" },
+    { name: "🍌 發黑爛香蕉", loc: "trash" },
+    { name: "🥫 過期生鏽罐頭", loc: "trash" }
+  ];
+
+  let activeGroceries = [...basicGroceries];
+  let difficultyLevel = 'medium';
   let groceryIndex = 0;
   let sortedCount = 0;
   let sortErrors = 0;
   let simMinutes = 0; // 0 = startHour:00 AM, ends at 25 = startHour:25 AM
   let clockInterval = null;
 
-  // Prospective Memory Tracking Metrics
-  const kettleBoilTime = 10; // Boils at +10 mins
+  // Prospective Memory & Interruption Tracking Metrics
+  let kettleBoilTime = 10; // Randomized between +5 and +13 mins (or +19 to +21 mins) each session
   let medsTakenTime = null;
   let kettleBoiled = false;
   let kettleTurnedOffTime = null;
   let prematureKettleClicks = 0;
+
+  let scheduledInterrupts = [];
+  let activeInterrupt = null;
+  let completedInterrupts = 0;
+  let totalInterruptResponseSeconds = 0;
+
+  const interruptScenarios = [
+    {
+      icon: "📞",
+      title: "突發干擾：屋企人打電話嚟！",
+      desc: "阿女打電話嚟問：「今晚返唔返屋企食飯呀？我要預人數煮飯。」請先回覆電話再繼續：",
+      sound: playPhoneRing,
+      choices: ["好呀，今晚返嚟食飯", "唔使預我啦，我約咗人"]
+    },
+    {
+      icon: "🚪",
+      title: "突發干擾：叮噹！有人按門鐘！",
+      desc: "速遞員喺門口按門鐘：「你好，有你嘅包裹速遞，請開門簽收！」請先處理門鐘：",
+      sound: playDoorbell,
+      choices: ["行去門口開門簽收", "請放喺門口鞋櫃上面"]
+    },
+    {
+      icon: "📱",
+      title: "突發干擾：診所姑娘打嚟確認覆診",
+      desc: "姑娘喺電話問：「請問你聽日朝早十點半覆診記唔記得嚟呀？」請先回覆：",
+      sound: playPhoneRing,
+      choices: ["記得，我聽朝會準時到", "唔好意思，我想改期"]
+    }
+  ];
+
+  function pickRandomKettleBoilTime() {
+    // Randomize between 5–13 mins (before med window 15–18) or 19–21 mins (after med window)
+    const candidateMinutes = [5, 6, 7, 8, 9, 10, 11, 12, 13, 19, 20, 21];
+    kettleBoilTime = candidateMinutes[Math.floor(Math.random() * candidateMinutes.length)];
+  }
+
+  function setupInterruptSchedule(level) {
+    scheduledInterrupts = [];
+    if (level === 'easy') return;
+
+    // Pick candidate minutes avoiding exact kettleBoilTime so alerts don't overlap identically
+    const earlyPool = [3, 4, 6, 7, 8].filter(m => m !== kettleBoilTime);
+    const latePool = [12, 13, 14, 19, 20].filter(m => m !== kettleBoilTime);
+
+    const shuffledScenarios = [...interruptScenarios].sort(() => Math.random() - 0.5);
+
+    if (level === 'medium') {
+      const t1 = earlyPool[Math.floor(Math.random() * earlyPool.length)];
+      scheduledInterrupts.push({ minute: t1, scenario: shuffledScenarios[0], triggered: false });
+    } else if (level === 'hard') {
+      const t1 = earlyPool[Math.floor(Math.random() * earlyPool.length)];
+      const t2 = latePool[Math.floor(Math.random() * latePool.length)];
+      scheduledInterrupts.push({ minute: t1, scenario: shuffledScenarios[0], triggered: false });
+      scheduledInterrupts.push({ minute: t2, scenario: shuffledScenarios[1], triggered: false });
+    }
+  }
+
+  function triggerInterruptModal(scenario) {
+    activeInterrupt = {
+      scenario,
+      startTimeMs: Date.now()
+    };
+
+    document.getElementById('interrupt-icon').innerText = scenario.icon;
+    document.getElementById('interrupt-title').innerText = scenario.title;
+    document.getElementById('interrupt-desc').innerText = scenario.desc;
+
+    const actionsDiv = document.getElementById('interrupt-actions');
+    actionsDiv.innerHTML = '';
+    scenario.choices.forEach(choiceText => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-action';
+      btn.innerText = `💬 ${choiceText}`;
+      btn.onclick = () => resolveInterruptModal(choiceText);
+      actionsDiv.appendChild(btn);
+    });
+
+    document.getElementById('interrupt-modal').classList.remove('hidden');
+    scenario.sound();
+  }
+
+  function resolveInterruptModal(chosenReply) {
+    if (!activeInterrupt) return;
+    const elapsedSec = Math.max(1, Math.round((Date.now() - activeInterrupt.startTimeMs) / 1000));
+    completedInterrupts++;
+    totalInterruptResponseSeconds += elapsedSec;
+    activeInterrupt = null;
+
+    document.getElementById('interrupt-modal').classList.add('hidden');
+    playTone(587.33, 0.18, 'sine', 0.18);
+    showPmToast(`已處理突發情況（「${chosenReply}」），請繼續留意時間同水煲！`);
+  }
 
   function showPmToast(msg) {
     const toast = document.getElementById('pm-toast');
@@ -572,27 +811,33 @@
   }
 
   function nextGroceryItem() {
-    groceryIndex = (groceryIndex + 1) % groceries.length;
-    document.getElementById('current-item').innerText = groceries[groceryIndex].name;
+    groceryIndex = (groceryIndex + 1) % activeGroceries.length;
+    document.getElementById('current-item').innerText = activeGroceries[groceryIndex].name;
   }
 
   function sortItem(chosenLoc) {
-    const current = groceries[groceryIndex];
+    const current = activeGroceries[groceryIndex];
     const fb = document.getElementById('sort-feedback');
     if (current.loc === chosenLoc) {
       sortedCount++;
       document.getElementById('sort-score').innerText = sortedCount;
       fb.style.color = '#2f855a';
       fb.innerText = '✅ 放啱位置！';
-      playTone(523.25, 0.15, 'sine');
+      playTone(523.25, 0.15, 'sine', 0.15);
       nextGroceryItem();
     } else {
       sortErrors++;
       fb.style.color = '#c53030';
-      fb.innerText = chosenLoc === 'fridge'
-        ? '❌ 呢樣唔使放雪櫃，試下放廚櫃！'
-        : '❌ 呢樣要冷藏保鮮，試下放雪櫃！';
-      playTone(196.0, 0.2, 'sawtooth');
+      if (current.loc === 'trash') {
+        fb.innerText = '❌ 呢樣食物已經過期／發霉啦，唔食得要掉入垃圾桶！';
+      } else if (chosenLoc === 'trash') {
+        fb.innerText = '❌ 呢樣食物仲好新鮮，唔好浪費掉咗佢！';
+      } else {
+        fb.innerText = chosenLoc === 'fridge'
+          ? '❌ 呢樣唔使放雪櫃，試下放廚櫃！'
+          : '❌ 呢樣要冷藏保鮮，試下放雪櫃！';
+      }
+      playTone(196.0, 0.2, 'sawtooth', 0.15);
     }
   }
 
@@ -604,7 +849,31 @@
       audioCtx.resume();
     }
 
-    // Reset simulation state
+    difficultyLevel = document.getElementById('difficulty-select').value;
+    const levelNames = { easy: '初階', medium: '中階', hard: '高階' };
+    document.getElementById('hud-level-label').innerText = levelNames[difficultyLevel];
+
+    // Configure Ongoing Sorting Task difficulty
+    const btnTrash = document.getElementById('btn-sort-trash');
+    const subtitle = document.getElementById('sorting-subtitle');
+    if (difficultyLevel === 'easy') {
+      activeGroceries = [...basicGroceries];
+      btnTrash.classList.add('hidden');
+      subtitle.innerText = '日常家務：將食物放去雪櫃或廚櫃';
+    } else {
+      // Interleave basic groceries with expired/spoiled items for inhibition checking
+      activeGroceries = [
+        basicGroceries[0], expiredGroceries[0], basicGroceries[1],
+        basicGroceries[2], basicGroceries[3], expiredGroceries[1],
+        basicGroceries[4], basicGroceries[5], expiredGroceries[2],
+        basicGroceries[6], basicGroceries[7], expiredGroceries[3],
+        basicGroceries[8], basicGroceries[9]
+      ];
+      btnTrash.classList.remove('hidden');
+      subtitle.innerText = '升級家務：新鮮食物放雪櫃／廚櫃，過期發霉要掉入垃圾桶！';
+    }
+
+    // Reset simulation state & randomize kettle boiling time + interrupts
     groceryIndex = 0;
     sortedCount = 0;
     sortErrors = 0;
@@ -613,13 +882,20 @@
     kettleBoiled = false;
     kettleTurnedOffTime = null;
     prematureKettleClicks = 0;
+    activeInterrupt = null;
+    completedInterrupts = 0;
+    totalInterruptResponseSeconds = 0;
+
+    pickRandomKettleBoilTime();
+    setupInterruptSchedule(difficultyLevel);
 
     document.getElementById('sort-score').innerText = '0';
     document.getElementById('sort-feedback').innerText = '';
     document.getElementById('pm-toast').innerText = '';
-    document.getElementById('current-item').innerText = groceries[0].name;
+    document.getElementById('current-item').innerText = activeGroceries[0].name;
     document.getElementById('sim-clock').innerText = formatSimTime(0);
     document.getElementById('kettle-banner').classList.add('hidden');
+    document.getElementById('interrupt-modal').classList.add('hidden');
 
     const btnMeds = document.getElementById('btn-meds');
     btnMeds.disabled = false;
@@ -636,15 +912,24 @@
 
     clearInterval(clockInterval);
     clockInterval = setInterval(() => {
+      // Clock continues ticking even during an interruption so time-monitoring is genuinely tested!
       simMinutes++;
       document.getElementById('sim-clock').innerText = formatSimTime(simMinutes);
 
-      // Event-based cue: Kettle boils at +10 mins
+      // Check for scheduled popup life interruption
+      const pendingInterrupt = scheduledInterrupts.find(item => item.minute === simMinutes && !item.triggered);
+      if (pendingInterrupt && !activeInterrupt) {
+        pendingInterrupt.triggered = true;
+        triggerInterruptModal(pendingInterrupt.scenario);
+      }
+
+      // Event-based cue: Kettle boils at randomized kettleBoilTime
       if (simMinutes === kettleBoilTime && kettleTurnedOffTime === null) {
         kettleBoiled = true;
         document.getElementById('kettle-banner').classList.remove('hidden');
         playKettleWhistle();
-      } else if (kettleBoiled && kettleTurnedOffTime === null && simMinutes % 2 === 0) {
+      } else if (kettleBoiled && kettleTurnedOffTime === null) {
+        // Keep whistling loudly every simulated minute until turned off
         playKettleWhistle();
       }
 
@@ -662,14 +947,14 @@
     btn.disabled = true;
     btn.style.opacity = '0.6';
     btn.innerText = `✅ 已食藥 (${formatSimTime(simMinutes)})`;
-    playTone(659.25, 0.25, 'triangle');
+    playTone(659.25, 0.25, 'triangle', 0.2);
     showPmToast(`已記錄於 ${formatSimTime(simMinutes)} 食朝早藥。`);
   }
 
   function triggerKettle() {
     if (!kettleBoiled) {
       prematureKettleClicks++;
-      playTone(220, 0.18, 'sine');
+      playTone(220, 0.18, 'sine', 0.15);
       showPmToast('水仲未滾喎，繼續煲多陣先！');
       return;
     }
@@ -680,12 +965,13 @@
     btn.disabled = true;
     btn.style.opacity = '0.6';
     btn.innerText = `✅ 已熄火 (${formatSimTime(simMinutes)})`;
-    playTone(587.33, 0.25, 'triangle');
+    playTone(587.33, 0.25, 'triangle', 0.2);
     showPmToast(`已記錄於 ${formatSimTime(simMinutes)} 熄咗水煲火。`);
   }
 
   function endGame() {
     clearInterval(clockInterval);
+    document.getElementById('interrupt-modal').classList.add('hidden');
     document.getElementById('phase-game').classList.add('hidden');
     document.getElementById('phase-results').classList.remove('hidden');
 
@@ -703,21 +989,30 @@
       medsOutcome = `<span style="color:#dd6b20;">⚠️ 遲咗 — 於 ${formatSimTime(medsTakenTime)} 食藥（比目標時段遲咗 ${medsTakenTime - 18} 分鐘）。</span>`;
     }
 
-    // Evaluate Event-Based Prospective Memory (Target: Kettle boils 10 mins after startHour)
+    // Evaluate Event-Based Prospective Memory (Target: Kettle boils at randomized kettleBoilTime)
     let kettleOutcome = '';
+    const boilTimeStr = formatSimTime(kettleBoilTime);
     if (kettleTurnedOffTime === null) {
-      kettleOutcome = '<span style="color:#c53030;">❌ 遺漏 — 水煲一直煲到練習結束都未熄火。</span>';
+      kettleOutcome = `<span style="color:#c53030;">❌ 遺漏 — 水煲於 ${boilTimeStr} 水滾，一直煲到練習結束都未熄火。</span>`;
     } else {
       const delay = kettleTurnedOffTime - kettleBoilTime;
       if (delay <= 1) {
-        kettleOutcome = `<span style="color:#2f855a;">✅ 反應敏捷 — 於 ${formatSimTime(kettleTurnedOffTime)} 熄火（水滾提示後 ${delay} 分鐘內完成）。</span>`;
+        kettleOutcome = `<span style="color:#2f855a;">✅ 反應敏捷 — 水煲於 ${boilTimeStr} 水滾，你於 ${formatSimTime(kettleTurnedOffTime)} 熄火（提示後 ${delay} 分鐘內完成）。</span>`;
       } else {
-        kettleOutcome = `<span style="color:#dd6b20;">⚠️ 反應稍遲 — 於 ${formatSimTime(kettleTurnedOffTime)} 熄火（水滾提示後 ${delay} 分鐘先處理）。</span>`;
+        kettleOutcome = `<span style="color:#dd6b20;">⚠️ 反應稍遲 — 水煲於 ${boilTimeStr} 水滾，你於 ${formatSimTime(kettleTurnedOffTime)} 熄火（提示後 ${delay} 分鐘先處理）。</span>`;
       }
     }
 
     const totalSorts = sortedCount + sortErrors;
     const sortAccuracy = totalSorts > 0 ? Math.round((sortedCount / totalSorts) * 100) : 0;
+
+    let interruptSummaryHtml = '';
+    if (difficultyLevel === 'easy') {
+      interruptSummaryHtml = '初階模式（無突發生活干擾）';
+    } else {
+      const avgSec = completedInterrupts > 0 ? Math.round(totalInterruptResponseSeconds / completedInterrupts) : 0;
+      interruptSummaryHtml = `共出現 ${scheduledInterrupts.length} 次突發干擾，已處理 ${completedInterrupts} 次（平均反應時間：${avgSec} 秒）`;
+    }
 
     document.getElementById('results-content').innerHTML = `
       <div class="metric-card">
@@ -728,13 +1023,17 @@
         ${medsOutcome}
       </div>
       <div class="metric-card">
-        <strong>3. 事件性前瞻記憶（水滾熄火）：</strong><br>
+        <strong>3. 事件性前瞻記憶（隨機水滾熄火 — 今次於 ${boilTimeStr} 水滾）：</strong><br>
         ${kettleOutcome}
         ${prematureKettleClicks > 0 ? `<br><small>水未滾前提早檢查次數：${prematureKettleClicks} 次</small>` : ''}
       </div>
       <div class="metric-card">
-        <strong>4. 雙重任務執行（執拾食物雜貨）：</strong><br>
+        <strong>4. 雙重任務執行（執拾食物雜貨${difficultyLevel !== 'easy' ? ' ＋ 過期食物檢查' : ''}）：</strong><br>
         正確分類 ${sortedCount} 件物品（準確率 ${sortAccuracy}%，錯誤 ${sortErrors} 次）。
+      </div>
+      <div class="metric-card">
+        <strong>5. 突發生活干擾應對（電話／門鐘中斷）：</strong><br>
+        ${interruptSummaryHtml}
       </div>
     `;
   }
