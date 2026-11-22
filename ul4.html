@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upper Limb & Hand Kinematics Tracker - OT Clinical Edition</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      margin: 0; padding: 20px;
+      background: var(--bg); color: var(--text);
+      display: flex; flex-direction: column; align-items: center;
+    }
+    header {
+      width: 100%; max-width: 1280px;
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+    h1 { font-size: 1.4rem; margin: 0; }
+    .status-badge {
+      font-size: 0.9rem; padding: 6px 12px; border-radius: 999px;
+      background: #334155; color: #38bdf8; font-weight: 600;
+    }
+    .controls {
+      width: 100%; max-width: 1280px;
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
+    }
+    button {
+      padding: 10px 16px; border: none; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      background: var(--primary); color: white; transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { background: #475569; cursor: not-allowed; opacity: 0.6; }
+    button.recording { background: var(--danger); animation: pulse 1.5s infinite; }
+    button.secondary { background: #334155; }
+    button.success-btn { background: #16a34a; }
+    button.print-btn { background: #0284c7; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+    .main-grid {
+      width: 100%; max-width: 1280px;
+      display: grid; grid-template-columns: 1fr 370px; gap: 20px;
+    }
+    @media (max-width: 980px) { .main-grid { grid-template-columns: 1fr; } }
+
+    .video-container {
+      position: relative; width: 100%; aspect-ratio: 4 / 3;
+      background: #000; border-radius: 12px; overflow: hidden;
+      border: 2px solid var(--border);
+    }
+    video { display: none; }
+    canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .card {
+      background: var(--panel); padding: 15px; border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .card h2 {
+      font-size: 1rem; margin: 0 0 12px 0; color: #38bdf8;
+      border-bottom: 1px solid var(--border); padding-bottom: 8px;
+    }
+    .metric { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.92rem; }
+    .metric span:first-child { color: var(--muted); }
+    .metric span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .grasp-active { color: var(--success) !important; }
+    .step-highlight { color: var(--success); font-weight: bold; font-size: 1.15rem; }
+
+    .span-boxes {
+      display: flex; gap: 6px; justify-content: flex-end;
+    }
+    .span-box {
+      width: 26px; height: 28px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.95rem;
+      background: #0f172a; border: 1px solid var(--border); color: var(--text);
+    }
+    .span-box.caught { background: #16a34a; border-color: #22c55e; color: #fff; }
+    .span-box.active { border-color: #38bdf8; color: #38bdf8; box-shadow: 0 0 0 1px #38bdf8; }
+    .span-box.hidden-digit { color: var(--muted); }
+
+    .setting-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 0.9rem; }
+    .setting-row:last-child { margin-bottom: 0; }
+    .setting-header { display: flex; justify-content: space-between; color: var(--text); font-weight: 600; }
+    select, input[type="number"], input[type="text"], textarea {
+      width: 100%; padding: 8px 10px; border-radius: 6px;
+      background: #0f172a; color: var(--text); border: 1px solid var(--border); font-size: 0.9rem;
+    }
+    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
+    .checkbox-row input { width: 16px; height: 16px; accent-color: var(--primary); }
+    .hidden { display: none !important; }
+
+    /* Post-Session Summary & SOAP Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 1000; padding: 20px; overflow-y: auto;
+    }
+    .modal-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 16px; width: 100%; max-width: 780px;
+      padding: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
+      max-height: 92vh; overflow-y: auto;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;
+    }
+    .modal-header h2 { margin: 0; color: #38bdf8; font-size: 1.3rem; }
+    .close-btn {
+      background: transparent; color: var(--muted); font-size: 1.5rem;
+      padding: 0 8px; line-height: 1;
+    }
+    .close-btn:hover { color: var(--text); }
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 18px;
+    }
+    @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } }
+    .stat-box {
+      background: #0f172a; padding: 12px; border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .stat-box .label { font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+    .stat-box .value { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+    .stat-box .sub { font-size: 0.8rem; color: #38bdf8; margin-top: 2px; }
+
+    /* SOAP Clinical Section inside Modal */
+    .soap-builder {
+      background: #0f172a; border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px; margin-bottom: 18px;
+    }
+    .soap-builder h3 { margin: 0 0 12px 0; font-size: 1.05rem; color: #38bdf8; }
+    .patient-meta-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px;
+    }
+    @media (max-width: 640px) { .patient-meta-grid { grid-template-columns: 1fr; } }
+    .field-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .field-group label { font-size: 0.82rem; color: var(--muted); font-weight: 600; }
+    textarea { resize: vertical; min-height: 62px; line-height: 1.45; }
+
+    .modal-actions {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;
+    }
+
+    /* Dedicated Print Sheet */
+    #printableReport { display: none; }
+
+    @media print {
+      body {
+        background: #ffffff !important; color: #000000 !important;
+        padding: 0 !important; margin: 0 !important;
+      }
+      header, .controls, .main-grid, .modal-backdrop { display: none !important; }
+      #printableReport {
+        display: block !important; width: 100%; max-width: 800px;
+        margin: 0 auto; padding: 24px; color: #111827; font-size: 11pt; line-height: 1.5;
+      }
+      .print-header {
+        border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 16px;
+        display: flex; justify-content: space-between; align-items: flex-end;
+      }
+      .print-header h1 { font-size: 16pt; color: #1e3a8a; margin: 0; }
+      .print-meta-table {
+        width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10pt;
+      }
+      .print-meta-table td {
+        border: 1px solid #cbd5e1; padding: 6px 10px;
+      }
+      .print-meta-table td.lbl { background: #f1f5f9; font-weight: 700; width: 18%; }
+      .soap-section { margin-bottom: 14px; page-break-inside: avoid; }
+      .soap-title {
+        background: #e2e8f0; color: #0f172a; font-weight: 700;
+        padding: 5px 10px; border-left: 4px solid #1e3a8a; margin-bottom: 6px;
+        font-size: 10.5pt;
+      }
+      .soap-body { padding: 4px 10px; white-space: pre-wrap; }
+      .obj-table {
+        width: 100%; border-collapse: collapse; margin: 6px 0 8px 0; font-size: 9.5pt;
+      }
+      .obj-table th, .obj-table td {
+        border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left;
+      }
+      .obj-table th { background: #f8fafc; font-weight: 700; }
+      .signature-block {
+        margin-top: 28px; display: flex; justify-content: space-between;
+        border-top: 1px solid #94a3b8; padding-top: 10px; font-size: 10pt;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Upper Limb & Hand Kinematics Tracker</h1>
+    <div id="statusBadge" class="status-badge">Loading AI Models...</div>
+  </header>
+
+  <div class="controls">
+    <button id="btnCamera" disabled>Start Camera</button>
+    <button id="btnRecord" disabled>Start Session</button>
+    <button id="btnResetTargets" class="secondary" disabled>New Sequence / Respawn</button>
+    <button id="btnSummary" class="secondary" disabled>Summary & SOAP Note</button>
+    <button id="btnCsv" class="secondary" disabled>Download CSV</button>
+    <button id="btnJson" class="secondary" disabled>Download JSON</button>
+  </div>
+
+  <div class="main-grid">
+    <div class="video-container">
+      <video id="webcam" autoplay playsinline></video>
+      <canvas id="outputCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <div class="sidebar">
+      <!-- Cognitive & Task Mode -->
+      <div class="card">
+        <h2>Task & Cognitive Mode (5-Digit Span)</h2>
+
+        <div class="setting-row">
+          <div class="setting-header">
+            <label for="taskMode">Reaching Task Type:</label>
+          </div>
+          <select id="taskMode">
+            <option value="DIGIT_SPAN" selected>5-Digit Span Recall (Random Sequence)</option>
+            <option value="FIXED_1_5">Sequential Motor (1 → 2 → 3 → 4 → 5)</option>
+          </select>
+        </div>
+
+        <div id="digitSpanOptions">
+          <div class="setting-row">
+            <div class="setting-header">
+              <label for="memorizeSeconds">Memorization Preview Time:</label>
+              <span id="memorizeSecondsVal" style="color: #38bdf8;">4 sec</span>
+            </div>
+            <input type="range" id="memorizeSeconds" min="2" max="10" step="1" value="4" />
+          </div>
+
+          <div class="setting-row">
+            <label class="checkbox-row">
+              <input type="checkbox" id="hideSequenceToggle" checked />
+              <span>Hide Sequence Prompt After Preview</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Protocol Settings -->
+      <div class="card">
+        <h2>Session Protocol (Timer / Reps)</h2>
+
+        <div class="setting-row">
+          <div class="setting-header">
+            <label for="stopMode">Session Stop Condition:</label>
+          </div>
+          <select id="stopMode">
+            <option value="MANUAL">Free Practice (Manual Stop)</option>
+            <option value="TIMER">Session Timer (1–10 Mins)</option>
+            <option value="REPS">Repetition Limit (Target Rounds)</option>
+          </select>
+        </div>
+
+        <div class="setting-row hidden" id="timerSettingRow">
+          <div class="setting-header">
+            <label for="timerMinutes">Session Duration:</label>
+            <span id="timerMinutesVal" style="color: #38bdf8;">3 min</span>
+          </div>
+          <input type="range" id="timerMinutes" min="1" max="10" step="1" value="3" />
+        </div>
+
+        <div class="setting-row hidden" id="repsSettingRow">
+          <div class="setting-header">
+            <label for="targetReps">Target Rounds (5-Digit Cycles):</label>
+            <span id="targetRepsVal" style="color: #38bdf8;">5 rounds</span>
+          </div>
+          <input type="range" id="targetReps" min="1" max="20" step="1" value="5" />
+        </div>
+
+        <div class="metric" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+          <span>Session Status / Remaining:</span>
+          <span id="protocolStatusDisplay" style="color: #facc15;">Ready</span>
+        </div>
+      </div>
+
+      <!-- Clinical Settings -->
+      <div class="card">
+        <h2>Clinical Constraints</h2>
+
+        <div class="setting-row">
+          <div class="setting-header">
+            <label for="handMode">Active Training Hand (CIMT):</label>
+          </div>
+          <select id="handMode">
+            <option value="BOTH">Both Hands Allowed</option>
+            <option value="LEFT">Left Hand Only</option>
+            <option value="RIGHT">Right Hand Only</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-header">
+            <label for="shoulderThreshold">Min Shoulder Elevation:</label>
+            <span id="thresholdVal" style="color: #38bdf8;">90°</span>
+          </div>
+          <input type="range" id="shoulderThreshold" min="0" max="150" step="5" value="90" />
+        </div>
+
+        <div class="setting-row">
+          <label class="checkbox-row">
+            <input type="checkbox" id="soundToggle" checked />
+            <span>Audio Feedback Tones</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Task Progress -->
+      <div class="card">
+        <h2>Task Progress (5-Digit Sequence)</h2>
+        <div class="metric">
+          <span>Target 5-Digit Span:</span>
+          <div id="spanSequenceBoxes" class="span-boxes">
+            <div class="span-box">-</div>
+            <div class="span-box">-</div>
+            <div class="span-box">-</div>
+            <div class="span-box">-</div>
+            <div class="span-box">-</div>
+          </div>
+        </div>
+        <div class="metric">
+          <span>Step Progress:</span>
+          <span id="currentStepDisplay" class="step-highlight">1 / 5</span>
+        </div>
+        <div class="metric">
+          <span>Completed Rounds:</span>
+          <span id="roundsDisplay">0</span>
+        </div>
+      </div>
+
+      <!-- Left Upper Limb -->
+      <div class="card">
+        <h2>Left Upper Limb</h2>
+        <div class="metric"><span>Elbow Flexion:</span><span id="leftElbow">--°</span></div>
+        <div class="metric"><span>Shoulder Elevation:</span><span id="leftShoulder">--°</span></div>
+        <div class="metric"><span>Hand Status:</span><span id="leftHand">Not detected</span></div>
+      </div>
+
+      <!-- Right Upper Limb -->
+      <div class="card">
+        <h2>Right Upper Limb</h2>
+        <div class="metric"><span>Elbow Flexion:</span><span id="rightElbow">--°</span></div>
+        <div class="metric"><span>Shoulder Elevation:</span><span id="rightShoulder">--°</span></div>
+        <div class="metric"><span>Hand Status:</span><span id="rightHand">Not detected</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Post-Session Summary & SOAP Note Generator Modal -->
+  <div id="summaryModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Post-Session Summary & OT SOAP Note</h2>
+        <button id="btnCloseModal" class="close-btn" title="Close">&times;</button>
+      </div>
+
+      <div id="summaryStatsGrid" class="summary-grid"></div>
+
+      <div class="soap-builder">
+        <h3>Clinical Documentation (SOAP Note Builder)</h3>
+        <div class="patient-meta-grid">
+          <div class="field-group">
+            <label for="patientId">Patient Name / ID</label>
+            <input type="text" id="patientId" placeholder="e.g., PT-2026-084" />
+          </div>
+          <div class="field-group">
+            <label for="patientDx">Diagnosis / Affected Side</label>
+            <input type="text" id="patientDx" placeholder="e.g., L MCA CVA / R Hemiparesis" />
+          </div>
+          <div class="field-group">
+            <label for="therapistName">Occupational Therapist</label>
+            <input type="text" id="therapistName" placeholder="e.g., J. Chan, OTR" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="soapS">S (Subjective) — Patient report, fatigue, pain, perceived effort</label>
+          <textarea id="soapS" placeholder="Patient reported mild shoulder fatigue toward end of session; denied sharp pain (NPRS 0/10)."></textarea>
+        </div>
+
+        <div class="field-group">
+          <label for="soapO">O (Objective) — Auto-populated from kinematics & cognitive task data (editable)</label>
+          <textarea id="soapO" style="min-height: 92px;"></textarea>
+        </div>
+
+        <div class="field-group">
+          <label for="soapA">A (Assessment) — Motor control, working memory recall, ROM quality</label>
+          <textarea id="soapA" placeholder="Demonstrated intact 5-digit working memory recall during overhead reaching; required minimal cues to maintain shoulder elevation."></textarea>
+        </div>
+
+        <div class="field-group" style="margin-bottom: 0;">
+          <label for="soapP">P (Plan) — Next session progression & home program</label>
+          <textarea id="soapP" placeholder="Continue 2x/week OT; progress shoulder elevation threshold by +10° and maintain hidden digit span recall."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="modalBtnPrintPdf" class="print-btn">Print / Save PDF Report</button>
+        <button id="modalBtnCsv" class="secondary">Download CSV</button>
+        <button id="modalBtnJson" class="secondary">Download JSON</button>
+        <button id="modalBtnNewSession" class="success-btn">Start New Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Printable Clinical Report Layout -->
+  <div id="printableReport">
+    <div class="print-header">
+      <div>
+        <h1>OCCUPATIONAL THERAPY — UPPER LIMB & COGNITIVE REPORT</h1>
+        <div style="font-size: 9.5pt; color: #475569;">Computer-Vision Assisted Reaching, Grasp & 5-Digit Span Assessment</div>
+      </div>
+      <div style="text-align: right; font-size: 9.5pt;">
+        <div><strong>Date:</strong> <span id="printDate"></span></div>
+        <div><strong>Protocol:</strong> <span id="printProtocol"></span></div>
+      </div>
+    </div>
+
+    <table class="print-meta-table">
+      <tr>
+        <td class="lbl">Patient ID / Name</td>
+        <td id="printPatientId">—</td>
+        <td class="lbl">Diagnosis</td>
+        <td id="printPatientDx">—</td>
+      </tr>
+      <tr>
+        <td class="lbl">Active Hand Mode</td>
+        <td id="printHandMode">—</td>
+        <td class="lbl">Task & Threshold</td>
+        <td id="printThreshold">—</td>
+      </tr>
+    </table>
+
+    <div class="soap-section">
+      <div class="soap-title">S — SUBJECTIVE</div>
+      <div class="soap-body" id="printSoapS"></div>
+    </div>
+
+    <div class="soap-section">
+      <div class="soap-title">O — OBJECTIVE (KINEMATICS & 5-DIGIT SPAN PERFORMANCE)</div>
+      <table class="obj-table" id="printMetricsTable"></table>
+      <div class="soap-body" id="printSoapO"></div>
+    </div>
+
+    <div class="soap-section">
+      <div class="soap-title">A — ASSESSMENT</div>
+      <div class="soap-body" id="printSoapA"></div>
+    </div>
+
+    <div class="soap-section">
+      <div class="soap-title">P — PLAN</div>
+      <div class="soap-body" id="printSoapP"></div>
+    </div>
+
+    <div class="signature-block">
+      <div><strong>Clinician:</strong> <span id="printTherapist">______________________</span></div>
+      <div><strong>Signature / License #:</strong> __________________________</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { FilesetResolver, PoseLandmarker, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+    const video = document.getElementById("webcam");
+    const canvas = document.getElementById("outputCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const statusBadge = document.getElementById("statusBadge");
+    const btnCamera = document.getElementById("btnCamera");
+    const btnRecord = document.getElementById("btnRecord");
+    const btnResetTargets = document.getElementById("btnResetTargets");
+    const btnSummary = document.getElementById("btnSummary");
+    const btnCsv = document.getElementById("btnCsv");
+    const btnJson = document.getElementById("btnJson");
+
+    // Modal & SOAP Elements
+    const summaryModal = document.getElementById("summaryModal");
+    const summaryStatsGrid = document.getElementById("summaryStatsGrid");
+    const btnCloseModal = document.getElementById("btnCloseModal");
+    const modalBtnPrintPdf = document.getElementById("modalBtnPrintPdf");
+    const modalBtnCsv = document.getElementById("modalBtnCsv");
+    const modalBtnJson = document.getElementById("modalBtnJson");
+    const modalBtnNewSession = document.getElementById("modalBtnNewSession");
+
+    // Task & Cognitive Elements
+    const taskModeSelect = document.getElementById("taskMode");
+    const digitSpanOptions = document.getElementById("digitSpanOptions");
+    const memorizeSecondsSlider = document.getElementById("memorizeSeconds");
+    const memorizeSecondsVal = document.getElementById("memorizeSecondsVal");
+    const hideSequenceToggle = document.getElementById("hideSequenceToggle");
+    const spanSequenceBoxes = document.getElementById("spanSequenceBoxes");
+    const currentStepDisplay = document.getElementById("currentStepDisplay");
+
+    // Protocol Elements
+    const stopModeSelect = document.getElementById("stopMode");
+    const timerSettingRow = document.getElementById("timerSettingRow");
+    const repsSettingRow = document.getElementById("repsSettingRow");
+    const timerMinutesSlider = document.getElementById("timerMinutes");
+    const timerMinutesVal = document.getElementById("timerMinutesVal");
+    const targetRepsSlider = document.getElementById("targetReps");
+    const targetRepsVal = document.getElementById("targetRepsVal");
+    const protocolStatusDisplay = document.getElementById("protocolStatusDisplay");
+
+    // Clinical Elements
+    const handModeSelect = document.getElementById("handMode");
+    const shoulderSlider = document.getElementById("shoulderThreshold");
+    const thresholdValDisplay = document.getElementById("thresholdVal");
+    const soundToggle = document.getElementById("soundToggle");
+
+    taskModeSelect.addEventListener("change", () => {
+      digitSpanOptions.classList.toggle("hidden", taskModeSelect.value !== "DIGIT_SPAN");
+      if (isRunning) spawnTargets();
+    });
+
+    memorizeSecondsSlider.addEventListener("input", () => {
+      memorizeSecondsVal.textContent = `${memorizeSecondsSlider.value} sec`;
+    });
+
+    hideSequenceToggle.addEventListener("change", updateSpanProgressUI);
+
+    stopModeSelect.addEventListener("change", () => {
+      const mode = stopModeSelect.value;
+      timerSettingRow.classList.toggle("hidden", mode !== "TIMER");
+      repsSettingRow.classList.toggle("hidden", mode !== "REPS");
+      updateIdleProtocolLabel();
+    });
+
+    timerMinutesSlider.addEventListener("input", () => {
+      timerMinutesVal.textContent = `${timerMinutesSlider.value} min`;
+      updateIdleProtocolLabel();
+    });
+
+    targetRepsSlider.addEventListener("input", () => {
+      targetRepsVal.textContent = `${targetRepsSlider.value} rounds`;
+      updateIdleProtocolLabel();
+    });
+
+    shoulderSlider.addEventListener("input", () => {
+      thresholdValDisplay.textContent = `${shoulderSlider.value}°`;
+    });
+
+    function updateIdleProtocolLabel() {
+      if (isRecording) return;
+      const mode = stopModeSelect.value;
+      if (mode === "MANUAL") protocolStatusDisplay.textContent = "Free Practice";
+      else if (mode === "TIMER") protocolStatusDisplay.textContent = `${timerMinutesSlider.value}:00 Limit`;
+      else if (mode === "REPS") protocolStatusDisplay.textContent = `0 / ${targetRepsSlider.value} Rounds`;
+    }
+
+    // Web Audio API Synthesizer
+    let audioCtx = null;
+    function playTone(type) {
+      if (!soundToggle.checked) return;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === "catch") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === "roundComplete") {
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = "triangle";
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.frequency.setValueAtTime(freq, now + idx * 0.08);
+          g.gain.setValueAtTime(0.22, now + idx * 0.08);
+          g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.25);
+          o.start(now + idx * 0.08);
+          o.stop(now + idx * 0.08 + 0.25);
+        });
+      } else if (type === "sessionEnd") {
+        const notes = [659.25, 783.99, 1046.50, 1318.51];
+        notes.forEach((freq, idx) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = "sine";
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.frequency.setValueAtTime(freq, now + idx * 0.12);
+          g.gain.setValueAtTime(0.28, now + idx * 0.12);
+          g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.12 + 0.4);
+          o.start(now + idx * 0.12);
+          o.stop(now + idx * 0.12 + 0.4);
+        });
+      } else if (type === "warn") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(160, now);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      }
+    }
+
+    let poseLandmarker = null;
+    let handLandmarker = null;
+    let isRunning = false;
+    let isRecording = false;
+    let recordedData = [];
+    let recordStartTime = 0;
+    let sessionDurationLimitMs = 0;
+    let sessionRepLimit = 0;
+    let lastSessionSummary = null;
+
+    // 5-Digit Span & Task State
+    let targets = [];
+    let targetSequence = [1, 2, 3, 4, 5]; // The 5-digit sequence to catch in order
+    let currentIndex = 0; // Index 0..4 in targetSequence
+    let memorizeEndTime = 0; // Timestamp when memorization preview ends
+    let completedRounds = 0;
+    let totalTargetsCaught = 0;
+    let sequenceErrors = 0; // Wrong digit grasped
+    let reactionTimesSec = [];
+    let catchShoulderAngles = [];
+    let catchHandCounts = { LEFT: 0, RIGHT: 0 };
+    let maxLeftShoulder = 0;
+    let maxRightShoulder = 0;
+    let maxLeftElbow = 0;
+    let maxRightElbow = 0;
+    let compensationWarnings = 0;
+    let lastCatchTime = 0;
+    let lastWarnTime = 0;
+    let lastWrongTargetId = null;
+    let warningMessage = "";
+    let warningExpireTime = 0;
+    let sessionBannerText = "";
+    let sessionBannerExpire = 0;
+
+    async function initModels() {
+      try {
+        statusBadge.textContent = "Initializing Pose & Hand models...";
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+        );
+
+        poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+            delegate: "GPU"
+          },
+          runningMode: "VIDEO",
+          numPoses: 1
+        });
+
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+            delegate: "GPU"
+          },
+          runningMode: "VIDEO",
+          numHands: 2
+        });
+
+        statusBadge.textContent = "Models Ready";
+        statusBadge.style.color = "#22c55e";
+        btnCamera.disabled = false;
+      } catch (err) {
+        statusBadge.textContent = "Model Load Error: " + err.message;
+        statusBadge.style.color = "#ef4444";
+      }
+    }
+
+    function generateFiveDigitSequence() {
+      if (taskModeSelect.value === "FIXED_1_5") {
+        return [1, 2, 3, 4, 5];
+      }
+      // Pick 5 unique digits from 0..9 in random order
+      const pool = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      return pool.slice(0, 5);
+    }
+
+    function spawnTargets() {
+      targets = [];
+      targetSequence = generateFiveDigitSequence();
+      currentIndex = 0;
+      lastWrongTargetId = null;
+
+      const now = performance.now();
+      if (taskModeSelect.value === "DIGIT_SPAN") {
+        memorizeEndTime = now + Number(memorizeSecondsSlider.value) * 1000;
+      } else {
+        memorizeEndTime = 0;
+      }
+
+      const radius = 36;
+      const minDistance = radius * 2.4;
+
+      for (let i = 0; i < 5; i++) {
+        let x, y, valid;
+        let attempts = 0;
+        do {
+          valid = true;
+          x = canvas.width * (0.12 + Math.random() * 0.76);
+          y = canvas.height * (0.13 + Math.random() * 0.13);
+          for (const t of targets) {
+            if (Math.hypot(x - t.x, y - t.y) < minDistance) {
+              valid = false;
+              break;
+            }
+          }
+          attempts++;
+        } while (!valid && attempts < 50);
+
+        targets.push({
+          id: i,
+          digit: targetSequence[i],
+          orderIndex: i,
+          x,
+          y,
+          radius,
+          caught: false
+        });
+      }
+
+      lastCatchTime = memorizeEndTime > now ? memorizeEndTime : now;
+      updateSpanProgressUI();
+    }
+
+    function updateSpanProgressUI(now = performance.now()) {
+      const isMemorizing = taskModeSelect.value === "DIGIT_SPAN" && now < memorizeEndTime;
+      const hidePrompt = taskModeSelect.value === "DIGIT_SPAN" && hideSequenceToggle.checked && !isMemorizing;
+
+      currentStepDisplay.textContent = currentIndex < 5 ? `${currentIndex + 1} / 5` : "Done";
+
+      spanSequenceBoxes.innerHTML = targetSequence.map((digit, idx) => {
+        if (idx < currentIndex) {
+          return `<div class="span-box caught">${digit}</div>`;
+        }
+        if (hidePrompt) {
+          return `<div class="span-box hidden-digit ${idx === currentIndex ? 'active' : ''}">?</div>`;
+        }
+        const activeClass = (taskModeSelect.value === "FIXED_1_5" && idx === currentIndex) ? "active" : "";
+        return `<div class="span-box ${activeClass}">${digit}</div>`;
+      }).join("");
+    }
+
+    function calculateAngle(a, b, c) {
+      if (!a || !b || !c) return null;
+      const ab = { x: a.x - b.x, y: a.y - b.y };
+      const cb = { x: c.x - b.x, y: c.y - b.y };
+      const dot = ab.x * cb.x + ab.y * cb.y;
+      const magAB = Math.hypot(ab.x, ab.y);
+      const magCB = Math.hypot(cb.x, cb.y);
+      if (magAB === 0 || magCB === 0) return null;
+      const cosAngle = Math.max(-1, Math.min(1, dot / (magAB * magCB)));
+      return Math.round((Math.acos(cosAngle) * 180) / Math.PI);
+    }
+
+    function detectGrasp(landmarks) {
+      const wrist = landmarks[0];
+      const middleMcp = landmarks[9];
+      const palmSize = Math.hypot(middleMcp.x - wrist.x, middleMcp.y - wrist.y);
+      if (palmSize === 0) return false;
+
+      const tips = [8, 12, 16, 20];
+      let avgTipDist = 0;
+      for (const idx of tips) {
+        avgTipDist += Math.hypot(landmarks[idx].x - wrist.x, landmarks[idx].y - wrist.y);
+      }
+      avgTipDist /= tips.length;
+      return (avgTipDist / palmSize) < 1.25;
+    }
+
+    btnCamera.addEventListener("click", async () => {
+      if (isRunning) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 800, height: 600, facingMode: "user" }
+        });
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          isRunning = true;
+          btnCamera.disabled = true;
+          btnRecord.disabled = false;
+          btnResetTargets.disabled = false;
+          spawnTargets();
+          predictLoop();
+        };
+      } catch (err) {
+        statusBadge.textContent = "Camera Error: " + err.message;
+        statusBadge.style.color = "#ef4444";
+      }
+    });
+
+    btnResetTargets.addEventListener("click", spawnTargets);
+
+    function startSession() {
+      isRecording = true;
+      recordedData = [];
+      completedRounds = 0;
+      totalTargetsCaught = 0;
+      sequenceErrors = 0;
+      reactionTimesSec = [];
+      catchShoulderAngles = [];
+      catchHandCounts = { LEFT: 0, RIGHT: 0 };
+      maxLeftShoulder = 0;
+      maxRightShoulder = 0;
+      maxLeftElbow = 0;
+      maxRightElbow = 0;
+      compensationWarnings = 0;
+
+      document.getElementById("roundsDisplay").textContent = "0";
+      recordStartTime = performance.now();
+      sessionBannerText = "";
+
+      const mode = stopModeSelect.value;
+      if (mode === "TIMER") {
+        sessionDurationLimitMs = Number(timerMinutesSlider.value) * 60 * 1000;
+      } else if (mode === "REPS") {
+        sessionRepLimit = Number(targetRepsSlider.value);
+      }
+
+      stopModeSelect.disabled = true;
+      timerMinutesSlider.disabled = true;
+      targetRepsSlider.disabled = true;
+
+      btnRecord.textContent = "Stop Session";
+      btnRecord.classList.add("recording");
+      btnCsv.disabled = true;
+      btnJson.disabled = true;
+      btnSummary.disabled = true;
+
+      spawnTargets();
+    }
+
+    function stopSession(reasonText = "Session Stopped") {
+      if (!isRecording) return;
+      isRecording = false;
+      const now = performance.now();
+      const totalElapsedSec = ((now - recordStartTime) / 1000).toFixed(1);
+
+      stopModeSelect.disabled = false;
+      timerMinutesSlider.disabled = false;
+      targetRepsSlider.disabled = false;
+
+      btnRecord.textContent = "Start Session";
+      btnRecord.classList.remove("recording");
+      protocolStatusDisplay.textContent = reasonText;
+
+      if (recordedData.length > 0) {
+        btnCsv.disabled = false;
+        btnJson.disabled = false;
+      }
+
+      playTone("sessionEnd");
+      sessionBannerText = `${reasonText} (${completedRounds} Rounds)`;
+      sessionBannerExpire = now + 4000;
+
+      buildAndShowSummary(reasonText, totalElapsedSec);
+    }
+
+    function buildAndShowSummary(reasonText, totalElapsedSec) {
+      const avgReaction = reactionTimesSec.length > 0
+        ? (reactionTimesSec.reduce((a, b) => a + b, 0) / reactionTimesSec.length).toFixed(2) + " s"
+        : "N/A";
+      const fastestReaction = reactionTimesSec.length > 0
+        ? Math.min(...reactionTimesSec).toFixed(2) + " s"
+        : "N/A";
+      const avgCatchShoulder = catchShoulderAngles.length > 0
+        ? Math.round(catchShoulderAngles.reduce((a, b) => a + b, 0) / catchShoulderAngles.length) + "°"
+        : "N/A";
+
+      const totalAttempts = totalTargetsCaught + sequenceErrors;
+      const sequenceAccuracy = totalAttempts > 0
+        ? Math.round((totalTargetsCaught / totalAttempts) * 100) + "%"
+        : "N/A";
+
+      const modeMap = {
+        MANUAL: "Free Practice",
+        TIMER: `Timer (${timerMinutesSlider.value} min)`,
+        REPS: `Target Reps (${targetRepsSlider.value} rounds)`
+      };
+      const handMap = {
+        BOTH: "Both Hands",
+        LEFT: "Left Hand Only (CIMT)",
+        RIGHT: "Right Hand Only (CIMT)"
+      };
+      const taskLabel = taskModeSelect.value === "DIGIT_SPAN"
+        ? `5-Digit Span (${memorizeSecondsSlider.value}s preview, ${hideSequenceToggle.checked ? "Hidden Recall" : "Visible Cue"})`
+        : "Sequential 1–5 Motor Reach";
+
+      lastSessionSummary = {
+        date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+        completionReason: reasonText,
+        protocol: modeMap[stopModeSelect.value],
+        taskMode: taskLabel,
+        handMode: handMap[handModeSelect.value],
+        shoulderThresholdDeg: Number(shoulderSlider.value),
+        totalDurationSec: Number(totalElapsedSec),
+        completedRounds: completedRounds,
+        totalTargetsCaught: totalTargetsCaught,
+        sequenceErrors: sequenceErrors,
+        sequenceAccuracy: sequenceAccuracy,
+        avgReactionTimeSec: avgReaction,
+        fastestReactionTimeSec: fastestReaction,
+        avgShoulderAtGrasp: avgCatchShoulder,
+        peakLeftShoulderDeg: maxLeftShoulder,
+        peakRightShoulderDeg: maxRightShoulder,
+        peakLeftElbowDeg: maxLeftElbow,
+        peakRightElbowDeg: maxRightElbow,
+        leftCatches: catchHandCounts.LEFT,
+        rightCatches: catchHandCounts.RIGHT,
+        compensationWarnings: compensationWarnings
+      };
+
+      summaryStatsGrid.innerHTML = `
+        <div class="stat-box">
+          <div class="label">Session Outcome & Duration</div>
+          <div class="value">${totalElapsedSec} s</div>
+          <div class="sub">${reasonText}</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">5-Digit Span Accuracy & Rounds</div>
+          <div class="value">${sequenceAccuracy} (${completedRounds} Rounds)</div>
+          <div class="sub">${totalTargetsCaught} correct | ${sequenceErrors} sequence errors</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">Target Acquisition Speed</div>
+          <div class="value">Avg: ${avgReaction}</div>
+          <div class="sub">Fastest: ${fastestReaction} | L: ${catchHandCounts.LEFT} / R: ${catchHandCounts.RIGHT}</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">Shoulder Elevation at Grasp</div>
+          <div class="value">Avg: ${avgCatchShoulder}</div>
+          <div class="sub">Min Threshold: ${shoulderSlider.value}° | ROM Warnings: ${compensationWarnings}</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">Left Upper Limb Peak ROM</div>
+          <div class="value">Shoulder: ${maxLeftShoulder}°</div>
+          <div class="sub">Max Elbow Flexion: ${maxLeftElbow}°</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">Right Upper Limb Peak ROM</div>
+          <div class="value">Shoulder: ${maxRightShoulder}°</div>
+          <div class="sub">Max Elbow Flexion: ${maxRightElbow}°</div>
+        </div>
+      `;
+
+      document.getElementById("soapO").value =
+        `Patient completed ${completedRounds} full rounds (${totalTargetsCaught} targets caught; ${sequenceErrors} sequence errors; ${sequenceAccuracy} recall accuracy) over ${totalElapsedSec}s under ${taskLabel} and ${handMap[handModeSelect.value]} protocol (min shoulder threshold: ${shoulderSlider.value}°). ` +
+        `Mean target acquisition time was ${avgReaction} (fastest: ${fastestReaction}), with mean shoulder elevation of ${avgCatchShoulder} at grasp. ` +
+        `Peak active ROM: Left Shoulder ${maxLeftShoulder}° / Elbow ${maxLeftElbow}°; Right Shoulder ${maxRightShoulder}° / Elbow ${maxRightElbow}°. ` +
+        `Sub-threshold ROM warnings: ${compensationWarnings}.`;
+
+      btnSummary.disabled = false;
+      summaryModal.classList.remove("hidden");
+    }
+
+    function prepareAndPrintReport() {
+      if (!lastSessionSummary) return;
+      const s = lastSessionSummary;
+
+      document.getElementById("printDate").textContent = s.date;
+      document.getElementById("printProtocol").textContent = s.protocol;
+      document.getElementById("printPatientId").textContent = document.getElementById("patientId").value.trim() || "Not Specified";
+      document.getElementById("printPatientDx").textContent = document.getElementById("patientDx").value.trim() || "Not Specified";
+      document.getElementById("printHandMode").textContent = s.handMode;
+      document.getElementById("printThreshold").textContent = `${s.taskMode} | ≥${s.shoulderThresholdDeg}°`;
+
+      document.getElementById("printMetricsTable").innerHTML = `
+        <tr>
+          <th>Duration</th>
+          <th>Rounds / Accuracy</th>
+          <th>Avg / Best Speed</th>
+          <th>Avg Grasp Shoulder</th>
+          <th>Peak L ROM (Sh / El)</th>
+          <th>Peak R ROM (Sh / El)</th>
+          <th>ROM Warnings</th>
+        </tr>
+        <tr>
+          <td>${s.totalDurationSec} s</td>
+          <td>${s.completedRounds} (${s.sequenceAccuracy})</td>
+          <td>${s.avgReactionTimeSec} / ${s.fastestReactionTimeSec}</td>
+          <td>${s.avgShoulderAtGrasp}</td>
+          <td>${s.peakLeftShoulderDeg}° / ${s.peakLeftElbowDeg}°</td>
+          <td>${s.peakRightShoulderDeg}° / ${s.peakRightElbowDeg}°</td>
+          <td>${s.compensationWarnings}</td>
+        </tr>
+      `;
+
+      document.getElementById("printSoapS").textContent =
+        document.getElementById("soapS").value.trim() || "No subjective comments recorded.";
+      document.getElementById("printSoapO").textContent =
+        document.getElementById("soapO").value.trim();
+      document.getElementById("printSoapA").textContent =
+        document.getElementById("soapA").value.trim() || "No clinical assessment notes recorded.";
+      document.getElementById("printSoapP").textContent =
+        document.getElementById("soapP").value.trim() || "Continue current upper limb & cognitive rehabilitation plan.";
+
+      const therapist = document.getElementById("therapistName").value.trim();
+      document.getElementById("printTherapist").textContent = therapist || "______________________";
+
+      window.print();
+    }
+
+    btnRecord.addEventListener("click", () => {
+      if (!isRecording) startSession();
+      else stopSession("Manually Stopped");
+    });
+
+    btnSummary.addEventListener("click", () => {
+      if (lastSessionSummary) summaryModal.classList.remove("hidden");
+    });
+
+    btnCloseModal.addEventListener("click", () => summaryModal.classList.add("hidden"));
+    modalBtnPrintPdf.addEventListener("click", prepareAndPrintReport);
+    modalBtnCsv.addEventListener("click", exportCsv);
+    modalBtnJson.addEventListener("click", exportJson);
+    modalBtnNewSession.addEventListener("click", () => {
+      summaryModal.classList.add("hidden");
+      startSession();
+    });
+
+    function formatTime(ms) {
+      const totalSec = Math.max(0, Math.ceil(ms / 1000));
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+
+    let lastVideoTime = -1;
+    function predictLoop() {
+      if (!isRunning) return;
+
+      const now = performance.now();
+      if (video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+
+        const poseResult = poseLandmarker.detectForVideo(video, now);
+        const handResult = handLandmarker.detectForVideo(video, now);
+
+        // 1. Draw mirrored camera feed
+        ctx.save();
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+        ctx.restore();
+
+        let leftElbowDeg = null, leftShoulderDeg = null;
+        let rightElbowDeg = null, rightShoulderDeg = null;
+        let leftHandState = "Not detected", rightHandState = "Not detected";
+
+        // 2. Body Pose Joint Angles
+        if (poseResult.landmarks && poseResult.landmarks.length > 0) {
+          const lm = poseResult.landmarks[0];
+
+          const rawLeftElbow = calculateAngle(lm[11], lm[13], lm[15]);
+          if (rawLeftElbow !== null) leftElbowDeg = Math.max(0, 180 - rawLeftElbow);
+          leftShoulderDeg = calculateAngle(lm[23], lm[11], lm[13]);
+
+          const rawRightElbow = calculateAngle(lm[12], lm[14], lm[16]);
+          if (rawRightElbow !== null) rightElbowDeg = Math.max(0, 180 - rawRightElbow);
+          rightShoulderDeg = calculateAngle(lm[24], lm[12], lm[14]);
+
+          if (isRecording) {
+            if (leftShoulderDeg !== null && leftShoulderDeg > maxLeftShoulder) maxLeftShoulder = leftShoulderDeg;
+            if (rightShoulderDeg !== null && rightShoulderDeg > maxRightShoulder) maxRightShoulder = rightShoulderDeg;
+            if (leftElbowDeg !== null && leftElbowDeg > maxLeftElbow) maxLeftElbow = leftElbowDeg;
+            if (rightElbowDeg !== null && rightElbowDeg > maxRightElbow) maxRightElbow = rightElbowDeg;
+          }
+
+          drawArmSkeleton(lm, [11, 13, 15], "#38bdf8");
+          drawArmSkeleton(lm, [12, 14, 16], "#f472b6");
+        }
+
+        // 3. Hand Detection & Active Hand Filtering
+        const allowedMode = handModeSelect.value;
+        const minShoulderRequired = Number(shoulderSlider.value);
+        const activeHands = [];
+
+        if (handResult.landmarks && handResult.landmarks.length > 0) {
+          handResult.landmarks.forEach((hLm, idx) => {
+            const isGrasping = detectGrasp(hLm);
+            const statusText = isGrasping ? "Grasping" : "Open";
+
+            const palmX = (1 - hLm[9].x) * canvas.width;
+            const palmY = hLm[9].y * canvas.height;
+
+            const handedness = handResult.handednesses[idx]?.[0]?.categoryName;
+            const side = (handedness === "Left") ? "LEFT" : "RIGHT";
+            const shoulderDeg = (side === "LEFT") ? leftShoulderDeg : rightShoulderDeg;
+
+            if (side === "LEFT") leftHandState = statusText;
+            else rightHandState = statusText;
+
+            const isHandAllowed = (allowedMode === "BOTH" || allowedMode === side);
+            activeHands.push({ x: palmX, y: palmY, isGrasping, side, shoulderDeg, isHandAllowed });
+
+            ctx.beginPath();
+            ctx.arc(palmX, palmY, 18, 0, Math.PI * 2);
+            if (!isHandAllowed) {
+              ctx.fillStyle = "rgba(148, 163, 184, 0.35)";
+              ctx.strokeStyle = "#94a3b8";
+            } else {
+              ctx.fillStyle = isGrasping ? "rgba(34, 197, 94, 0.75)" : "rgba(250, 204, 21, 0.55)";
+              ctx.strokeStyle = isGrasping ? "#22c55e" : "#facc15";
+            }
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          });
+        }
+
+        updateMetricsUI(leftElbowDeg, leftShoulderDeg, leftHandState, rightElbowDeg, rightShoulderDeg, rightHandState);
+        updateSpanProgressUI(now);
+
+        // 4. Digit Span Phase & Target Collision Logic
+        const isMemorizing = taskModeSelect.value === "DIGIT_SPAN" && now < memorizeEndTime;
+        let eventLog = "";
+        let angleInsufficient = false;
+        const expectedTarget = targets[currentIndex];
+
+        if (!isMemorizing && expectedTarget && !expectedTarget.caught) {
+          let touchingAnyTarget = false;
+
+          for (const hand of activeHands) {
+            if (!hand.isGrasping) continue;
+
+            // Check if hand is grasping any uncaught target
+            const hitTarget = targets.find(t => !t.caught && Math.hypot(hand.x - t.x, hand.y - t.y) <= t.radius + 14);
+            if (!hitTarget) continue;
+
+            touchingAnyTarget = true;
+
+            if (!hand.isHandAllowed) {
+              triggerWarning(`Use ${allowedMode} hand only!`, now, false);
+              continue;
+            }
+
+            // Check if patient grabbed the WRONG digit in the 5-digit sequence
+            if (hitTarget.digit !== expectedTarget.digit) {
+              triggerWarning(`Wrong digit (${hitTarget.digit})! Recall sequence in order`, now, false);
+              if (lastWrongTargetId !== hitTarget.id) {
+                lastWrongTargetId = hitTarget.id;
+                if (isRecording) sequenceErrors++;
+                eventLog = `Wrong_Digit_${hitTarget.digit}_Expected_${expectedTarget.digit}`;
+              }
+              continue;
+            }
+
+            // Reset wrong target tracker when touching the right digit
+            lastWrongTargetId = null;
+
+            const currentShoulder = hand.shoulderDeg ?? 0;
+            if (currentShoulder < minShoulderRequired) {
+              angleInsufficient = true;
+              triggerWarning(`Raise arm higher (${currentShoulder}° < ${minShoulderRequired}°)`, now, true);
+              continue;
+            }
+
+            // Successful Catch of Expected Digit in Order!
+            expectedTarget.caught = true;
+            const reactionSec = Number(((now - lastCatchTime) / 1000).toFixed(2));
+            lastCatchTime = now;
+            eventLog = `Caught_Digit_${expectedTarget.digit} (Step_${currentIndex + 1}/5, ${hand.side}, Shoulder:${currentShoulder}°, ${reactionSec}s)`;
+
+            if (isRecording) {
+              totalTargetsCaught++;
+              reactionTimesSec.push(reactionSec);
+              catchShoulderAngles.push(currentShoulder);
+              catchHandCounts[hand.side]++;
+            }
+
+            currentIndex++;
+            updateSpanProgressUI(now);
+
+            if (currentIndex >= 5) {
+              completedRounds++;
+              document.getElementById("roundsDisplay").textContent = completedRounds;
+
+              if (isRecording && stopModeSelect.value === "REPS" && completedRounds >= sessionRepLimit) {
+                recordedData.push({
+                  timestamp_sec: Number(((now - recordStartTime) / 1000).toFixed(3)),
+                  task_mode: taskModeSelect.value,
+                  digit_span_sequence: targetSequence.join("-"),
+                  expected_digit: expectedTarget.digit,
+                  step_progress: "5/5",
+                  protocol_mode: stopModeSelect.value,
+                  hand_mode: allowedMode,
+                  shoulder_threshold_deg: minShoulderRequired,
+                  left_elbow_flexion_deg: leftElbowDeg ?? "",
+                  left_shoulder_elevation_deg: leftShoulderDeg ?? "",
+                  left_hand_status: leftHandState,
+                  right_elbow_flexion_deg: rightElbowDeg ?? "",
+                  right_shoulder_elevation_deg: rightShoulderDeg ?? "",
+                  right_hand_status: rightHandState,
+                  event: eventLog + " | Target_Reps_Reached"
+                });
+                stopSession("Target Reps Completed!");
+                break;
+              } else {
+                playTone("roundComplete");
+                setTimeout(spawnTargets, 750);
+              }
+            } else {
+              playTone("catch");
+            }
+            break;
+          }
+
+          if (!touchingAnyTarget) {
+            lastWrongTargetId = null;
+          }
+        }
+
+        drawDigitSpanBanner(now, isMemorizing);
+        drawTargets(angleInsufficient, isMemorizing);
+        drawWarningBanner(now);
+        drawSessionHUD(now);
+
+        // 5. Log Frame & Check Session Timer Expiration
+        if (isRecording) {
+          const elapsedMs = now - recordStartTime;
+          recordedData.push({
+            timestamp_sec: Number((elapsedMs / 1000).toFixed(3)),
+            task_mode: taskModeSelect.value,
+            digit_span_sequence: targetSequence.join("-"),
+            expected_digit: currentIndex < 5 ? targetSequence[currentIndex] : "Done",
+            step_progress: currentIndex < 5 ? `${currentIndex + 1}/5` : "5/5",
+            protocol_mode: stopModeSelect.value,
+            hand_mode: allowedMode,
+            shoulder_threshold_deg: minShoulderRequired,
+            left_elbow_flexion_deg: leftElbowDeg ?? "",
+            left_shoulder_elevation_deg: leftShoulderDeg ?? "",
+            left_hand_status: leftHandState,
+            right_elbow_flexion_deg: rightElbowDeg ?? "",
+            right_shoulder_elevation_deg: rightShoulderDeg ?? "",
+            right_hand_status: rightHandState,
+            event: eventLog
+          });
+
+          if (stopModeSelect.value === "TIMER") {
+            const remainingMs = sessionDurationLimitMs - elapsedMs;
+            protocolStatusDisplay.textContent = `Time Left: ${formatTime(remainingMs)}`;
+            if (remainingMs <= 0) {
+              stopSession("Time Limit Reached!");
+            }
+          } else if (stopModeSelect.value === "REPS") {
+            protocolStatusDisplay.textContent = `${completedRounds} / ${sessionRepLimit} Rounds`;
+          } else {
+            protocolStatusDisplay.textContent = `Elapsed: ${formatTime(elapsedMs)}`;
+          }
+        }
+      }
+
+      requestAnimationFrame(predictLoop);
+    }
+
+    function triggerWarning(msg, now, isRomCompensation) {
+      warningMessage = msg;
+      warningExpireTime = now + 1500;
+      if (now - lastWarnTime > 1200) {
+        playTone("warn");
+        lastWarnTime = now;
+        if (isRecording && isRomCompensation) compensationWarnings++;
+      }
+    }
+
+    function drawDigitSpanBanner(now, isMemorizing) {
+      ctx.save();
+      const boxW = 360;
+      const boxH = 44;
+      const boxX = (canvas.width - boxW) / 2;
+      const boxY = 12;
+
+      ctx.fillStyle = isMemorizing ? "rgba(30, 58, 138, 0.9)" : "rgba(15, 23, 42, 0.82)";
+      ctx.beginPath();
+      ctx.roundRect(boxX, boxY, boxW, boxH, 10);
+      ctx.fill();
+
+      ctx.strokeStyle = isMemorizing ? "#38bdf8" : "rgba(148, 163, 184, 0.4)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      if (isMemorizing) {
+        const secsLeft = Math.ceil((memorizeEndTime - now) / 1000);
+        ctx.fillStyle = "#facc15";
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText(`MEMORIZE (${secsLeft}s):   ${targetSequence.join("  -  ")}`, canvas.width / 2, boxY + boxH / 2);
+      } else {
+        const hidePrompt = taskModeSelect.value === "DIGIT_SPAN" && hideSequenceToggle.checked;
+        const displayTokens = targetSequence.map((d, i) => {
+          if (i < currentIndex) return `✓${d}`;
+          return hidePrompt ? "?" : `${d}`;
+        });
+        ctx.fillStyle = "#f8fafc";
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText(`CATCH IN ORDER:   ${displayTokens.join("   ")}`, canvas.width / 2, boxY + boxH / 2);
+      }
+      ctx.restore();
+    }
+
+    function drawWarningBanner(now) {
+      if (now < warningExpireTime && warningMessage) {
+        ctx.save();
+        ctx.fillStyle = "rgba(239, 68, 68, 0.9)";
+        ctx.beginPath();
+        ctx.roundRect(canvas.width * 0.18, canvas.height * 0.32, canvas.width * 0.64, 42, 8);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 17px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(warningMessage, canvas.width * 0.5, canvas.height * 0.32 + 21);
+        ctx.restore();
+      }
+    }
+
+    function drawSessionHUD(now) {
+      if (isRecording) {
+        const elapsedMs = now - recordStartTime;
+        let hudText = "";
+        if (stopModeSelect.value === "TIMER") {
+          hudText = `TIME: ${formatTime(sessionDurationLimitMs - elapsedMs)}`;
+        } else if (stopModeSelect.value === "REPS") {
+          hudText = `ROUNDS: ${completedRounds} / ${sessionRepLimit}`;
+        } else {
+          hudText = `REC: ${formatTime(elapsedMs)}`;
+        }
+
+        ctx.save();
+        ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
+        ctx.beginPath();
+        ctx.roundRect(14, canvas.height - 46, 175, 32, 6);
+        ctx.fill();
+
+        ctx.fillStyle = "#facc15";
+        ctx.font = "bold 15px sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(hudText, 24, canvas.height - 30);
+        ctx.restore();
+      } else if (now < sessionBannerExpire && sessionBannerText) {
+        ctx.save();
+        ctx.fillStyle = "rgba(34, 197, 94, 0.92)";
+        ctx.beginPath();
+        ctx.roundRect(canvas.width * 0.18, canvas.height * 0.45, canvas.width * 0.64, 54, 10);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 21px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(sessionBannerText, canvas.width * 0.5, canvas.height * 0.45 + 27);
+        ctx.restore();
+      }
+    }
+
+    function drawArmSkeleton(landmarks, indices, color) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      indices.forEach((idx, i) => {
+        const pt = landmarks[idx];
+        const x = (1 - pt.x) * canvas.width;
+        const y = pt.y * canvas.height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      indices.forEach(idx => {
+        const pt = landmarks[idx];
+        ctx.beginPath();
+        ctx.arc((1 - pt.x) * canvas.width, pt.y * canvas.height, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+      });
+    }
+
+    function drawTargets(angleInsufficient, isMemorizing) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height * 0.30);
+      ctx.lineTo(canvas.width, canvas.height * 0.30);
+      ctx.stroke();
+      ctx.restore();
+
+      targets.forEach((t, idx) => {
+        if (t.caught) return;
+
+        // Only highlight the active target in FIXED_1_5 mode; in DIGIT_SPAN mode keep all neutral so patient relies on memory!
+        const isHighlighted = (taskModeSelect.value === "FIXED_1_5" && idx === currentIndex);
+
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+        if (isMemorizing) {
+          ctx.fillStyle = "rgba(100, 116, 139, 0.45)";
+        } else if (isHighlighted) {
+          ctx.fillStyle = "rgba(34, 197, 94, 0.9)";
+        } else {
+          ctx.fillStyle = "rgba(59, 130, 246, 0.72)";
+        }
+        ctx.fill();
+
+        ctx.lineWidth = isHighlighted ? 5 : 2.5;
+        ctx.strokeStyle = (idx === currentIndex && angleInsufficient)
+          ? "#ef4444"
+          : (isHighlighted ? "#ffffff" : "rgba(255, 255, 255, 0.8)");
+        ctx.stroke();
+
+        ctx.fillStyle = isMemorizing ? "rgba(255, 255, 255, 0.5)" : "#ffffff";
+        ctx.font = "bold 28px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(t.digit, t.x, t.y);
+      });
+    }
+
+    function updateMetricsUI(lElbow, lShoulder, lHand, rElbow, rShoulder, rHand) {
+      document.getElementById("leftElbow").textContent = lElbow !== null ? `${lElbow}°` : "--°";
+      document.getElementById("leftShoulder").textContent = lShoulder !== null ? `${lShoulder}°` : "--°";
+      const lHandEl = document.getElementById("leftHand");
+      lHandEl.textContent = lHand;
+      lHandEl.className = lHand === "Grasping" ? "grasp-active" : "";
+
+      document.getElementById("rightElbow").textContent = rElbow !== null ? `${rElbow}°` : "--°";
+      document.getElementById("rightShoulder").textContent = rShoulder !== null ? `${rShoulder}°` : "--°";
+      const rHandEl = document.getElementById("rightHand");
+      rHandEl.textContent = rHand;
+      rHandEl.className = rHand === "Grasping" ? "grasp-active" : "";
+    }
+
+    function exportCsv() {
+      if (recordedData.length === 0) return;
+      const headers = Object.keys(recordedData[0]);
+      const csvRows = [
+        headers.join(","),
+        ...recordedData.map(row => headers.map(h => JSON.stringify(row[h] ?? "")).join(","))
+      ];
+      downloadFile(csvRows.join("\n"), "ot_digit_span_kinematics.csv", "text/csv");
+    }
+
+    function exportJson() {
+      if (recordedData.length === 0) return;
+      const payload = {
+        summary: lastSessionSummary,
+        soapNote: {
+          patientId: document.getElementById("patientId").value.trim(),
+          diagnosis: document.getElementById("patientDx").value.trim(),
+          therapist: document.getElementById("therapistName").value.trim(),
+          subjective: document.getElementById("soapS").value.trim(),
+          objective: document.getElementById("soapO").value.trim(),
+          assessment: document.getElementById("soapA").value.trim(),
+          plan: document.getElementById("soapP").value.trim()
+        },
+        frames: recordedData
+      };
+      downloadFile(JSON.stringify(payload, null, 2), "ot_digit_span_kinematics.json", "application/json");
+    }
+
+    btnCsv.addEventListener("click", exportCsv);
+    btnJson.addEventListener("click", exportJson);
+
+    function downloadFile(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    initModels();
+  </script>
+</body>
+</html>
