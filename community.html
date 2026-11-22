@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 職業治療社區生活訓練小鎮</title>
+    <!-- Tailwind CSS for crisp UI overlays -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            display: block;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            outline: none;
+        }
+        /* Custom animations for UI */
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+            50% { transform: scale(1.03); box-shadow: 0 0 25px rgba(59, 130, 246, 0.8); }
+        }
+        .interact-btn {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+        #joystick-zone {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="canvas-container">
+    <!-- Top HUD Bar -->
+    <div class="absolute top-0 left-0 right-0 p-3 sm:p-4 flex flex-wrap justify-between items-start pointer-events-none z-10 gap-2">
+        <!-- Title, Controls & OT Mission Tracker -->
+        <div class="flex flex-col gap-2 pointer-events-auto max-w-xs sm:max-w-sm">
+            <div class="bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700/70 shadow-xl">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-teal-400 animate-pulse"></span>
+                        <h1 class="font-bold text-sm sm:text-base tracking-tight">OT 社區生活技能訓練</h1>
+                    </div>
+                    <span id="ot-score-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/40">
+                        完成度 0/5
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-relaxed hidden sm:block">
+                    用 <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-600">WASD</kbd> 行路，行近發光無障礙入口按 <kbd class="px-1 py-0.5 bg-slate-800 rounded border border-slate-600">E</kbd> 進行社區任務訓練。
+                </p>
+
+                <!-- Collapsible OT IADL Checklist -->
+                <div class="mt-2.5 pt-2.5 border-t border-slate-800">
+                    <button onclick="toggleChecklist()" class="w-full flex items-center justify-between text-xs font-semibold text-teal-300 hover:text-teal-200 transition">
+                        <span>📋 今日社區復康任務 (IADL)</span>
+                        <span id="checklist-arrow">▼</span>
+                    </button>
+                    <div id="ot-checklist" class="mt-2 space-y-1.5 text-xs">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Controls: Quick Teleport & Mobility Mode -->
+        <div class="flex flex-col items-end gap-2 pointer-events-auto">
+            <!-- Quick Teleport / Fast Travel Bar -->
+            <div class="bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-slate-700/70 shadow-xl flex flex-wrap gap-1.5 justify-end">
+                <button onclick="teleportTo('bank')" class="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-200 hover:text-white border border-blue-500/40 transition flex items-center gap-1">
+                    <span>🏦</span><span class="hidden md:inline">銀行</span>
+                </button>
+                <button onclick="teleportTo('supermarket')" class="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-200 hover:text-white border border-emerald-500/40 transition flex items-center gap-1">
+                    <span>🛒</span><span class="hidden md:inline">超市</span>
+                </button>
+                <button onclick="teleportTo('fastfood')" class="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-amber-600/20 hover:bg-amber-600 text-amber-200 hover:text-white border border-amber-500/40 transition flex items-center gap-1">
+                    <span>🍔</span><span class="hidden md:inline">快餐店</span>
+                </button>
+                <button onclick="teleportTo('chinese')" class="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-red-600/20 hover:bg-red-600 text-red-200 hover:text-white border border-red-500/40 transition flex items-center gap-1">
+                    <span>🏮</span><span class="hidden md:inline">中菜館</span>
+                </button>
+                <button onclick="teleportTo('daycenter')" class="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-purple-600/20 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 transition flex items-center gap-1">
+                    <span>☀️</span><span class="hidden md:inline">日間中心</span>
+                </button>
+            </div>
+
+            <!-- Mobility & Accessibility Toggle (Walking vs Wheelchair Mode) -->
+            <div class="flex gap-1.5">
+                <button id="mobility-toggle-btn" onclick="toggleWheelchairMode()" class="bg-slate-900/90 hover:bg-slate-800 text-white px-3.5 py-2 rounded-2xl border border-teal-500/40 shadow-lg text-xs font-semibold flex items-center gap-2 transition">
+                    <span id="mobility-icon">🚶</span>
+                    <span id="mobility-label">步行模式</span>
+                </button>
+                <button onclick="openOTSummaryModal()" class="bg-teal-600/90 hover:bg-teal-500 text-white px-3.5 py-2 rounded-2xl border border-teal-400/50 shadow-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                    <span>🩺</span>
+                    <span>治療師評估</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Right Status & Day/Night -->
+    <div class="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2 pointer-events-none">
+        <!-- Player Status Pill -->
+        <div class="bg-slate-900/85 backdrop-blur-md text-slate-200 text-xs px-3.5 py-2 rounded-2xl border border-slate-700/70 flex items-center gap-3 shadow-lg">
+            <span title="銀包現金">💵 <strong id="hud-wallet" class="text-emerald-400">$250</strong></span>
+            <span class="text-slate-600">|</span>
+            <span title="精力值（能量管理）">⚡ <strong id="hud-energy" class="text-amber-400">100%</strong></span>
+        </div>
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <div id="coords-display" class="bg-slate-900/75 backdrop-blur-sm text-slate-300 text-xs px-3 py-2 rounded-xl border border-slate-700/60 font-mono">
+                社區廣場
+            </div>
+            <button id="time-toggle-btn" onclick="toggleDayNight()" class="bg-slate-900/90 hover:bg-slate-800 text-white px-3.5 py-2 rounded-2xl border border-slate-700 shadow-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                <span id="time-icon">☀️</span>
+                <span id="time-label">日頭</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Proximity Interaction Prompt (Appears near doors) -->
+    <div id="proximity-prompt" class="hidden absolute bottom-24 left-1/2 -translate-x-1/2 z-20">
+        <button id="enter-place-btn" onclick="openCurrentPlaceModal()" class="interact-btn bg-teal-600 hover:bg-teal-500 text-white font-bold px-6 py-3 rounded-2xl shadow-2xl border-2 border-white/30 flex items-center gap-3 text-sm sm:text-base transition cursor-pointer">
+            <span id="prompt-icon" class="text-xl">🚪</span>
+            <div class="text-left">
+                <div id="prompt-title" class="leading-tight">進入建築物</div>
+                <div class="text-[11px] font-normal text-teal-100">撳掣或者按 [E] 開始職業治療訓練</div>
+            </div>
+        </button>
+    </div>
+
+    <!-- Mobile Touch Virtual Joystick -->
+    <div id="joystick-zone" class="sm:hidden absolute bottom-6 left-6 w-28 h-28 rounded-full bg-slate-900/50 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center z-20">
+        <div id="joystick-knob" class="w-11 h-11 rounded-full bg-white/80 shadow-lg pointer-events-none transition-transform duration-75"></div>
+    </div>
+
+    <!-- Building Interior / OT Training Modal -->
+    <div id="place-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 text-white rounded-3xl max-w-lg w-full p-6 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center gap-3">
+                    <div id="modal-badge" class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-blue-600/20 border border-blue-500/40">
+                        🏦
+                    </div>
+                    <div>
+                        <h2 id="modal-title" class="text-xl font-extrabold tracking-tight">都會第一銀行</h2>
+                        <p id="modal-subtitle" class="text-xs text-teal-400 font-semibold">OT 訓練目標：財務管理與安全提款</p>
+                    </div>
+                </div>
+                <button onclick="closePlaceModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold transition">
+                    ✕
+                </button>
+            </div>
+
+            <div id="modal-body" class="py-4 space-y-4 text-sm text-slate-300">
+                <!-- Dynamic OT Task & Scenario injected via JS -->
+            </div>
+
+            <div id="modal-feedback" class="hidden mb-4 p-3.5 rounded-2xl bg-teal-500/20 border border-teal-500/40 text-teal-200 text-xs leading-relaxed font-medium">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button onclick="closePlaceModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm transition">
+                    完成並返回社區
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OT Therapist Assessment Summary Modal -->
+    <div id="ot-summary-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-teal-500/40 text-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-teal-600/20 border border-teal-500/40 flex items-center justify-center text-2xl">
+                        🩺
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-extrabold">職業治療師社區評估報告</h2>
+                        <p class="text-xs text-slate-400">IADL 獨立生活能力及環境適應觀察</p>
+                    </div>
+                </div>
+                <button onclick="closeOTSummaryModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold">✕</button>
+            </div>
+            <div id="ot-summary-content" class="py-4 space-y-3 text-xs text-slate-300">
+                <!-- Dynamic assessment injected via JS -->
+            </div>
+            <div class="flex justify-end pt-2 border-t border-slate-800">
+                <button onclick="closeOTSummaryModal()" class="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold text-xs transition">
+                    繼續訓練
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * 3D Occupational Therapy (OT) Community Living Skills Training World
+ * Incorporates:
+ * - Instrumental Activities of Daily Living (IADL) tasks across 5 community locations:
+ *   1. Bank: Financial management, ATM security, budgeting
+ *   2. Supermarket: Shopping list cognitive recall, nutrition & price comparison
+ *   3. Fast Food: Self-service ordering, pacing & energy conservation
+ *   4. Chinese Restaurant: Fine motor / adaptive utensils (chopsticks/spoon), social dining & dysphagia awareness
+ *   5. Day Center: Cognitive stimulation, joint protection & fall prevention workshop
+ * - Assistive Mobility Toggle: Walking Mode vs. Wheelchair Mode (with accessible ramps & lower eye-level perspective)
+ */
+
+// --- Global State & Variables ---
+let scene, camera, renderer;
+let playerGroup, playerBody, playerHead, leftLeg, rightLeg, leftArm, rightArm, wheelchairGroup;
+let clock = new THREE.Clock();
+
+// Player Movement, OT Metrics & Physics
+const playerState = {
+    x: 0,
+    z: 18,
+    rotationY: Math.PI,
+    speed: 14,
+    walkCycle: 0,
+    wallet: 250,
+    energy: 100,
+    isWheelchair: false,
+    completedTasks: {
+        bank: false,
+        supermarket: false,
+        fastfood: false,
+        chinese: false,
+        daycenter: false
+    },
+    otNotes: []
+};
+
+// Camera Orbit State
+const cameraState = {
+    yaw: 0,
+    pitch: 0.42,
+    distance: 22,
+    isDragging: false,
+    prevMouseX: 0,
+    prevMouseY: 0
+};
+
+// Input Tracking
+const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+const joystick = { active: false, dx: 0, dy: 0 };
+
+// World Objects & Colliders
+const colliders = [];
+const interactiveZones = [];
+const animatedObjects = [];
+let currentNearbyPlace = null;
+let isNight = false;
+let checklistExpanded = true;
+let ambientLight, sunLight, hemiLight;
+const streetLights = [];
+
+// OT IADL Missions & Clinical Scenarios for each of the 5 places
+const PLACES_DATA = {
+    bank: {
+        id: 'bank',
+        name: '都會第一銀行',
+        shortTask: '銀行：理財預算與提款安全',
+        otDomain: 'IADL 財務管理 • 認知執行功能',
+        icon: '🏦',
+        badgeClass: 'bg-blue-600/20 border-blue-500/40 text-blue-300',
+        description: '【職業治療情境】今日要去超市買餸同飲茶，首先要喺銀行櫃員機（ATM）提取適量現金，並確保密碼遮擋安全。注意：無障礙櫃員機設於入口斜道旁，方便輪椅使用者操作。',
+        otTip: '💡 OT 小貼士：分次提取小額現金並將紙幣按面額分類放入銀包，有助減低遺失風險及方便找續計算。',
+        actions: [
+            {
+                label: '✅ 遮擋鍵盤並提取 $100 買餸預算（完成訓練）',
+                isTaskComplete: true,
+                effect: () => {
+                    playerState.wallet += 100;
+                    adjustEnergy(-5);
+                    markTaskComplete('bank', '安全提取 $100 現金並做好預算分類');
+                    return '做得好！你已遮擋鍵盤安全提取 $100，並按面額放好紙幣。銀包現有：$' + playerState.wallet;
+                }
+            },
+            {
+                label: '📊 核對月結單與日常開支預算',
+                isTaskComplete: false,
+                effect: () => {
+                    adjustEnergy(-3);
+                    return '你仔細核對咗今個月嘅水電煤同飲食開支，培養良好理財習慣！';
+                }
+            }
+        ]
+    },
+    supermarket: {
+        id: 'supermarket',
+        name: '鮮活超級市場',
+        shortTask: '超市：購物清單記憶與格價',
+        otDomain: 'IADL 購物能力 • 工作記憶與視覺搜尋',
+        icon: '🛒',
+        badgeClass: 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300',
+        description: '【職業治療情境】治療師畀咗張購物清單你：需要買「低糖高纖生果」同「日常糧油」。超市通道已加闊至 1.5 米，方便輪椅或助行架轉彎。',
+        otTip: '💡 OT 小貼士：購物前寫低清單並按貨架分區排列，可以減少來回行路消耗體力（能量保存技巧）。',
+        actions: [
+            {
+                label: '✅ 按清單選購「新鮮蘋果＋燕麥片」($35)（完成訓練）',
+                isTaskComplete: true,
+                effect: () => {
+                    const res = spendMoney(35, '健康購物籃');
+                    if (res.ok) {
+                        adjustEnergy(-8);
+                        markTaskComplete('supermarket', '按購物清單揀選高纖營養食品並自行找續');
+                        return `任務完成！你成功根據清單搵到低糖高纖食品並自行付款（找續正確）。銀包剩餘：$${playerState.wallet}`;
+                    }
+                    return res.msg;
+                }
+            },
+            {
+                label: '🏷️ 練習比較兩款食油嘅營養標籤與價錢',
+                isTaskComplete: false,
+                effect: () => {
+                    adjustEnergy(-4);
+                    return '你成功睇清楚營養標籤上嘅鈉含量同到期日，揀咗最健康嘅一款！';
+                }
+            }
+        ]
+    },
+    fastfood: {
+        id: 'fastfood',
+        name: '漢堡爆棚快餐店',
+        shortTask: '快餐店：自助點餐與端盤平衡',
+        otDomain: '社區參與 • 上肢穩定度與能量管理',
+        icon: '🍔',
+        badgeClass: 'bg-amber-600/20 border-amber-500/40 text-amber-300',
+        description: '【職業治療情境】行咗一輪街有啲攰，入嚟叫份輕食補充體力。自助點餐機設有「輪椅低身螢幕模式」，點餐後需要雙手穩妥端托盤返座位。',
+        otTip: '💡 OT 小貼士：端托盤時將較重嘅飲品放喺托盤中央，雙手肘貼近身體兩側，可以大大提高穩定性！',
+        actions: [
+            {
+                label: '✅ 使用無障礙點餐機叫餐並雙手穩端托盤 ($18)（完成訓練）',
+                isTaskComplete: true,
+                effect: () => {
+                    const res = spendMoney(18, '營養輕食餐');
+                    if (res.ok) {
+                        adjustEnergy(15);
+                        markTaskComplete('fastfood', '操作無障礙點餐機並安全端盤就座');
+                        return `任務完成！你將飲品放喺托盤中間平穩行返座位，食完補充咗 +15% 精力！銀包剩餘：$${playerState.wallet}`;
+                    }
+                    return res.msg;
+                }
+            },
+            {
+                label: '🪑 坐低做 2 分鐘深呼吸能量保存休息',
+                isTaskComplete: false,
+                effect: () => {
+                    adjustEnergy(10);
+                    return '透過腹式呼吸放鬆肩頸肌肉，精力恢復咗 +10%！';
+                }
+            }
+        ]
+    },
+    chinese: {
+        id: 'chinese',
+        name: '金龍酒家（中菜館）',
+        shortTask: '中菜館：輔具進食與社交互動',
+        otDomain: 'ADL 進食技巧 • 精細動作與社交溝通',
+        icon: '🏮',
+        badgeClass: 'bg-red-600/20 border-red-500/40 text-red-300',
+        description: '【職業治療情境】同街坊一齊飲茶！練習使用「防滑餐墊」同「加粗手柄輔助筷子／湯匙」夾點心，同時留意細啖慢嚥（吞嚥安全）。',
+        otTip: '💡 OT 小貼士：如果手指靈活度未完全恢復，使用彈簧輔助筷子或彎曲手柄湯匙可以減輕手部關節負擔。',
+        actions: [
+            {
+                label: '✅ 使用輔助餐具歎一盅兩件（蝦餃＋香片）($28)（完成訓練）',
+                isTaskComplete: true,
+                effect: () => {
+                    const res = spendMoney(28, '點心茶餐');
+                    if (res.ok) {
+                        adjustEnergy(20);
+                        markTaskComplete('chinese', '運用輔助餐具安全進食點心並與街坊社交');
+                        return `任務完成！你用輔助筷子穩陣夾起點心，細啖慢嚥又同街坊傾得開心，精力 +20%！銀包剩餘：$${playerState.wallet}`;
+                    }
+                    return res.msg;
+                }
+            },
+            {
+                label: '🫖 練習單手/雙手穩定倒茶（關節保護技巧）',
+                isTaskComplete: false,
+                effect: () => {
+                    adjustEnergy(-2);
+                    return '你用雙手托住茶壺蓋同壺柄穩定倒茶，成功避免手腕過度用力！';
+                }
+            }
+        ]
+    },
+    daycenter: {
+        id: 'daycenter',
+        name: '陽光社區日間中心',
+        shortTask: '日間中心：認知訓練與防跌工作坊',
+        otDomain: '復康訓練 • 認知刺激與家居防跌',
+        icon: '☀️',
+        badgeClass: 'bg-purple-600/20 border-purple-500/40 text-purple-300',
+        description: '【職業治療情境】歡迎返到陽光日間中心！職業治療師正帶領「上肢肌力與精細動作工作坊」以及「社區防跌安全講座」。',
+        otTip: '💡 OT 小貼士：行路或推輪椅經過斜道時保持身體重心穩定，穿著防滑鞋跟鞋款可減低跌倒風險。',
+        actions: [
+            {
+                label: '✅ 參加「精細動作拼貼＋防跌安全評估」（完成訓練）',
+                isTaskComplete: true,
+                effect: () => {
+                    adjustEnergy(10);
+                    markTaskComplete('daycenter', '完成上肢精細動作訓練及防跌安全知識評估');
+                    return '任務完成！治療師讚你手眼協調表現出色，仲幫你調校好出行步姿！精力 +10%';
+                }
+            },
+            {
+                label: '🧘 進行上肢關節伸展與握力訓練',
+                isTaskComplete: false,
+                effect: () => {
+                    adjustEnergy(5);
+                    return '完成咗一套上肢伸展運動，肩膊同手指關節即刻鬆晒！';
+                }
+            }
+        ]
+    }
+};
+
+function spendMoney(cost, item) {
+    if (playerState.wallet >= cost) {
+        playerState.wallet -= cost;
+        updateHUD();
+        return { ok: true };
+    } else {
+        return {
+            ok: false,
+            msg: `銀包現金唔夠（需要 $${cost}，現有 $${playerState.wallet}）！請先去「都會第一銀行」進行提款訓練。`
+        };
+    }
+}
+
+function adjustEnergy(delta) {
+    playerState.energy = Math.max(10, Math.min(100, playerState.energy + delta));
+    updateHUD();
+}
+
+function markTaskComplete(placeId, noteText) {
+    if (!playerState.completedTasks[placeId]) {
+        playerState.completedTasks[placeId] = true;
+        playerState.otNotes.push(`✓ [${PLACES_DATA[placeId].name}] ${noteText}`);
+        renderChecklist();
+    }
+}
+
+function updateHUD() {
+    document.getElementById('hud-wallet').textContent = '$' + playerState.wallet;
+    document.getElementById('hud-energy').textContent = playerState.energy + '%';
+}
+
+function renderChecklist() {
+    const container = document.getElementById('ot-checklist');
+    const keysOrder = ['bank', 'supermarket', 'fastfood', 'chinese', 'daycenter'];
+    let doneCount = 0;
+
+    container.innerHTML = keysOrder.map(k => {
+        const done = playerState.completedTasks[k];
+        if (done) doneCount++;
+        const item = PLACES_DATA[k];
+        return `
+            <div onclick="teleportTo('${k}')" class="cursor-pointer flex items-center justify-between px-2 py-1 rounded-lg ${done ? 'bg-teal-500/15 text-teal-300' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'} transition">
+                <span class="truncate">${done ? '✅' : '⬜'} ${item.shortTask}</span>
+                <span class="text-[10px] text-slate-400 ml-1 shrink-0">前往→</span>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('ot-score-badge').textContent = `完成度 ${doneCount}/5`;
+}
+
+function toggleChecklist() {
+    checklistExpanded = !checklistExpanded;
+    const el = document.getElementById('ot-checklist');
+    const arrow = document.getElementById('checklist-arrow');
+    if (checklistExpanded) {
+        el.classList.remove('hidden');
+        arrow.textContent = '▼';
+    } else {
+        el.classList.add('hidden');
+        arrow.textContent = '▶';
+    }
+}
+
+// --- Initialization on Window Load ---
+window.onload = function() {
+    initThreeJS();
+    buildEnvironment();
+    buildAllFivePlaces();
+    buildPlayerCharacter();
+    renderChecklist();
+    updateHUD();
+    setupEventListeners();
+    animate();
+};
+
+function initThreeJS() {
+    const container = document.getElementById('canvas-container');
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.FogExp2(0x87ceeb, 0.0055);
+
+    camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 400);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    hemiLight = new THREE.HemisphereLight(0xffffff, 0x445566, 0.65);
+    hemiLight.position.set(0, 60, 0);
+    scene.add(hemiLight);
+
+    sunLight = new THREE.DirectionalLight(0xfff5e4, 1.1);
+    sunLight.position.set(45, 75, 45);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 10;
+    sunLight.shadow.camera.far = 180;
+    const d = 65;
+    sunLight.shadow.camera.left = -d;
+    sunLight.shadow.camera.right = d;
+    sunLight.shadow.camera.top = d;
+    sunLight.shadow.camera.bottom = -d;
+    sunLight.shadow.bias = -0.0005;
+    scene.add(sunLight);
+}
+
+// --- Helper: Generate Procedural Signage Texture ---
+function createSignTexture(text, subtext, bgColor, textColor, borderColor = '#ffffff') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 160;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 10;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+
+    ctx.fillStyle = textColor;
+    ctx.font = 'bold 44px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, subtext ? 62 : 80);
+
+    if (subtext) {
+        ctx.font = '600 22px Inter, sans-serif';
+        ctx.fillStyle = borderColor;
+        ctx.fillText(subtext, canvas.width / 2, 114);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+}
+
+// --- Helper: Add Box Collider ---
+function addCollider(x, z, width, depth) {
+    colliders.push({
+        minX: x - width / 2 - 0.7,
+        maxX: x + width / 2 + 0.7,
+        minZ: z - depth / 2 - 0.7,
+        maxZ: z + depth / 2 + 0.7
+    });
+}
+
+// --- Build Ground, Tactile Paving, Roads, Plaza Fountain, Trees & Streetlights ---
+function buildEnvironment() {
+    // Grass Base
+    const groundGeo = new THREE.PlaneGeometry(260, 260);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.9 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Main Town Plaza Paving
+    const plazaGeo = new THREE.CylinderGeometry(36, 36, 0.12, 32);
+    const plazaMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.8 });
+    const plaza = new THREE.Mesh(plazaGeo, plazaMat);
+    plaza.position.y = 0.06;
+    plaza.receiveShadow = true;
+    scene.add(plaza);
+
+    // Yellow Tactile Guiding Paths (引路徑) radiating from center towards the 5 places
+    const pathAngles = [
+        Math.atan2(-34, -34),
+        Math.atan2(-34, 34),
+        Math.atan2(6, -48),
+        Math.atan2(6, 48),
+        Math.atan2(50, 0)
+    ];
+    pathAngles.forEach(ang => {
+        const pathMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.1, 30),
+            new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.7 })
+        );
+        pathMesh.rotation.x = -Math.PI / 2;
+        pathMesh.rotation.z = -ang + Math.PI / 2;
+        pathMesh.position.set(Math.cos(ang) * 21, 0.13, Math.sin(ang) * 21);
+        pathMesh.receiveShadow = true;
+        scene.add(pathMesh);
+    });
+
+    // Outer Asphalt Ring Road
+    const roadRingGeo = new THREE.RingGeometry(36, 46, 48);
+    const roadMat = new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.85, side: THREE.DoubleSide });
+    const roadRing = new THREE.Mesh(roadRingGeo, roadMat);
+    roadRing.rotation.x = -Math.PI / 2;
+    roadRing.position.y = 0.08;
+    roadRing.receiveShadow = true;
+    scene.add(roadRing);
+
+    // Dashed Yellow Center Line on Ring Road
+    for (let i = 0; i < 36; i++) {
+        const angle = (i / 36) * Math.PI * 2;
+        const dash = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.4, 3.2),
+            new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+        );
+        dash.rotation.x = -Math.PI / 2;
+        dash.rotation.z = -angle;
+        dash.position.set(Math.cos(angle) * 41, 0.1, Math.sin(angle) * 41);
+        scene.add(dash);
+    }
+
+    // Center Plaza Fountain
+    const fountainGroup = new THREE.Group();
+    const basin = new THREE.Mesh(
+        new THREE.CylinderGeometry(5.5, 6, 1.1, 24),
+        new THREE.MeshStandardMaterial({ color: 0x9ca3af, roughness: 0.6 })
+    );
+    basin.position.y = 0.55;
+    basin.castShadow = true;
+    basin.receiveShadow = true;
+    fountainGroup.add(basin);
+
+    const water = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.9, 4.9, 0.9, 24),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.15, metalness: 0.2 })
+    );
+    water.position.y = 0.65;
+    fountainGroup.add(water);
+
+    const pillar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.8, 1.2, 2.8, 16),
+        new THREE.MeshStandardMaterial({ color: 0xe5e7eb })
+    );
+    pillar.position.y = 1.6;
+    pillar.castShadow = true;
+    fountainGroup.add(pillar);
+
+    const spout = new THREE.Mesh(
+        new THREE.SphereGeometry(1.1, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.85 })
+    );
+    spout.position.y = 3.1;
+    fountainGroup.add(spout);
+    animatedObjects.push({ mesh: spout, type: 'fountain' });
+
+    scene.add(fountainGroup);
+    addCollider(0, 0, 11, 11);
+
+    // Street Lamps & Trees
+    const lampAngles = [0.4, 1.65, 2.9, 4.15, 5.4];
+    lampAngles.forEach(ang => {
+        createStreetLamp(Math.cos(ang) * 28, Math.sin(ang) * 28);
+    });
+
+    const treePositions = [
+        [-22, -16], [22, -16], [-24, 18], [24, 18],
+        [-52, -35], [52, -35], [-55, 25], [55, 25],
+        [0, -56], [-38, 48], [38, 48]
+    ];
+    treePositions.forEach(([tx, tz]) => createStylizedTree(tx, tz));
+
+    // Rehab Shuttle Bus cruising the outer ring road
+    createRehabBus();
+}
+
+function createStreetLamp(x, z) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+
+    const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.15, 0.25, 6.5, 8),
+        new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.6 })
+    );
+    pole.position.y = 3.25;
+    pole.castShadow = true;
+    group.add(pole);
+
+    const bulbMat = new THREE.MeshStandardMaterial({
+        color: 0xfef08a,
+        emissive: 0xfde047,
+        emissiveIntensity: 0.3
+    });
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 12), bulbMat);
+    bulb.position.y = 6.7;
+    group.add(bulb);
+
+    const ptLight = new THREE.PointLight(0xfde047, 0, 22);
+    ptLight.position.set(0, 6.5, 0);
+    group.add(ptLight);
+
+    streetLights.push({ light: ptLight, mat: bulbMat });
+    scene.add(group);
+}
+
+function createStylizedTree(x, z) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+
+    const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.45, 0.65, 3.2, 8),
+        new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 })
+    );
+    trunk.position.y = 1.6;
+    trunk.castShadow = true;
+    group.add(trunk);
+
+    const foliageColors = [0x16a34a, 0x22c55e, 0x15803d];
+    const color = foliageColors[Math.floor(Math.abs(x + z) % foliageColors.length)];
+    const foliageMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+
+    const c1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.4, 1), foliageMat);
+    c1.position.y = 4.2;
+    c1.castShadow = true;
+    group.add(c1);
+
+    const c2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.7, 1), foliageMat);
+    c2.position.set(1.1, 5.2, 0.5);
+    c2.castShadow = true;
+    group.add(c2);
+
+    scene.add(group);
+    addCollider(x, z, 1.4, 1.4);
+}
+
+function createRehabBus() {
+    const carGroup = new THREE.Group();
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(2.8, 1.6, 5.4),
+        new THREE.MeshStandardMaterial({ color: 0x0d9488, roughness: 0.3, metalness: 0.3 })
+    );
+    body.position.y = 1.15;
+    body.castShadow = true;
+    carGroup.add(body);
+
+    const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(2.85, 0.35, 5.45),
+        new THREE.MeshStandardMaterial({ color: 0xffffff })
+    );
+    stripe.position.y = 1.1;
+    carGroup.add(stripe);
+
+    const cabin = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, 0.85, 4.6),
+        new THREE.MeshStandardMaterial({ color: 0xe0f2fe, roughness: 0.2 })
+    );
+    cabin.position.set(0, 1.65, 0);
+    carGroup.add(cabin);
+
+    const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.35, 12);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827 });
+    [[-1.4, 1.6], [1.4, 1.6], [-1.4, -1.6], [1.4, -1.6]].forEach(([wx, wz]) => {
+        const w = new THREE.Mesh(wheelGeo, wheelMat);
+        w.rotation.z = Math.PI / 2;
+        w.position.set(wx, 0.45, wz);
+        carGroup.add(w);
+    });
+
+    scene.add(carGroup);
+    animatedObjects.push({ mesh: carGroup, type: 'car', angle: 0, radius: 41 });
+}
+
+// --- Helper: Accessible Ramp & Handrails for Buildings (無障礙斜道與扶手) ---
+function addAccessibleRamp(group, localZ, height = 0.8) {
+    const rampGroup = new THREE.Group();
+    rampGroup.position.set(0, 0, localZ);
+
+    // Sloped Ramp Surface
+    const slopeGeo = new THREE.BoxGeometry(3.4, 0.2, 3.6);
+    const slopeMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.6 });
+    const slope = new THREE.Mesh(slopeGeo, slopeMat);
+    slope.position.set(0, height / 2, 0);
+    slope.rotation.x = Math.atan2(height, 3.4);
+    slope.receiveShadow = true;
+    rampGroup.add(slope);
+
+    // Safety Handrails on both sides
+    const railMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.6, roughness: 0.3 });
+    [-1.65, 1.65].forEach(rx => {
+        const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.1, 8), railMat);
+        post1.position.set(rx, 0.55, 1.4);
+        rampGroup.add(post1);
+
+        const post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.1, 8), railMat);
+        post2.position.set(rx, 0.55 + height, -1.4);
+        rampGroup.add(post2);
+
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 3.2, 8), railMat);
+        bar.position.set(rx, 1.05 + height / 2, 0);
+        bar.rotation.x = Math.PI / 2 + Math.atan2(height, 3.0);
+        rampGroup.add(bar);
+    });
+
+    group.add(rampGroup);
+}
+
+// --- Build the 5 Distinct Places ---
+function buildAllFivePlaces() {
+    buildBank(-34, -34, Math.PI / 4);
+    buildSupermarket(34, -34, -Math.PI / 4);
+    buildFastFood(-48, 6, Math.PI / 2);
+    buildChineseRestaurant(48, 6, -Math.PI / 2);
+    buildDayCenter(0, 50, Math.PI);
+}
+
+function createEntranceZone(placeKey, worldX, worldZ, rotY, localDoorZ, colorHex) {
+    const doorWorldX = worldX + Math.sin(rotY) * localDoorZ;
+    const doorWorldZ = worldZ + Math.cos(rotY) * localDoorZ;
+
+    const ring = new THREE.Mesh(
+        new THREE.RingGeometry(1.6, 2.2, 24),
+        new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(doorWorldX, 0.16, doorWorldZ);
+    scene.add(ring);
+
+    animatedObjects.push({ mesh: ring, type: 'pulseRing' });
+
+    interactiveZones.push({
+        id: placeKey,
+        x: doorWorldX,
+        z: doorWorldZ,
+        radius: 4.4
+    });
+}
+
+// 1. BANK
+function buildBank(x, z, rotY) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+
+    const base = new THREE.Mesh(
+        new THREE.BoxGeometry(18, 0.8, 14),
+        new THREE.MeshStandardMaterial({ color: 0x94a3b8 })
+    );
+    base.position.y = 0.4;
+    base.receiveShadow = true;
+    group.add(base);
+
+    // Accessible Ramp at front
+    addAccessibleRamp(group, 7.6, 0.8);
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(16, 10, 11),
+        new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.4 })
+    );
+    body.position.set(0, 5.8, -0.5);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+
+    const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(12.2, 3.8, 4),
+        new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.5 })
+    );
+    roof.position.set(0, 12.7, -0.5);
+    roof.rotation.y = Math.PI / 4;
+    roof.castShadow = true;
+    group.add(roof);
+
+    const pillarMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+    [-6, -2.2, 2.2, 6].forEach(px => {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 9.6, 16), pillarMat);
+        col.position.set(px, 5.6, 5.6);
+        col.castShadow = true;
+        group.add(col);
+    });
+
+    const door = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 4.8, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 })
+    );
+    door.position.set(0, 3.2, 5.05);
+    group.add(door);
+
+    const signTex = createSignTexture('都會第一銀行', '理財訓練 • 無障礙ATM', '#1e3a8a', '#ffffff', '#fbbf24');
+    const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(11, 2.4, 0.4),
+        new THREE.MeshBasicMaterial({ map: signTex })
+    );
+    sign.position.set(0, 9.8, 5.4);
+    group.add(sign);
+
+    scene.add(group);
+    addCollider(x, z, 16, 13);
+    createEntranceZone('bank', x, z, rotY, 9.5, 0x3b82f6);
+}
+
+// 2. SUPERMARKET
+function buildSupermarket(x, z, rotY) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(20, 8.5, 13),
+        new THREE.MeshStandardMaterial({ color: 0xecfdf5, roughness: 0.6 })
+    );
+    body.position.set(0, 4.25, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+
+    const fascia = new THREE.Mesh(
+        new THREE.BoxGeometry(20.8, 1.8, 13.8),
+        new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.4 })
+    );
+    fascia.position.set(0, 8.8, 0);
+    fascia.castShadow = true;
+    group.add(fascia);
+
+    const glassMat = new THREE.MeshStandardMaterial({
+        color: 0xbae6fd,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.15,
+        roughness: 0.1
+    });
+    const leftWin = new THREE.Mesh(new THREE.BoxGeometry(6, 4.5, 0.3), glassMat);
+    leftWin.position.set(-5.8, 3, 6.5);
+    group.add(leftWin);
+
+    const rightWin = new THREE.Mesh(new THREE.BoxGeometry(6, 4.5, 0.3), glassMat);
+    rightWin.position.set(5.8, 3, 6.5);
+    group.add(rightWin);
+
+    const doors = new THREE.Mesh(
+        new THREE.BoxGeometry(3.8, 4.6, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0x10b981, transparent: true, opacity: 0.85 })
+    );
+    doors.position.set(0, 2.3, 6.55);
+    group.add(doors);
+
+    [-7.5, -5.5].forEach((cx, idx) => {
+        const crate = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 1.1, 1.2),
+            new THREE.MeshStandardMaterial({ color: 0x92400e })
+        );
+        crate.position.set(cx, 0.55, 7.6);
+        group.add(crate);
+
+        const produce = new THREE.Mesh(
+            new THREE.BoxGeometry(1.3, 0.3, 1.0),
+            new THREE.MeshStandardMaterial({ color: idx === 0 ? 0xef4444 : 0xf97316 })
+        );
+        produce.position.set(cx, 1.15, 7.6);
+        group.add(produce);
+    });
+
+    const signTex = createSignTexture('鮮活超級市場', '購物清單訓練 • 闊落通道', '#065f46', '#ffffff', '#34d399');
+    const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(13, 2.6, 0.5),
+        new THREE.MeshBasicMaterial({ map: signTex })
+    );
+    sign.position.set(0, 7.8, 6.9);
+    group.add(sign);
+
+    scene.add(group);
+    addCollider(x, z, 19, 13);
+    createEntranceZone('supermarket', x, z, rotY, 8.8, 0x10b981);
+}
+
+// 3. FAST FOOD RESTAURANT
+function buildFastFood(x, z, rotY) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(15, 7.5, 12),
+        new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.5 })
+    );
+    body.position.set(0, 3.75, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+
+    const awning = new THREE.Mesh(
+        new THREE.BoxGeometry(15.6, 1.2, 3.2),
+        new THREE.MeshStandardMaterial({ color: 0xdc2626 })
+    );
+    awning.position.set(0, 5.6, 7.2);
+    awning.rotation.x = 0.2;
+    group.add(awning);
+
+    const burgerGroup = new THREE.Group();
+    burgerGroup.position.set(0, 9.6, 0);
+
+    const bottomBun = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.2, 2.0, 0.7, 20),
+        new THREE.MeshStandardMaterial({ color: 0xd97706 })
+    );
+    bottomBun.position.y = -0.8;
+    burgerGroup.add(bottomBun);
+
+    const patty = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.3, 2.3, 0.55, 20),
+        new THREE.MeshStandardMaterial({ color: 0x451a03 })
+    );
+    patty.position.y = -0.2;
+    burgerGroup.add(patty);
+
+    const cheese = new THREE.Mesh(
+        new THREE.BoxGeometry(3.3, 0.15, 3.3),
+        new THREE.MeshStandardMaterial({ color: 0xfacc15 })
+    );
+    cheese.position.y = 0.15;
+    cheese.rotation.y = 0.4;
+    burgerGroup.add(cheese);
+
+    const topBun = new THREE.Mesh(
+        new THREE.SphereGeometry(2.2, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshStandardMaterial({ color: 0xf59e0b })
+    );
+    topBun.position.y = 0.25;
+    burgerGroup.add(topBun);
+
+    group.add(burgerGroup);
+    animatedObjects.push({ mesh: burgerGroup, type: 'spin' });
+
+    const door = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 4.4, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0xb91c1c })
+    );
+    door.position.set(0, 2.2, 6.05);
+    group.add(door);
+
+    const signTex = createSignTexture('漢堡爆棚快餐店', '自助點餐 • 端盤平衡訓練', '#dc2626', '#fef08a', '#ffffff');
+    const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(11.5, 2.3, 0.4),
+        new THREE.MeshBasicMaterial({ map: signTex })
+    );
+    sign.position.set(0, 6.8, 6.2);
+    group.add(sign);
+
+    scene.add(group);
+    addCollider(x, z, 15, 12);
+    createEntranceZone('fastfood', x, z, rotY, 8.2, 0xf59e0b);
+}
+
+// 4. CHINESE RESTAURANT
+function buildChineseRestaurant(x, z, rotY) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(16, 8, 12),
+        new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 })
+    );
+    body.position.set(0, 4, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+
+    const lowerRoof = new THREE.Mesh(
+        new THREE.ConeGeometry(13.2, 3.2, 4),
+        new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.4 })
+    );
+    lowerRoof.position.set(0, 9.4, 0);
+    lowerRoof.rotation.y = Math.PI / 4;
+    lowerRoof.castShadow = true;
+    group.add(lowerRoof);
+
+    const upperRoof = new THREE.Mesh(
+        new THREE.ConeGeometry(7.8, 2.6, 4),
+        new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.5 })
+    );
+    upperRoof.position.set(0, 11.4, 0);
+    upperRoof.rotation.y = Math.PI / 4;
+    group.add(upperRoof);
+
+    [-4.5, 4.5].forEach(px => {
+        const col = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.45, 0.45, 7.6, 12),
+            new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 })
+        );
+        col.position.set(px, 3.8, 6.3);
+        group.add(col);
+    });
+
+    [-3.2, 3.2].forEach((lx, i) => {
+        const lantern = new THREE.Mesh(
+            new THREE.SphereGeometry(0.75, 16, 16),
+            new THREE.MeshStandardMaterial({
+                color: 0xef4444,
+                emissive: 0xdc2626,
+                emissiveIntensity: 0.75
+            })
+        );
+        lantern.scale.set(1, 1.25, 1);
+        lantern.position.set(lx, 6.3, 6.6);
+        group.add(lantern);
+        animatedObjects.push({ mesh: lantern, type: 'sway', offset: i * Math.PI });
+    });
+
+    const door = new THREE.Mesh(
+        new THREE.BoxGeometry(3.4, 4.6, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.6 })
+    );
+    door.position.set(0, 2.3, 6.05);
+    group.add(door);
+
+    const signTex = createSignTexture('金龍酒家 中菜館', '輔助餐具進食 • 社交飲茶', '#7f1d1d', '#fde047', '#f59e0b');
+    const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(12.5, 2.4, 0.4),
+        new THREE.MeshBasicMaterial({ map: signTex })
+    );
+    sign.position.set(0, 7.2, 6.3);
+    group.add(sign);
+
+    scene.add(group);
+    addCollider(x, z, 16, 12);
+    createEntranceZone('chinese', x, z, rotY, 8.2, 0xef4444);
+}
+
+// 5. DAY CENTER
+function buildDayCenter(x, z, rotY) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(19, 7.5, 12),
+        new THREE.MeshStandardMaterial({ color: 0xf3e8ff, roughness: 0.6 })
+    );
+    body.position.set(0, 3.75, 0);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
+
+    const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(14.5, 3.6, 4),
+        new THREE.MeshStandardMaterial({ color: 0x7e22ce, roughness: 0.6 })
+    );
+    roof.position.set(0, 9.2, 0);
+    roof.rotation.y = Math.PI / 4;
+    roof.castShadow = true;
+    group.add(roof);
+
+    const sunDisc = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 1.5, 0.3, 20),
+        new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xf59e0b, emissiveIntensity: 0.4 })
+    );
+    sunDisc.rotation.x = Math.PI / 2;
+    sunDisc.position.set(0, 8.4, 6.2);
+    group.add(sunDisc);
+
+    [-6.5, 6.5].forEach(fx => {
+        const planter = new THREE.Mesh(
+            new THREE.BoxGeometry(4.2, 0.9, 1.4),
+            new THREE.MeshStandardMaterial({ color: 0xd97706 })
+        );
+        planter.position.set(fx, 0.45, 6.8);
+        group.add(planter);
+
+        const flowers = new THREE.Mesh(
+            new THREE.BoxGeometry(3.8, 0.5, 1.1),
+            new THREE.MeshStandardMaterial({ color: 0xf472b6 })
+        );
+        flowers.position.set(fx, 1.0, 6.8);
+        group.add(flowers);
+    });
+
+    const door = new THREE.Mesh(
+        new THREE.BoxGeometry(3.8, 4.5, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0xa855f7 })
+    );
+    door.position.set(0, 2.25, 6.05);
+    group.add(door);
+
+    const signTex = createSignTexture('陽光日間中心', '職業治療 • 認知與防跌工作坊', '#6b21a8', '#ffffff', '#fde047');
+    const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(12, 2.4, 0.4),
+        new THREE.MeshBasicMaterial({ map: signTex })
+    );
+    sign.position.set(0, 6.2, 6.25);
+    group.add(sign);
+
+    scene.add(group);
+    addCollider(x, z, 19, 12);
+    createEntranceZone('daycenter', x, z, rotY, 8.4, 0xa855f7);
+}
+
+// --- Build Controllable 3D Explorer Character (with Toggleable Wheelchair) ---
+function buildPlayerCharacter() {
+    playerGroup = new THREE.Group();
+    playerGroup.position.set(playerState.x, 0, playerState.z);
+
+    // Torso
+    playerBody = new THREE.Mesh(
+        new THREE.BoxGeometry(0.95, 1.25, 0.55),
+        new THREE.MeshStandardMaterial({ color: 0x0d9488, roughness: 0.5 })
+    );
+    playerBody.position.y = 1.65;
+    playerBody.castShadow = true;
+    playerGroup.add(playerBody);
+
+    // Head
+    playerHead = new THREE.Mesh(
+        new THREE.BoxGeometry(0.75, 0.75, 0.75),
+        new THREE.MeshStandardMaterial({ color: 0xfdba74, roughness: 0.6 })
+    );
+    playerHead.position.y = 2.75;
+    playerHead.castShadow = true;
+    playerGroup.add(playerHead);
+
+    // Cap
+    const cap = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, 0.25, 0.85),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b })
+    );
+    cap.position.set(0, 3.15, 0.04);
+    playerGroup.add(cap);
+
+    // Limbs
+    const limbMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+    leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.36, 1.0, 0.36), limbMat);
+    leftLeg.position.set(-0.25, 0.5, 0);
+    leftLeg.castShadow = true;
+    playerGroup.add(leftLeg);
+
+    rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.36, 1.0, 0.36), limbMat);
+    rightLeg.position.set(0.25, 0.5, 0);
+    rightLeg.castShadow = true;
+    playerGroup.add(rightLeg);
+
+    const armMat = new THREE.MeshStandardMaterial({ color: 0x14b8a6 });
+    leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.05, 0.3), armMat);
+    leftArm.position.set(-0.68, 1.65, 0);
+    leftArm.castShadow = true;
+    playerGroup.add(leftArm);
+
+    rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.05, 0.3), armMat);
+    rightArm.position.set(0.68, 1.65, 0);
+    rightArm.castShadow = true;
+    playerGroup.add(rightArm);
+
+    // Wheelchair Mesh Group (Hidden by default)
+    wheelchairGroup = new THREE.Group();
+    const seat = new THREE.Mesh(
+        new THREE.BoxGeometry(1.1, 0.18, 1.0),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b })
+    );
+    seat.position.set(0, 0.85, 0.05);
+    wheelchairGroup.add(seat);
+
+    const backrest = new THREE.Mesh(
+        new THREE.BoxGeometry(1.1, 1.0, 0.16),
+        new THREE.MeshStandardMaterial({ color: 0x334155 })
+    );
+    backrest.position.set(0, 1.35, -0.4);
+    wheelchairGroup.add(backrest);
+
+    const bigWheelGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.12, 20);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.5 });
+    [-0.65, 0.65].forEach(wx => {
+        const w = new THREE.Mesh(bigWheelGeo, wheelMat);
+        w.rotation.z = Math.PI / 2;
+        w.position.set(wx, 0.65, -0.1);
+        w.castShadow = true;
+        wheelchairGroup.add(w);
+    });
+
+    const frontCasterGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.1, 12);
+    [-0.5, 0.5].forEach(wx => {
+        const c = new THREE.Mesh(frontCasterGeo, wheelMat);
+        c.rotation.z = Math.PI / 2;
+        c.position.set(wx, 0.22, 0.55);
+        wheelchairGroup.add(c);
+    });
+
+    wheelchairGroup.visible = false;
+    playerGroup.add(wheelchairGroup);
+
+    scene.add(playerGroup);
+}
+
+// --- Toggle Walking vs Wheelchair Assistive Mobility Mode ---
+function toggleWheelchairMode() {
+    playerState.isWheelchair = !playerState.isWheelchair;
+    const icon = document.getElementById('mobility-icon');
+    const label = document.getElementById('mobility-label');
+
+    if (playerState.isWheelchair) {
+        wheelchairGroup.visible = true;
+        playerBody.position.y = 1.45;
+        playerHead.position.y = 2.45;
+        playerGroup.children[2].position.y = 2.85; // Cap
+        leftArm.position.y = 1.45;
+        rightArm.position.y = 1.45;
+        // Seated leg posture
+        leftLeg.rotation.x = -Math.PI / 2.2;
+        leftLeg.position.set(-0.25, 0.85, 0.45);
+        rightLeg.rotation.x = -Math.PI / 2.2;
+        rightLeg.position.set(0.25, 0.85, 0.45);
+
+        playerState.speed = 11.5;
+        icon.textContent = '♿';
+        label.textContent = '輪椅出行模式';
+    } else {
+        wheelchairGroup.visible = false;
+        playerBody.position.y = 1.65;
+        playerHead.position.y = 2.75;
+        playerGroup.children[2].position.y = 3.15;
+        leftArm.position.y = 1.65;
+        rightArm.position.y = 1.65;
+        leftLeg.rotation.x = 0;
+        leftLeg.position.set(-0.25, 0.5, 0);
+        rightLeg.rotation.x = 0;
+        rightLeg.position.set(0.25, 0.5, 0);
+
+        playerState.speed = 14;
+        icon.textContent = '🚶';
+        label.textContent = '步行模式';
+    }
+}
+
+// --- Event Listeners ---
+function setupEventListeners() {
+    window.addEventListener('resize', onWindowResize);
+
+    window.addEventListener('keydown', (e) => {
+        if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+        if ((e.key === 'e' || e.key === 'E' || e.key === ' ') && currentNearbyPlace) {
+            const modal = document.getElementById('place-modal');
+            if (modal.classList.contains('hidden')) {
+                openCurrentPlaceModal();
+            } else {
+                closePlaceModal();
+            }
+        }
+        if (e.key === 'Escape') {
+            closePlaceModal();
+            closeOTSummaryModal();
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+    });
+
+    const domElem = renderer.domElement;
+    domElem.addEventListener('mousedown', (e) => {
+        cameraState.isDragging = true;
+        cameraState.prevMouseX = e.clientX;
+        cameraState.prevMouseY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', () => {
+        cameraState.isDragging = false;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!cameraState.isDragging) return;
+        const dx = e.clientX - cameraState.prevMouseX;
+        const dy = e.clientY - cameraState.prevMouseY;
+        cameraState.prevMouseX = e.clientX;
+        cameraState.prevMouseY = e.clientY;
+
+        cameraState.yaw -= dx * 0.007;
+        cameraState.pitch = Math.max(0.15, Math.min(1.15, cameraState.pitch + dy * 0.006));
+    });
+
+    domElem.addEventListener('wheel', (e) => {
+        cameraState.distance = Math.max(10, Math.min(45, cameraState.distance + e.deltaY * 0.015));
+    }, { passive: true });
+
+    let touchOrbitId = null;
+    domElem.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            touchOrbitId = e.touches[0].identifier;
+            cameraState.prevMouseX = e.touches[0].clientX;
+            cameraState.prevMouseY = e.touches[0].clientY;
+        }
+    }, { passive: true });
+
+    domElem.addEventListener('touchmove', (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            if (t.identifier === touchOrbitId) {
+                const dx = t.clientX - cameraState.prevMouseX;
+                const dy = t.clientY - cameraState.prevMouseY;
+                cameraState.prevMouseX = t.clientX;
+                cameraState.prevMouseY = t.clientY;
+                cameraState.yaw -= dx * 0.008;
+                cameraState.pitch = Math.max(0.15, Math.min(1.15, cameraState.pitch + dy * 0.007));
+            }
+        }
+    }, { passive: true });
+
+    const joyZone = document.getElementById('joystick-zone');
+    const joyKnob = document.getElementById('joystick-knob');
+    const maxRadius = 36;
+
+    function handleJoystickMove(clientX, clientY) {
+        const rect = joyZone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        let dx = clientX - centerX;
+        let dy = clientY - centerY;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > maxRadius) {
+            dx = (dx / dist) * maxRadius;
+            dy = (dy / dist) * maxRadius;
+        }
+        joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+        joystick.dx = dx / maxRadius;
+        joystick.dy = dy / maxRadius;
+    }
+
+    joyZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        joystick.active = true;
+        handleJoystickMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+
+    joyZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (joystick.active) {
+            handleJoystickMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: false });
+
+    joyZone.addEventListener('touchend', () => {
+        joystick.active = false;
+        joystick.dx = 0;
+        joystick.dy = 0;
+        joyKnob.style.transform = `translate(0px, 0px)`;
+    });
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function teleportTo(placeKey) {
+    const zone = interactiveZones.find(z => z.id === placeKey);
+    if (!zone) return;
+    playerState.x = zone.x;
+    playerState.z = zone.z;
+    playerGroup.position.set(playerState.x, 0, playerState.z);
+    cameraState.yaw = Math.atan2(zone.x, zone.z);
+    closePlaceModal();
+}
+
+function toggleDayNight() {
+    isNight = !isNight;
+    const btnIcon = document.getElementById('time-icon');
+    const btnLabel = document.getElementById('time-label');
+
+    if (isNight) {
+        scene.background = new THREE.Color(0x0f172a);
+        scene.fog.color = new THREE.Color(0x0f172a);
+        sunLight.intensity = 0.2;
+        sunLight.color.setHex(0x93c5fd);
+        hemiLight.intensity = 0.25;
+        streetLights.forEach(sl => {
+            sl.light.intensity = 1.6;
+            sl.mat.emissiveIntensity = 1.0;
+        });
+        btnIcon.textContent = '🌙';
+        btnLabel.textContent = '夜晚';
+    } else {
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog.color = new THREE.Color(0x87ceeb);
+        sunLight.intensity = 1.1;
+        sunLight.color.setHex(0xfff5e4);
+        hemiLight.intensity = 0.65;
+        streetLights.forEach(sl => {
+            sl.light.intensity = 0;
+            sl.mat.emissiveIntensity = 0.3;
+        });
+        btnIcon.textContent = '☀️';
+        btnLabel.textContent = '日頭';
+    }
+}
+
+// --- Building Interior / OT Training Modal Logic ---
+function openCurrentPlaceModal() {
+    if (!currentNearbyPlace) return;
+    const data = PLACES_DATA[currentNearbyPlace.id];
+    if (!data) return;
+
+    document.getElementById('modal-badge').textContent = data.icon;
+    document.getElementById('modal-badge').className = `w-12 h-12 rounded-2xl flex items-center justify-center text-2xl border ${data.badgeClass}`;
+    document.getElementById('modal-title').textContent = data.name;
+    document.getElementById('modal-subtitle').textContent = data.otDomain;
+
+    const feedbackEl = document.getElementById('modal-feedback');
+    feedbackEl.classList.add('hidden');
+
+    const isDone = playerState.completedTasks[data.id];
+
+    const bodyEl = document.getElementById('modal-body');
+    bodyEl.innerHTML = `
+        <div class="flex items-center justify-between bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700">
+            <span class="text-xs text-slate-400">訓練狀態</span>
+            <span class="text-xs font-bold ${isDone ? 'text-teal-400' : 'text-amber-400'}">
+                ${isDone ? '✅ 已完成此地點復康任務' : '⏳ 待完成訓練任務'}
+            </span>
+        </div>
+
+        <p class="leading-relaxed text-slate-200">${data.description}</p>
+
+        <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed">
+            ${data.otTip}
+        </div>
+
+        <div class="bg-slate-800/70 rounded-2xl p-3.5 border border-slate-700/70 flex justify-between items-center">
+            <div>
+                <div class="text-[11px] text-slate-400">銀包現金</div>
+                <div id="modal-wallet" class="text-base font-bold text-emerald-400">$${playerState.wallet}</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[11px] text-slate-400">精力值（能量保存）</div>
+                <div id="modal-energy" class="text-base font-bold text-amber-400">${playerState.energy}%</div>
+            </div>
+        </div>
+
+        <div class="space-y-2 pt-1">
+            <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">選擇職業治療訓練項目</div>
+            ${data.actions.map((act, idx) => `
+                <button onclick="triggerPlaceAction('${data.id}', ${idx})" class="w-full text-left px-4 py-3 rounded-xl ${act.isTaskComplete ? 'bg-teal-600/25 hover:bg-teal-600/40 border-teal-500/50' : 'bg-slate-800 hover:bg-slate-700 border-slate-700'} border text-white font-medium transition flex justify-between items-center gap-2">
+                    <span class="text-xs sm:text-sm">${act.label}</span>
+                    <span class="text-xs text-teal-300 shrink-0">執行 →</span>
+                </button>
+            `).join('')}
+        </div>
+    `;
+
+    document.getElementById('place-modal').classList.remove('hidden');
+}
+
+function triggerPlaceAction(placeId, actionIdx) {
+    const data = PLACES_DATA[placeId];
+    const msg = data.actions[actionIdx].effect();
+    const feedbackEl = document.getElementById('modal-feedback');
+    feedbackEl.textContent = msg;
+    feedbackEl.classList.remove('hidden');
+
+    const walletEl = document.getElementById('modal-wallet');
+    if (walletEl) walletEl.textContent = '$' + playerState.wallet;
+
+    const energyEl = document.getElementById('modal-energy');
+    if (energyEl) energyEl.textContent = playerState.energy + '%';
+}
+
+function closePlaceModal() {
+    document.getElementById('place-modal').classList.add('hidden');
+}
+
+// --- OT Therapist Assessment Summary Modal ---
+function openOTSummaryModal() {
+    const completedCount = Object.values(playerState.completedTasks).filter(Boolean).length;
+    const contentEl = document.getElementById('ot-summary-content');
+
+    let levelText = '初階探索階段：建議按任務清單逐一走訪社區設施。';
+    if (completedCount >= 5) {
+        levelText = '優秀獨立表現：已全面掌握理財、購物、進食及社區安全技能！';
+    } else if (completedCount >= 3) {
+        levelText = '良好進步階段：能夠應付大部分社區生活任務，繼續完成餘下訓練！';
+    }
+
+    contentEl.innerHTML = `
+        <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+                <div class="text-[11px] text-slate-400">完成任務</div>
+                <div class="text-lg font-extrabold text-teal-400 mt-0.5">${completedCount} / 5</div>
+            </div>
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+                <div class="text-[11px] text-slate-400">能量保存</div>
+                <div class="text-lg font-extrabold text-amber-400 mt-0.5">${playerState.energy}%</div>
+            </div>
+            <div class="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+                <div class="text-[11px] text-slate-400">出行模式</div>
+                <div class="text-sm font-bold text-blue-300 mt-1">${playerState.isWheelchair ? '♿ 輪椅' : '🚶 步行'}</div>
+            </div>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-teal-500/15 border border-teal-500/30 text-teal-200 leading-relaxed">
+            <strong>治療師總評：</strong>${levelText}
+        </div>
+
+        <div>
+            <div class="font-semibold text-slate-300 mb-1.5">已達成復康里程碑：</div>
+            ${playerState.otNotes.length > 0
+                ? `<ul class="space-y-1.5 bg-slate-800/60 p-3 rounded-2xl border border-slate-700/70">${playerState.otNotes.map(n => `<li>${n}</li>`).join('')}</ul>`
+                : `<p class="text-slate-400 italic bg-slate-800/40 p-3 rounded-2xl">暫未完成任何地點任務，快啲行去各個社區設施試下啦！</p>`
+            }
+        </div>
+    `;
+
+    document.getElementById('ot-summary-modal').classList.remove('hidden');
+}
+
+function closeOTSummaryModal() {
+    document.getElementById('ot-summary-modal').classList.add('hidden');
+}
+
+// --- Collision Check ---
+function checkCollision(nx, nz) {
+    if (Math.abs(nx) > 85 || Math.abs(nz) > 85) return true;
+    for (let i = 0; i < colliders.length; i++) {
+        const c = colliders[i];
+        if (nx > c.minX && nx < c.maxX && nz > c.minZ && nz < c.maxZ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// --- Main Animation & Simulation Loop ---
+function animate() {
+    requestAnimationFrame(animate);
+
+    const dt = Math.min(clock.getDelta(), 0.1);
+    const elapsed = clock.getElapsedTime();
+
+    // 1. Player Movement
+    let moveForward = 0;
+    let moveRight = 0;
+
+    if (keys.w || keys.ArrowUp) moveForward += 1;
+    if (keys.s || keys.ArrowDown) moveForward -= 1;
+    if (keys.d || keys.ArrowRight) moveRight += 1;
+    if (keys.a || keys.ArrowLeft) moveRight -= 1;
+
+    if (joystick.active) {
+        moveForward -= joystick.dy;
+        moveRight += joystick.dx;
+    }
+
+    const inputLen = Math.hypot(moveForward, moveRight);
+    if (inputLen > 0.05) {
+        const normF = moveForward / Math.max(1, inputLen);
+        const normR = moveRight / Math.max(1, inputLen);
+
+        const forwardX = -Math.sin(cameraState.yaw);
+        const forwardZ = -Math.cos(cameraState.yaw);
+        const rightX = Math.cos(cameraState.yaw);
+        const rightZ = -Math.sin(cameraState.yaw);
+
+        const vx = (forwardX * normF + rightX * normR) * playerState.speed * dt;
+        const vz = (forwardZ * normF + rightZ * normR) * playerState.speed * dt;
+
+        if (!checkCollision(playerState.x + vx, playerState.z)) {
+            playerState.x += vx;
+        }
+        if (!checkCollision(playerState.x, playerState.z + vz)) {
+            playerState.z += vz;
+        }
+
+        playerGroup.position.set(playerState.x, 0, playerState.z);
+
+        const targetRot = Math.atan2(vx, vz);
+        let diff = targetRot - playerState.rotationY;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        playerState.rotationY += diff * 12 * dt;
+        playerGroup.rotation.y = playerState.rotationY;
+
+        playerState.walkCycle += dt * 12;
+        const swing = Math.sin(playerState.walkCycle) * 0.65;
+
+        if (playerState.isWheelchair) {
+            // Wheelchair propulsion arm motion
+            leftArm.rotation.x = swing * 0.5;
+            rightArm.rotation.x = swing * 0.5;
+        } else {
+            leftLeg.rotation.x = swing;
+            rightLeg.rotation.x = -swing;
+            leftArm.rotation.x = -swing * 0.8;
+            rightArm.rotation.x = swing * 0.8;
+        }
+    } else {
+        if (!playerState.isWheelchair) {
+            leftLeg.rotation.x *= 0.85;
+            rightLeg.rotation.x *= 0.85;
+        }
+        leftArm.rotation.x *= 0.85;
+        rightArm.rotation.x *= 0.85;
+    }
+
+    // 2. Third-Person Orbit Camera (slightly lower eye-level in wheelchair mode)
+    const lookHeight = playerState.isWheelchair ? 1.7 : 2.2;
+    const camOffsetX = Math.sin(cameraState.yaw) * Math.cos(cameraState.pitch) * cameraState.distance;
+    const camOffsetY = Math.sin(cameraState.pitch) * cameraState.distance;
+    const camOffsetZ = Math.cos(cameraState.yaw) * Math.cos(cameraState.pitch) * cameraState.distance;
+
+    camera.position.set(
+        playerState.x + camOffsetX,
+        Math.max(1.3, camOffsetY),
+        playerState.z + camOffsetZ
+    );
+    camera.lookAt(playerState.x, lookHeight, playerState.z);
+
+    // 3. Proximity Detection
+    let foundZone = null;
+    for (const zone of interactiveZones) {
+        const dist = Math.hypot(playerState.x - zone.x, playerState.z - zone.z);
+        if (dist <= zone.radius) {
+            foundZone = zone;
+            break;
+        }
+    }
+
+    const promptEl = document.getElementById('proximity-prompt');
+    const coordsEl = document.getElementById('coords-display');
+
+    if (foundZone) {
+        currentNearbyPlace = foundZone;
+        const data = PLACES_DATA[foundZone.id];
+        document.getElementById('prompt-icon').textContent = data.icon;
+        document.getElementById('prompt-title').textContent = `入去「${data.name}」`;
+        promptEl.classList.remove('hidden');
+        coordsEl.textContent = `${data.name} 無障礙入口`;
+    } else {
+        currentNearbyPlace = null;
+        promptEl.classList.add('hidden');
+        coordsEl.textContent = `社區廣場 (${Math.round(playerState.x)}, ${Math.round(playerState.z)})`;
+    }
+
+    // 4. Animate Scene Props
+    animatedObjects.forEach(obj => {
+        if (obj.type === 'spin') {
+            obj.mesh.rotation.y += dt * 1.1;
+        } else if (obj.type === 'sway') {
+            obj.mesh.rotation.z = Math.sin(elapsed * 2.2 + obj.offset) * 0.12;
+        } else if (obj.type === 'fountain') {
+            obj.mesh.scale.y = 0.85 + Math.sin(elapsed * 5) * 0.2;
+        } else if (obj.type === 'pulseRing') {
+            const s = 1 + Math.sin(elapsed * 4) * 0.08;
+            obj.mesh.scale.set(s, s, 1);
+        } else if (obj.type === 'car') {
+            obj.angle += dt * 0.32;
+            obj.mesh.position.set(
+                Math.cos(obj.angle) * obj.radius,
+                0.08,
+                Math.sin(obj.angle) * obj.radius
+            );
+            obj.mesh.rotation.y = -obj.angle;
+        }
+    });
+
+    renderer.render(scene, camera);
+}
+</script>
+</body>
+</html>
