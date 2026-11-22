@@ -85,8 +85,7 @@
     }
 
     .btn:hover { background: var(--primary-dark); }
-    .btn.secondary { background: #475569; }
-    .btn.secondary:hover { background: #334155; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn.warning { background: var(--warning); }
     .btn.warning:hover { background: #b45309; }
 
@@ -98,49 +97,53 @@
     }
 
     /* Path Width Selector */
-    .control-bar {
-      display: flex;
-      flex-wrap: wrap;
+    .width-control {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      padding: 10px 14px;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 5px;
       border-radius: 10px;
-      margin-top: 12px;
+      border: 1px solid var(--border);
     }
 
-    .width-group {
-      display: inline-flex;
-      background: #e2e8f0;
-      padding: 4px;
-      border-radius: 8px;
-      gap: 4px;
+    .width-control-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--muted);
+      padding: 0 8px;
     }
 
     .width-btn {
-      border: none;
       background: transparent;
-      padding: 6px 14px;
-      border-radius: 6px;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 7px;
       font-size: 0.9rem;
       font-weight: 600;
-      color: #475569;
+      color: var(--text);
       cursor: pointer;
       transition: all 0.15s ease;
     }
 
     .width-btn.active {
-      background: #ffffff;
-      color: var(--primary-dark);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 5px rgba(37, 99, 235, 0.25);
+    }
+
+    .stage1-header-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
     }
 
     /* Stage 1: Canvas */
     .canvas-wrapper {
       position: relative;
-      margin-top: 12px;
+      margin-top: 14px;
       border: 2px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
@@ -162,10 +165,10 @@
       background: #f1f5f9;
       font-weight: 500;
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     /* Stage 2: Webcam Gesture */
@@ -176,7 +179,7 @@
       margin-top: 16px;
     }
 
-    @media (max-width: 740px) {
+    @media (max-width: 720px) {
       .gesture-grid { grid-template-columns: 1fr; }
     }
 
@@ -224,23 +227,6 @@
       display: block;
     }
 
-    .tracking-pill {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(15, 23, 42, 0.78);
-      color: #f8fafc;
-      padding: 5px 10px;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      z-index: 2;
-    }
-
-    .tracking-pill.matched {
-      background: rgba(22, 163, 74, 0.92);
-    }
-
     .camera-overlay {
       position: absolute;
       inset: 0;
@@ -251,11 +237,40 @@
       padding: 20px;
       text-align: center;
       background: rgba(15, 23, 42, 0.88);
+      z-index: 5;
+    }
+
+    .cam-status-pill {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(15, 23, 42, 0.78);
+      color: #f8fafc;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
       z-index: 3;
     }
 
-    /* Telemetry Strip for Latency & Hesitation */
-    .telemetry-strip {
+    .transition-banner {
+      position: absolute;
+      inset: 0;
+      background: rgba(22, 163, 74, 0.88);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      font-weight: 700;
+      z-index: 4;
+      text-align: center;
+      padding: 16px;
+    }
+
+    /* Live Clinical Telemetry Strip */
+    .telemetry-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
@@ -263,35 +278,35 @@
     }
 
     @media (max-width: 600px) {
-      .telemetry-strip { grid-template-columns: 1fr; }
+      .telemetry-grid { grid-template-columns: 1fr; }
     }
 
     .telemetry-card {
       background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 10px 12px;
+      padding: 10px 14px;
     }
 
-    .telemetry-label {
+    .telemetry-title {
       font-size: 0.78rem;
-      color: var(--muted);
-      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      font-weight: 700;
     }
 
     .telemetry-value {
-      font-size: 1.15rem;
+      font-size: 1.2rem;
       font-weight: 700;
       color: #0f172a;
-      margin-top: 2px;
-      font-variant-numeric: tabular-nums;
+      margin-top: 3px;
     }
 
     .telemetry-sub {
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       color: var(--muted);
+      margin-top: 2px;
     }
 
     .progress-wrap {
@@ -346,16 +361,13 @@
       <h1>OT Praxis Training Module</h1>
       <p>This interactive clinical module evaluates and exercises visuomotor trajectory execution and upper-limb gesture imitation:</p>
       <ul>
-        <li><strong>Part 1 – Visuomotor Execution (5 Paths):</strong> Controlling smooth limb trajectories within spatial boundaries from start to target.</li>
-        <li><strong>Part 2 – Webcam Gesture Mirroring (6 Gestures):</strong> Imitating transitive and intransitive upper-limb &amp; hand postures tracked live via front camera, including <strong>initiation latency</strong> and <strong>hesitation</strong> timing.</li>
+        <li><strong>Part 1 – Visuomotor Execution (5 Paths):</strong> Controlling smooth limb trajectories within adjustable spatial boundaries from start to target.</li>
+        <li><strong>Part 2 – Webcam Gesture Mirroring (6 Gestures):</strong> Imitating transitive and intransitive upper-limb &amp; hand postures tracked live via front camera with initiation latency &amp; hesitation timing.</li>
       </ul>
 
-      <div class="control-bar">
-        <div>
-          <strong>Corridor Path Width:</strong>
-          <span style="color: var(--muted); font-size: 0.9rem; margin-left: 6px;">Adjust spatial tolerance</span>
-        </div>
-        <div class="width-group" data-width-selector>
+      <div style="margin: 16px 0;">
+        <div class="width-control" role="group" aria-label="Corridor Width Setting">
+          <span class="width-control-label">Path Width:</span>
           <button type="button" class="width-btn" data-width="narrow">Narrow (36px)</button>
           <button type="button" class="width-btn active" data-width="normal">Normal (56px)</button>
           <button type="button" class="width-btn" data-width="wide">Wide (80px)</button>
@@ -369,18 +381,18 @@
 
     <!-- STAGE 1: VISUOMOTOR TRAJECTORY -->
     <section id="stage1Screen" class="hidden">
-      <span class="badge" id="stage1ProgressBadge">Stage 1 of 2: Visuomotor Control — Path 1 of 5</span>
-      <h2 id="pathTitle">Visuomotor Trajectory Execution</h2>
-      <p>Press and drag continuously from the <strong>GREEN START</strong> circle to the <strong>RED END</strong> circle. Keep your pointer inside the grey corridor!</p>
-
-      <div class="control-bar">
-        <span style="font-weight: 600; font-size: 0.92rem;">Corridor Width Setting:</span>
-        <div class="width-group" data-width-selector>
+      <div class="stage1-header-row">
+        <span class="badge" id="stage1ProgressBadge">Stage 1 of 2: Visuomotor Control — Path 1 of 5</span>
+        <div class="width-control" role="group" aria-label="Adjust Corridor Width">
+          <span class="width-control-label">Width:</span>
           <button type="button" class="width-btn" data-width="narrow">Narrow</button>
           <button type="button" class="width-btn active" data-width="normal">Normal</button>
           <button type="button" class="width-btn" data-width="wide">Wide</button>
         </div>
       </div>
+
+      <h2 id="pathTitle">Visuomotor Trajectory Execution</h2>
+      <p>Press and drag continuously from the <strong>GREEN START</strong> circle to the <strong>RED END</strong> circle. Keep your pointer inside the grey corridor!</p>
 
       <div class="canvas-wrapper">
         <canvas id="traceCanvas" width="800" height="380"></canvas>
@@ -396,7 +408,7 @@
     <section id="stage2Screen" class="hidden">
       <span class="badge" id="stage2ProgressBadge">Stage 2 of 2: Ideomotor Gesture Mirroring — Gesture 1 of 6</span>
       <h2>Upper-Limb &amp; Hand Gesture Imitation</h2>
-      <p>Position your hand in view of the front camera and mirror the target posture shown below. Hold steady for <strong>1.5 seconds</strong> to register completion.</p>
+      <p>Position your upper limb and hand in view of the front camera and mirror the target posture shown below. Hold steady for <strong>1.5 seconds</strong> to register completion.</p>
 
       <div class="gesture-grid">
         <div class="target-card">
@@ -407,9 +419,13 @@
         </div>
 
         <div class="camera-box">
-          <div class="tracking-pill hidden" id="trackingPill">Initializing tracker...</div>
+          <span class="cam-status-pill" id="camStatusPill">Camera Off</span>
           <video id="webcamVideo" playsinline muted autoplay></video>
           <canvas id="outputCanvas" width="480" height="320"></canvas>
+          <div class="transition-banner hidden" id="transitionBanner">
+            <div id="transitionTitle">✓ Gesture Verified!</div>
+            <div id="transitionSub" style="font-size: 0.95rem; font-weight: 500; margin-top: 6px;">Loading next posture...</div>
+          </div>
           <div class="camera-overlay" id="cameraOverlay">
             <p id="cameraOverlayMsg" style="margin-bottom: 14px;">Tap below to activate your front camera for live hand &amp; posture tracking.</p>
             <button class="btn" id="enableCameraBtn">📷 Enable Front Camera</button>
@@ -417,22 +433,22 @@
         </div>
       </div>
 
-      <!-- Latency & Hesitation Telemetry Strip -->
-      <div class="telemetry-strip">
+      <!-- LIVE CLINICAL TELEMETRY: LATENCY & HESITATION -->
+      <div class="telemetry-grid">
         <div class="telemetry-card">
-          <div class="telemetry-label">Initiation Latency</div>
-          <div class="telemetry-value" id="latencyTimerText">0.00s</div>
-          <div class="telemetry-sub" id="latencySubText">Waiting for first posture match</div>
+          <div class="telemetry-title">Initiation Latency</div>
+          <div class="telemetry-value" id="latencyValue">Waiting for camera...</div>
+          <div class="telemetry-sub" id="latencySub">Starts once camera is active</div>
         </div>
         <div class="telemetry-card">
-          <div class="telemetry-label">Hesitation / Drops</div>
-          <div class="telemetry-value" id="hesitationTimerText">0.00s (0)</div>
-          <div class="telemetry-sub">Post-initiation pauses &amp; breaks</div>
+          <div class="telemetry-title">Hesitation / Posture Drops</div>
+          <div class="telemetry-value" id="hesitationValue">0.00s (0 drops)</div>
+          <div class="telemetry-sub">Out-of-posture time after onset</div>
         </div>
         <div class="telemetry-card">
-          <div class="telemetry-label">Total Trial Time</div>
-          <div class="telemetry-value" id="totalTrialTimerText">0.00s</div>
-          <div class="telemetry-sub">Prompt display to completion</div>
+          <div class="telemetry-title">Total Trial Time</div>
+          <div class="telemetry-value" id="trialTimeValue">0.0s</div>
+          <div class="telemetry-sub">Active camera time on prompt</div>
         </div>
       </div>
 
@@ -477,7 +493,7 @@
             <th>Gesture</th>
             <th>Type</th>
             <th>Initiation Latency</th>
-            <th>Hesitation (Breaks)</th>
+            <th>Hesitation (Drops)</th>
             <th>Total Time</th>
             <th>Result</th>
           </tr>
@@ -502,24 +518,23 @@
     };
     let selectedWidthKey = "normal";
 
-    document.querySelectorAll("[data-width-selector]").forEach((group) => {
-      group.addEventListener("click", (e) => {
-        const btn = e.target.closest(".width-btn");
-        if (!btn) return;
-        selectedWidthKey = btn.dataset.width;
-
-        document.querySelectorAll(".width-btn").forEach((b) => {
-          b.classList.toggle("active", b.dataset.width === selectedWidthKey);
-        });
-
-        if (!stage1Screen.classList.contains("hidden")) {
-          isTracing = false;
-          userTrail = [];
-          document.getElementById("traceStatus").textContent =
-            `Width changed to ${WIDTH_PRESETS[selectedWidthKey].label}. Touch inside GREEN circle to start.`;
-          renderPathCanvas();
-        }
+    function setCorridorWidth(key) {
+      if (!WIDTH_PRESETS[key]) return;
+      selectedWidthKey = key;
+      document.querySelectorAll(".width-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.width === key);
       });
+      if (!stage1Screen.classList.contains("hidden")) {
+        isTracing = false;
+        userTrail = [];
+        document.getElementById("traceStatus").textContent =
+          `Corridor set to ${WIDTH_PRESETS[key].label}. Touch inside GREEN circle to trace.`;
+        renderPathCanvas();
+      }
+    }
+
+    document.querySelectorAll(".width-btn").forEach((btn) => {
+      btn.addEventListener("click", () => setCorridorWidth(btn.dataset.width));
     });
 
     /* =========================================================
@@ -575,29 +590,14 @@
     ];
 
     /* =========================================================
-       DATA: 6 WEBCAM GESTURES (21-LANDMARK GEOMETRY)
+       DATA: 6 WEBCAM GESTURES
        ========================================================= */
-    const HAND_CONNECTIONS_LIST = [
-      [0,1],[1,2],[2,3],[3,4],
-      [0,5],[5,6],[6,7],[7,8],
-      [5,9],[9,10],[10,11],[11,12],
-      [9,13],[13,14],[14,15],[15,16],
-      [13,17],[0,17],[17,18],[18,19],[19,20]
-    ];
-
-    function fingerExtended(lm, tipIdx, pipIdx, mcpIdx) {
-      const wrist = lm[0];
-      const tipDist = Math.hypot(lm[tipIdx].x - wrist.x, lm[tipIdx].y - wrist.y);
-      const pipDist = Math.hypot(lm[pipIdx].x - wrist.x, lm[pipIdx].y - wrist.y);
-      const mcpDist = Math.hypot(lm[mcpIdx].x - wrist.x, lm[mcpIdx].y - wrist.y);
-      return tipDist > pipDist * 1.08 && pipDist > mcpDist * 0.95;
+    function isFingerExtended(lm, tipIdx, pipIdx) {
+      return lm[tipIdx].y < lm[pipIdx].y - 0.015;
     }
 
-    function fingerCurled(lm, tipIdx, pipIdx) {
-      const wrist = lm[0];
-      const tipDist = Math.hypot(lm[tipIdx].x - wrist.x, lm[tipIdx].y - wrist.y);
-      const pipDist = Math.hypot(lm[pipIdx].x - wrist.x, lm[pipIdx].y - wrist.y);
-      return tipDist < pipDist * 1.05;
+    function isFingerCurled(lm, tipIdx, pipIdx) {
+      return lm[tipIdx].y > lm[pipIdx].y + 0.01;
     }
 
     const GESTURE_TASKS = [
@@ -605,27 +605,28 @@
         name: 'Open Palm "Stop" Sign',
         category: "Intransitive Gesture",
         emoji: "✋",
-        desc: "Raise your hand with all five fingers extended and spread apart.",
+        desc: "Raise your hand to shoulder height with all five fingers extended and spread apart.",
         check: (lm) => {
-          const idx = fingerExtended(lm, 8, 6, 5);
-          const mid = fingerExtended(lm, 12, 10, 9);
-          const rng = fingerExtended(lm, 16, 14, 13);
-          const pnk = fingerExtended(lm, 20, 18, 17);
-          const thumbSpread = Math.hypot(lm[4].x - lm[5].x, lm[4].y - lm[5].y) >
-                              Math.hypot(lm[5].x - lm[9].x, lm[5].y - lm[9].y) * 0.9;
-          return idx && mid && rng && pnk && thumbSpread;
+          return (
+            isFingerExtended(lm, 8, 6) &&
+            isFingerExtended(lm, 12, 10) &&
+            isFingerExtended(lm, 16, 14) &&
+            isFingerExtended(lm, 20, 18)
+          );
         }
       },
       {
         name: 'Closed Fist "Grasp"',
         category: "Intransitive Gesture",
         emoji: "✊",
-        desc: "Curl all fingers tightly into your palm with your thumb wrapped across.",
+        desc: "Curl all fingers tightly into your palm with your thumb wrapped across the front.",
         check: (lm) => {
-          return fingerCurled(lm, 8, 6) &&
-                 fingerCurled(lm, 12, 10) &&
-                 fingerCurled(lm, 16, 14) &&
-                 fingerCurled(lm, 20, 18);
+          return (
+            isFingerCurled(lm, 8, 6) &&
+            isFingerCurled(lm, 12, 10) &&
+            isFingerCurled(lm, 16, 14) &&
+            isFingerCurled(lm, 20, 18)
+          );
         }
       },
       {
@@ -634,37 +635,43 @@
         emoji: "👍",
         desc: "Close your four fingers into a fist and extend your thumb straight upward.",
         check: (lm) => {
-          const thumbUp = lm[4].y < lm[3].y && lm[3].y < lm[2].y && lm[4].y < lm[6].y;
-          return thumbUp &&
-                 fingerCurled(lm, 8, 6) &&
-                 fingerCurled(lm, 12, 10) &&
-                 fingerCurled(lm, 16, 14) &&
-                 fingerCurled(lm, 20, 18);
+          const thumbUp = lm[4].y < lm[3].y - 0.02 && lm[4].y < lm[6].y;
+          return (
+            thumbUp &&
+            isFingerCurled(lm, 8, 6) &&
+            isFingerCurled(lm, 12, 10) &&
+            isFingerCurled(lm, 16, 14) &&
+            isFingerCurled(lm, 20, 18)
+          );
         }
       },
       {
         name: 'Two-Finger "Peace / V" Sign',
         category: "Intransitive Gesture",
         emoji: "✌️",
-        desc: "Extend your index and middle fingers upward while curling your ring and pinky fingers.",
+        desc: "Extend your index and middle fingers upward in a V while curling your ring and pinky fingers.",
         check: (lm) => {
-          return fingerExtended(lm, 8, 6, 5) &&
-                 fingerExtended(lm, 12, 10, 9) &&
-                 fingerCurled(lm, 16, 14) &&
-                 fingerCurled(lm, 20, 18);
+          return (
+            isFingerExtended(lm, 8, 6) &&
+            isFingerExtended(lm, 12, 10) &&
+            isFingerCurled(lm, 16, 14) &&
+            isFingerCurled(lm, 20, 18)
+          );
         }
       },
       {
         name: 'Precision Pinch "Key / Coin Hold"',
         category: "Transitive Gesture",
         emoji: "👌",
-        desc: "Touch the tip of your thumb to the tip of your index finger while extending the remaining three fingers.",
+        desc: "Touch the tip of your thumb to the tip of your index finger to form a circle while extending your other fingers.",
         check: (lm) => {
-          const palmScale = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) || 0.2;
-          const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
-          return (pinchDist / palmScale) < 0.35 &&
-                 fingerExtended(lm, 12, 10, 9) &&
-                 fingerExtended(lm, 16, 14, 13);
+          const palmScale = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) || 0.15;
+          const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / palmScale;
+          return (
+            pinchDist < 0.42 &&
+            isFingerExtended(lm, 12, 10) &&
+            isFingerExtended(lm, 16, 14)
+          );
         }
       },
       {
@@ -673,12 +680,23 @@
         emoji: "☝️",
         desc: "Extend only your index finger upward as if pressing a button, keeping all other fingers curled.",
         check: (lm) => {
-          return fingerExtended(lm, 8, 6, 5) &&
-                 fingerCurled(lm, 12, 10) &&
-                 fingerCurled(lm, 16, 14) &&
-                 fingerCurled(lm, 20, 18);
+          return (
+            isFingerExtended(lm, 8, 6) &&
+            isFingerCurled(lm, 12, 10) &&
+            isFingerCurled(lm, 16, 14) &&
+            isFingerCurled(lm, 20, 18)
+          );
         }
       }
+    ];
+
+    const HAND_BONES = [
+      [0,1],[1,2],[2,3],[3,4],
+      [0,5],[5,6],[6,7],[7,8],
+      [5,9],[9,10],[10,11],[11,12],
+      [9,13],[13,14],[14,15],[15,16],
+      [13,17],[17,18],[18,19],[19,20],
+      [0,17]
     ];
 
     /* =========================================================
@@ -688,28 +706,29 @@
     let isTracing = false;
     let traceStartTime = 0;
     let traceErrors = 0;
-    let wasOutsideCorridor = false;
     let userTrail = [];
     let stage1Results = [];
 
     let currentGestureIdx = 0;
     let holdDurationMs = 0;
     let lastFrameTime = 0;
-    let cameraActive = false;
-    let mediaStream = null;
+    let cameraStream = null;
     let handsInstance = null;
-    let rafId = null;
+    let isDetecting = false;
+    let isSendingFrame = false;
+    let isTransitioningGesture = false;
+    let animFrameId = null;
     let stage2Results = [];
     const HOLD_TARGET_MS = 1500;
 
-    // Latency & Hesitation State
-    let gesturePromptStartTime = 0;
-    let firstInitiatedTime = null;
+    // Gesture Latency & Hesitation Telemetry State
+    let gesturePromptStartTime = null; // Null until camera is active!
     let initiationLatencyMs = null;
-    let hesitationDurationMs = 0;
-    let hesitationDrops = 0;
-    let wasMatchingPrevFrame = false;
-    let telemetryTimerInterval = null;
+    let hasInitiatedGesture = false;
+    let hesitationMs = 0;
+    let postureDropCount = 0;
+    let wasMatchedLastFrame = false;
+    let telemetryTimerId = null;
 
     const introScreen = document.getElementById("introScreen");
     const stage1Screen = document.getElementById("stage1Screen");
@@ -740,15 +759,10 @@
     /* =========================================================
        STAGE 1: VISUOMOTOR TRAJECTORY EXECUTION
        ========================================================= */
-    function getActiveCorridorWidth() {
-      return WIDTH_PRESETS[selectedWidthKey].px;
-    }
-
     function loadPath(index) {
       const path = TRAJECTORY_PATHS[index];
       isTracing = false;
       traceErrors = 0;
-      wasOutsideCorridor = false;
       userTrail = [];
       document.getElementById("stage1ProgressBadge").textContent =
         `Stage 1 of 2: Visuomotor Control — Path ${index + 1} of ${TRAJECTORY_PATHS.length}`;
@@ -761,7 +775,7 @@
 
     function renderPathCanvas() {
       const path = TRAJECTORY_PATHS[currentPathIdx];
-      const corridorWidth = getActiveCorridorWidth();
+      const corridorWidth = WIDTH_PRESETS[selectedWidthKey].px;
       ctx.clearRect(0, 0, traceCanvas.width, traceCanvas.height);
 
       ctx.save();
@@ -785,7 +799,7 @@
       if (userTrail.length > 1) {
         ctx.save();
         ctx.strokeStyle = "#2563eb";
-        ctx.lineWidth = 5;
+        ctx.lineWidth = 6;
         ctx.lineCap = "round";
         ctx.beginPath();
         userTrail.forEach((pt, i) => {
@@ -799,7 +813,7 @@
       const startPt = path.points[0];
       ctx.fillStyle = "#16a34a";
       ctx.beginPath();
-      ctx.arc(startPt.x, startPt.y, 22, 0, Math.PI * 2);
+      ctx.arc(startPt.x, startPt.y, 24, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.font = "bold 11px sans-serif";
@@ -809,7 +823,7 @@
       const endPt = path.points[path.points.length - 1];
       ctx.fillStyle = "#dc2626";
       ctx.beginPath();
-      ctx.arc(endPt.x, endPt.y, 22, 0, Math.PI * 2);
+      ctx.arc(endPt.x, endPt.y, 24, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.fillText("END", endPt.x, endPt.y + 4);
@@ -834,7 +848,8 @@
     }
 
     function isInsideCorridor(pt, path) {
-      const maxDist = getActiveCorridorWidth() / 2 + 4;
+      const corridorWidth = WIDTH_PRESETS[selectedWidthKey].px;
+      const maxDist = corridorWidth / 2 + 5;
       for (let i = 0; i < path.points.length - 1; i++) {
         if (distToSegment(pt, path.points[i], path.points[i + 1]) <= maxDist) {
           return true;
@@ -849,7 +864,6 @@
       if (Math.hypot(pt.x - startPt.x, pt.y - startPt.y) <= 28) {
         isTracing = true;
         traceStartTime = performance.now();
-        wasOutsideCorridor = false;
         userTrail = [pt];
         document.getElementById("traceStatus").textContent = "Tracing active — keep inside the grey corridor!";
       }
@@ -862,15 +876,10 @@
       userTrail.push(pt);
 
       const elapsed = ((performance.now() - traceStartTime) / 1000).toFixed(1);
-      const inside = isInsideCorridor(pt, path);
-      if (!inside) {
-        if (!wasOutsideCorridor) {
-          traceErrors++;
-          wasOutsideCorridor = true;
-        }
+      if (!isInsideCorridor(pt, path)) {
+        traceErrors++;
         document.getElementById("traceStatus").textContent = "⚠️ Outside corridor! Return to the grey path.";
       } else {
-        wasOutsideCorridor = false;
         document.getElementById("traceStatus").textContent = "Good control — continue to the RED END circle.";
       }
 
@@ -911,56 +920,23 @@
     /* =========================================================
        STAGE 2: WEBCAM GESTURE MIRRORING + LATENCY & HESITATION
        ========================================================= */
-    function startTelemetryClock() {
-      stopTelemetryClock();
-      telemetryTimerInterval = setInterval(() => {
-        if (stage2Screen.classList.contains("hidden")) return;
-        const now = performance.now();
-        const totalSec = ((now - gesturePromptStartTime) / 1000).toFixed(2);
-        document.getElementById("totalTrialTimerText").textContent = `${totalSec}s`;
-
-        if (initiationLatencyMs === null) {
-          document.getElementById("latencyTimerText").textContent = `${totalSec}s`;
-          document.getElementById("latencySubText").textContent = "Measuring time to first match...";
-        }
-      }, 50);
-    }
-
-    function stopTelemetryClock() {
-      if (telemetryTimerInterval) {
-        clearInterval(telemetryTimerInterval);
-        telemetryTimerInterval = null;
-      }
-    }
-
-    function updateTelemetryDisplay() {
-      const latText = initiationLatencyMs !== null
-        ? `${(initiationLatencyMs / 1000).toFixed(2)}s`
-        : "0.00s";
-      document.getElementById("latencyTimerText").textContent = latText;
-      document.getElementById("latencySubText").textContent = initiationLatencyMs !== null
-        ? "First valid posture detected"
-        : "Waiting for first posture match";
-
-      const hesSec = (hesitationDurationMs / 1000).toFixed(2);
-      document.getElementById("hesitationTimerText").textContent = `${hesSec}s (${hesitationDrops})`;
-    }
-
     function loadGesture(index) {
       const g = GESTURE_TASKS[index];
       holdDurationMs = 0;
+      lastFrameTime = performance.now();
+      isTransitioningGesture = false;
+      document.getElementById("transitionBanner").classList.add("hidden");
 
-      // Reset Latency & Hesitation metrics for the new prompt
-      gesturePromptStartTime = performance.now();
-      firstInitiatedTime = null;
+      // Only start latency clock if camera is ALREADY active!
+      gesturePromptStartTime = isDetecting ? performance.now() : null;
       initiationLatencyMs = null;
-      hesitationDurationMs = 0;
-      hesitationDrops = 0;
-      wasMatchingPrevFrame = false;
+      hasInitiatedGesture = false;
+      hesitationMs = 0;
+      postureDropCount = 0;
+      wasMatchedLastFrame = false;
 
       updateHoldUI();
-      updateTelemetryDisplay();
-      startTelemetryClock();
+      updateTelemetryUI();
 
       document.getElementById("stage2ProgressBadge").textContent =
         `Stage 2 of 2: Ideomotor Gesture Mirroring — Gesture ${index + 1} of ${GESTURE_TASKS.length}`;
@@ -972,6 +948,51 @@
       document.getElementById("gestureEmoji").textContent = g.emoji;
       document.getElementById("gestureName").textContent = g.name;
       document.getElementById("gestureDesc").textContent = g.desc;
+
+      startTelemetryTimer();
+    }
+
+    function startTelemetryTimer() {
+      stopTelemetryTimer();
+      telemetryTimerId = setInterval(() => {
+        if (!stage2Screen.classList.contains("hidden") && !isTransitioningGesture) {
+          updateTelemetryUI();
+        }
+      }, 100);
+    }
+
+    function stopTelemetryTimer() {
+      if (telemetryTimerId) {
+        clearInterval(telemetryTimerId);
+        telemetryTimerId = null;
+      }
+    }
+
+    function updateTelemetryUI() {
+      // Do not count initiation latency until camera is turned on and streaming
+      if (!isDetecting || gesturePromptStartTime === null) {
+        document.getElementById("latencyValue").textContent = "Waiting for camera...";
+        document.getElementById("latencySub").textContent = "Starts once camera is active";
+        document.getElementById("hesitationValue").textContent = "0.00s (0 drops)";
+        document.getElementById("trialTimeValue").textContent = "0.0s";
+        return;
+      }
+
+      const now = performance.now();
+      const totalElapsedSec = ((now - gesturePromptStartTime) / 1000).toFixed(1);
+
+      if (!hasInitiatedGesture) {
+        const liveLatencySec = ((now - gesturePromptStartTime) / 1000).toFixed(2);
+        document.getElementById("latencyValue").textContent = `${liveLatencySec}s`;
+        document.getElementById("latencySub").textContent = "Awaiting first posture match...";
+      } else {
+        document.getElementById("latencyValue").textContent = `${(initiationLatencyMs / 1000).toFixed(2)}s`;
+        document.getElementById("latencySub").textContent = "Locked at initial posture onset";
+      }
+
+      const hesSec = (hesitationMs / 1000).toFixed(2);
+      document.getElementById("hesitationValue").textContent = `${hesSec}s (${postureDropCount} ${postureDropCount === 1 ? "drop" : "drops"})`;
+      document.getElementById("trialTimeValue").textContent = `${totalElapsedSec}s`;
     }
 
     function updateHoldUI() {
@@ -982,23 +1003,41 @@
     }
 
     function completeCurrentGesture(methodLabel) {
+      if (isTransitioningGesture) return;
+      isTransitioningGesture = true;
+
       const g = GESTURE_TASKS[currentGestureIdx];
-      const totalElapsedSec = ((performance.now() - gesturePromptStartTime) / 1000).toFixed(2);
+      const totalElapsedSec = gesturePromptStartTime !== null
+        ? ((performance.now() - gesturePromptStartTime) / 1000).toFixed(1) + "s"
+        : "0.0s (Camera Off)";
+      const latencyStr = initiationLatencyMs !== null
+        ? `${(initiationLatencyMs / 1000).toFixed(2)}s`
+        : (isDetecting ? "Not initiated" : "Camera not started");
+      const hesitationStr = `${(hesitationMs / 1000).toFixed(2)}s (${postureDropCount} drops)`;
 
       stage2Results.push({
         name: g.name,
         category: g.category,
-        latency: initiationLatencyMs !== null ? `${(initiationLatencyMs / 1000).toFixed(2)}s` : "N/A",
-        hesitation: `${(hesitationDurationMs / 1000).toFixed(2)}s (${hesitationDrops})`,
-        totalTime: `${totalElapsedSec}s`,
+        latency: latencyStr,
+        hesitation: hesitationStr,
+        totalTime: totalElapsedSec,
         status: methodLabel
       });
 
-      currentGestureIdx++;
-      if (currentGestureIdx < GESTURE_TASKS.length) {
-        loadGesture(currentGestureIdx);
+      const nextIdx = currentGestureIdx + 1;
+      if (nextIdx < GESTURE_TASKS.length) {
+        // Show brief verification banner so transition is smooth and prevents accidental double-trigger
+        const banner = document.getElementById("transitionBanner");
+        document.getElementById("transitionTitle").textContent = `✓ ${g.name} Complete!`;
+        document.getElementById("transitionSub").textContent = `Prepare for Gesture ${nextIdx + 1}: ${GESTURE_TASKS[nextIdx].name}`;
+        banner.classList.remove("hidden");
+
+        setTimeout(() => {
+          currentGestureIdx = nextIdx;
+          loadGesture(currentGestureIdx);
+        }, 900);
       } else {
-        stopTelemetryClock();
+        stopTelemetryTimer();
         stopCamera();
         showSummary();
       }
@@ -1008,162 +1047,179 @@
       completeCurrentGesture("Clinician Override / Skipped");
     });
 
-    function drawMirroredSkeleton(outCtx, landmarks, width, height, isMatched) {
-      outCtx.save();
-      outCtx.strokeStyle = isMatched ? "#22c55e" : "#38bdf8";
-      outCtx.lineWidth = 3;
-
-      for (const [startIdx, endIdx] of HAND_CONNECTIONS_LIST) {
-        const p1 = landmarks[startIdx];
-        const p2 = landmarks[endIdx];
-        outCtx.beginPath();
-        outCtx.moveTo((1 - p1.x) * width, p1.y * height);
-        outCtx.lineTo((1 - p2.x) * width, p2.y * height);
-        outCtx.stroke();
+    function drawMirroredSkeleton(ctx2d, landmarks, w, h, isMatched) {
+      ctx2d.save();
+      ctx2d.strokeStyle = isMatched ? "#22c55e" : "#38bdf8";
+      ctx2d.lineWidth = 3;
+      for (const [a, b] of HAND_BONES) {
+        const ptA = landmarks[a];
+        const ptB = landmarks[b];
+        ctx2d.beginPath();
+        ctx2d.moveTo((1 - ptA.x) * w, ptA.y * h);
+        ctx2d.lineTo((1 - ptB.x) * w, ptB.y * h);
+        ctx2d.stroke();
       }
 
-      outCtx.fillStyle = "#ffffff";
+      ctx2d.fillStyle = isMatched ? "#bbf7d0" : "#ffffff";
       for (const pt of landmarks) {
-        outCtx.beginPath();
-        outCtx.arc((1 - pt.x) * width, pt.y * height, 4, 0, Math.PI * 2);
-        outCtx.fill();
+        ctx2d.beginPath();
+        ctx2d.arc((1 - pt.x) * w, pt.y * h, 4, 0, Math.PI * 2);
+        ctx2d.fill();
       }
-      outCtx.restore();
+      ctx2d.restore();
     }
 
     document.getElementById("enableCameraBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("enableCameraBtn");
+      const overlayMsg = document.getElementById("cameraOverlayMsg");
       const videoEl = document.getElementById("webcamVideo");
       const outCanvas = document.getElementById("outputCanvas");
       const outCtx = outCanvas.getContext("2d");
-      const pill = document.getElementById("trackingPill");
-      const overlayMsg = document.getElementById("cameraOverlayMsg");
+      const statusPill = document.getElementById("camStatusPill");
+
+      btn.disabled = true;
+      btn.textContent = "Starting Camera...";
+      overlayMsg.textContent = "Requesting camera permission and loading hand tracking model...";
 
       try {
-        overlayMsg.textContent = "Requesting front camera access...";
-        mediaStream = await navigator.mediaDevices.getUserMedia({
+        cameraStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
           audio: false
         });
-        videoEl.srcObject = mediaStream;
+        videoEl.srcObject = cameraStream;
         await videoEl.play();
 
-        handsInstance = new Hands({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
+        if (!handsInstance) {
+          handsInstance = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          });
 
-        handsInstance.setOptions({
-          maxNumHands: 1,
-          modelComplexity: 1,
-          minDetectionConfidence: 0.6,
-          minTrackingConfidence: 0.55
-        });
+          handsInstance.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.55
+          });
 
-        let latestLandmarks = null;
+          handsInstance.onResults((results) => {
+            const now = performance.now();
+            const dt = lastFrameTime ? Math.min(now - lastFrameTime, 250) : 0;
+            lastFrameTime = now;
 
-        handsInstance.onResults((results) => {
-          if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            latestLandmarks = results.multiHandLandmarks[0];
-          } else {
-            latestLandmarks = null;
-          }
-        });
+            const w = outCanvas.width;
+            const h = outCanvas.height;
 
-        cameraActive = true;
-        lastFrameTime = performance.now();
-        // Reset prompt clock once camera is live so setup time doesn't skew latency
-        gesturePromptStartTime = performance.now();
-        document.getElementById("cameraOverlay").classList.add("hidden");
-        pill.classList.remove("hidden");
-
-        let isProcessing = false;
-
-        async function processVideoFrame() {
-          if (!cameraActive) return;
-
-          const now = performance.now();
-          const dt = now - lastFrameTime;
-          lastFrameTime = now;
-
-          if (videoEl.readyState >= 2) {
+            // Always draw live mirrored webcam feed so video never freezes
             outCtx.save();
-            outCtx.translate(outCanvas.width, 0);
+            outCtx.clearRect(0, 0, w, h);
+            outCtx.translate(w, 0);
             outCtx.scale(-1, 1);
-            outCtx.drawImage(videoEl, 0, 0, outCanvas.width, outCanvas.height);
+            outCtx.drawImage(videoEl, 0, 0, w, h);
             outCtx.restore();
 
-            if (!isProcessing && handsInstance) {
-              isProcessing = true;
-              handsInstance.send({ image: videoEl })
-                .catch(() => {})
-                .finally(() => { isProcessing = false; });
+            if (isTransitioningGesture) {
+              return;
             }
 
             let matched = false;
-            if (latestLandmarks) {
+            const multiLm = results.multiHandLandmarks;
+            if (multiLm && multiLm.length > 0) {
+              const landmarks = multiLm[0];
               const currentTask = GESTURE_TASKS[currentGestureIdx];
-              matched = currentTask ? currentTask.check(latestLandmarks) : false;
-              drawMirroredSkeleton(outCtx, latestLandmarks, outCanvas.width, outCanvas.height, matched);
-
-              pill.textContent = matched ? "✓ Posture Matched — Hold Steady" : "Hand Detected — Form Target Posture";
-              pill.className = matched ? "tracking-pill matched" : "tracking-pill";
+              matched = Boolean(currentTask && currentTask.check(landmarks));
+              drawMirroredSkeleton(outCtx, landmarks, w, h, matched);
+              statusPill.textContent = matched ? "✓ Posture Matched — Hold Steady" : "Hand Detected — Form Target Posture";
+              statusPill.style.background = matched ? "rgba(22, 163, 74, 0.9)" : "rgba(15, 23, 42, 0.78)";
             } else {
-              pill.textContent = "Show your hand clearly in front of camera";
-              pill.className = "tracking-pill";
+              statusPill.textContent = "Show hand clearly in frame";
+              statusPill.style.background = "rgba(15, 23, 42, 0.78)";
             }
 
+            // Record Initiation Latency & Hesitation once camera is live
             if (matched) {
-              // Record initiation latency on first valid match
-              if (firstInitiatedTime === null) {
-                firstInitiatedTime = now;
-                initiationLatencyMs = now - gesturePromptStartTime;
+              if (!hasInitiatedGesture && gesturePromptStartTime !== null) {
+                hasInitiatedGesture = true;
+                initiationLatencyMs = Math.max(0, now - gesturePromptStartTime);
               }
-              wasMatchingPrevFrame = true;
-
               holdDurationMs += dt;
               if (holdDurationMs >= HOLD_TARGET_MS) {
                 holdDurationMs = HOLD_TARGET_MS;
                 updateHoldUI();
-                updateTelemetryDisplay();
+                updateTelemetryUI();
                 completeCurrentGesture("Completed via Front Camera");
                 return;
               }
             } else {
-              // Track post-initiation hesitation & posture drops
-              if (firstInitiatedTime !== null) {
-                hesitationDurationMs += dt;
-                if (wasMatchingPrevFrame) {
-                  hesitationDrops++;
+              if (hasInitiatedGesture) {
+                hesitationMs += dt;
+                if (wasMatchedLastFrame) {
+                  postureDropCount++;
                 }
               }
-              wasMatchingPrevFrame = false;
-              holdDurationMs = Math.max(0, holdDurationMs - dt * 1.2);
+              holdDurationMs = Math.max(0, holdDurationMs - dt * 1.25);
             }
 
+            wasMatchedLastFrame = matched;
             updateHoldUI();
-            updateTelemetryDisplay();
-          }
-
-          rafId = requestAnimationFrame(processVideoFrame);
+            updateTelemetryUI();
+          });
         }
 
-        rafId = requestAnimationFrame(processVideoFrame);
+        isDetecting = true;
+        isSendingFrame = false;
+        lastFrameTime = performance.now();
+
+        // Start Initiation Latency clock NOW that camera is active and streaming!
+        gesturePromptStartTime = performance.now();
+        initiationLatencyMs = null;
+        hasInitiatedGesture = false;
+        hesitationMs = 0;
+        postureDropCount = 0;
+        wasMatchedLastFrame = false;
+        updateTelemetryUI();
+
+        document.getElementById("cameraOverlay").classList.add("hidden");
+        statusPill.textContent = "Tracking Active — Show Hand";
+
+        async function detectionLoop() {
+          if (!isDetecting) return;
+          if (videoEl.readyState >= 2 && handsInstance && !isSendingFrame) {
+            isSendingFrame = true;
+            try {
+              await handsInstance.send({ image: videoEl });
+            } catch (err) {
+              console.warn("Frame skipped:", err);
+            } finally {
+              isSendingFrame = false;
+            }
+          }
+          animFrameId = requestAnimationFrame(detectionLoop);
+        }
+        detectionLoop();
+
       } catch (err) {
-        overlayMsg.textContent = "Camera blocked or unavailable. Check browser permissions or use Clinician Override / Skip.";
+        btn.disabled = false;
+        btn.textContent = "📷 Retry Front Camera";
+        overlayMsg.textContent = "Camera access failed or was blocked. Check permissions or use Clinician Override / Skip.";
       }
     });
 
     function stopCamera() {
-      cameraActive = false;
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
+      isDetecting = false;
+      isSendingFrame = false;
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
       }
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => track.stop());
-        mediaStream = null;
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+        cameraStream = null;
       }
-      document.getElementById("trackingPill").classList.add("hidden");
+      const btn = document.getElementById("enableCameraBtn");
+      btn.disabled = false;
+      btn.textContent = "📷 Enable Front Camera";
       document.getElementById("cameraOverlay").classList.remove("hidden");
+      document.getElementById("camStatusPill").textContent = "Camera Off";
     }
 
     /* =========================================================
@@ -1175,15 +1231,15 @@
 
       const s1Body = document.getElementById("stage1SummaryBody");
       s1Body.innerHTML = stage1Results
-        .map((r) => `<tr><td>${r.name}</td><td>${r.width}</td><td>${r.errors}</td><td>${r.time}</td></tr>`)
+        .map(r => `<tr><td>${r.name}</td><td>${r.width}</td><td>${r.errors}</td><td>${r.time}</td></tr>`)
         .join("");
 
       const s2Body = document.getElementById("stage2SummaryBody");
       s2Body.innerHTML = stage2Results
-        .map((r) => `<tr>
+        .map(r => `<tr>
           <td>${r.name}</td>
           <td>${r.category}</td>
-          <td>${r.latency}</td>
+          <td><strong>${r.latency}</strong></td>
           <td>${r.hesitation}</td>
           <td>${r.totalTime}</td>
           <td>${r.status}</td>
