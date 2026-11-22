@@ -803,9 +803,9 @@
         let attempts = 0;
         do {
           valid = true;
-          // Spawn targets in the middle area of the screen
+          // Spawn targets slightly higher in the upper-middle area of the screen
           x = canvas.width * (0.16 + Math.random() * 0.68);
-          y = canvas.height * (0.35 + Math.random() * 0.27);
+          y = canvas.height * (0.24 + Math.random() * 0.25);
           for (const t of targets) {
             if (Math.hypot(x - t.x, y - t.y) < minDistance) {
               valid = false;
@@ -1255,10 +1255,8 @@
           let touchingAnyTarget = false;
 
           for (const hand of activeHands) {
-            if (!hand.isGrasping) continue;
-
-            // Check if hand is grasping any uncaught target
-            const hitTarget = targets.find(t => !t.caught && Math.hypot(hand.x - t.x, hand.y - t.y) <= t.radius + 14);
+            // Check if index finger tip touches/enters target (with generous hit tolerance)
+            const hitTarget = targets.find(t => !t.caught && Math.hypot(hand.x - t.x, hand.y - t.y) <= t.radius + 20);
             if (!hitTarget) continue;
 
             touchingAnyTarget = true;
@@ -1268,7 +1266,7 @@
               continue;
             }
 
-            // Check if patient grabbed the WRONG digit in the 5-digit sequence
+            // Check if patient touched/grabbed the WRONG digit in the 5-digit sequence
             if (hitTarget.digit !== expectedTarget.digit) {
               triggerWarning(`Wrong digit (${hitTarget.digit})! Recall sequence in order`, now, false);
               if (lastWrongTargetId !== hitTarget.id) {
@@ -1513,15 +1511,15 @@
     }
 
     function drawTargets(angleInsufficient, isMemorizing) {
-      // Draw middle screen target zone boundaries
+      // Draw upper-middle screen target zone boundaries
       ctx.save();
       ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
-      ctx.moveTo(0, canvas.height * 0.27);
-      ctx.lineTo(canvas.width, canvas.height * 0.27);
-      ctx.moveTo(0, canvas.height * 0.70);
-      ctx.lineTo(canvas.width, canvas.height * 0.70);
+      ctx.moveTo(0, canvas.height * 0.17);
+      ctx.lineTo(canvas.width, canvas.height * 0.17);
+      ctx.moveTo(0, canvas.height * 0.57);
+      ctx.lineTo(canvas.width, canvas.height * 0.57);
       ctx.stroke();
       ctx.restore();
 
