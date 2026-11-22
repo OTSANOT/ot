@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OT Cognitive-Motor Training: Praxis</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 860px;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+      padding: 28px;
+      border: 1px solid var(--border);
+    }
+
+    .hidden { display: none !important; }
+
+    h1 {
+      margin-top: 0;
+      font-size: 1.75rem;
+      color: #0f172a;
+    }
+
+    h2 {
+      margin: 8px 0 12px;
+      font-size: 1.35rem;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #dbeafe;
+      color: var(--primary-dark);
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .badge.transitive {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn:hover { background: var(--primary-dark); }
+    .btn.secondary { background: #475569; }
+    .btn.secondary:hover { background: #334155; }
+    .btn.warning { background: var(--warning); }
+    .btn.warning:hover { background: #b45309; }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    /* Stage 1: Canvas */
+    .canvas-wrapper {
+      position: relative;
+      margin-top: 14px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f8fafc;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 380px;
+      cursor: crosshair;
+    }
+
+    .status-bar {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* Stage 2: Webcam Gesture */
+    .gesture-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 20px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 720px) {
+      .gesture-grid { grid-template-columns: 1fr; }
+    }
+
+    .target-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .gesture-emoji {
+      font-size: 4.5rem;
+      margin: 10px 0;
+    }
+
+    .camera-box {
+      position: relative;
+      background: #0f172a;
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #f8fafc;
+    }
+
+    #webcamVideo {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #motionCanvas {
+      display: none;
+    }
+
+    .camera-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.88);
+    }
+
+    .live-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(22, 163, 74, 0.9);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .progress-wrap {
+      margin-top: 14px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 14px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--success);
+      transition: width 0.08s linear;
+    }
+
+    /* Summary Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th { background: #f8fafc; }
+
+    footer.disclaimer {
+      max-width: 860px;
+      width: 100%;
+      margin-top: 16px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- INTRO SCREEN -->
+    <section id="introScreen">
+      <span class="badge">OT Cognitive-Motor Training: Praxis</span>
+      <h1>OT Praxis Training Module</h1>
+      <p>This interactive clinical module evaluates and exercises visuomotor trajectory execution and upper-limb gesture imitation:</p>
+      <ul>
+        <li><strong>Part 1 – Visuomotor Execution (5 Paths):</strong> Controlling smooth limb trajectories within spatial boundaries from start to target.</li>
+        <li><strong>Part 2 – Webcam Gesture Mirroring (6 Gestures):</strong> Imitating transitive and intransitive upper-limb &amp; hand postures tracked live via front camera.</li>
+      </ul>
+      <div class="btn-row">
+        <button class="btn" id="startSessionBtn">Start Training Session</button>
+      </div>
+    </section>
+
+    <!-- STAGE 1: VISUOMOTOR TRAJECTORY -->
+    <section id="stage1Screen" class="hidden">
+      <span class="badge" id="stage1ProgressBadge">Stage 1 of 2: Visuomotor Control — Path 1 of 5</span>
+      <h2 id="pathTitle">Visuomotor Trajectory Execution</h2>
+      <p>Press and drag continuously from the <strong>GREEN START</strong> circle to the <strong>RED END</strong> circle. Keep your pointer inside the grey corridor!</p>
+
+      <div class="canvas-wrapper">
+        <canvas id="traceCanvas" width="800" height="380"></canvas>
+      </div>
+
+      <div class="status-bar">
+        <span id="traceStatus">Touch or click inside the GREEN circle to begin tracing.</span>
+        <span id="traceMetrics">Errors: 0 | Time: 0.0s</span>
+      </div>
+    </section>
+
+    <!-- STAGE 2: WEBCAM GESTURE MIRRORING -->
+    <section id="stage2Screen" class="hidden">
+      <span class="badge" id="stage2ProgressBadge">Stage 2 of 2: Ideomotor Gesture Mirroring — Gesture 1 of 6</span>
+      <h2>Upper-Limb &amp; Hand Gesture Imitation</h2>
+      <p>Position your upper limb and hand in view of the front camera and mirror the target posture shown below. Hold steady for <strong>1.5 seconds</strong> to register completion.</p>
+
+      <div class="gesture-grid">
+        <div class="target-card">
+          <div><span class="badge" id="gestureCategoryBadge">Intransitive Gesture</span></div>
+          <div class="gesture-emoji" id="gestureEmoji">&#9995;</div>
+          <h3 id="gestureName" style="margin: 4px 0;">Open Palm "Stop" Sign</h3>
+          <p id="gestureDesc" style="color: var(--muted); font-size: 0.95rem;">Raise your hand to shoulder height with all five fingers extended and spread apart.</p>
+        </div>
+
+        <div class="camera-box">
+          <video id="webcamVideo" playsinline autoplay muted></video>
+          <canvas id="motionCanvas" width="160" height="100"></canvas>
+          <span class="live-badge hidden" id="liveTrackingBadge">Front Camera Active — Hold Steady</span>
+          <div class="camera-overlay" id="cameraOverlay">
+            <p style="margin-bottom: 14px;">Tap below to activate your front camera for live posture mirroring.</p>
+            <button class="btn" id="enableCameraBtn">Enable Front Camera</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>Posture Hold Progress:</span>
+          <span id="holdPercentText">0% (0.0s / 1.5s)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="holdProgressFill"></div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn warning" id="skipGestureBtn">Clinician Override / Skip</button>
+      </div>
+    </section>
+
+    <!-- SUMMARY SCREEN -->
+    <section id="summaryScreen" class="hidden">
+      <span class="badge">Session Complete</span>
+      <h1>Praxis Session Summary</h1>
+      <p>Clinical performance log across all 5 visuomotor trajectories and 6 webcam gesture imitations:</p>
+
+      <h3>Part 1: Visuomotor Trajectory Execution (5 Paths)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Boundary Exits</th>
+            <th>Completion Time</th>
+          </tr>
+        </thead>
+        <tbody id="stage1SummaryBody"></tbody>
+      </table>
+
+      <h3>Part 2: Webcam Gesture Mirroring (6 Gestures)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Gesture</th>
+            <th>Type</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="stage2SummaryBody"></tbody>
+      </table>
+
+      <div class="btn-row">
+        <button class="btn" id="restartSessionBtn">Start New Session</button>
+      </div>
+    </section>
+  </div>
+
+  <footer class="disclaimer">
+    This is for informational purposes only. For medical advice or diagnosis, consult a professional. AI responses may include mistakes.
+  </footer>
+
+  <script>
+    /* =========================================================
+       DATA: 5 VISUOMOTOR PATHS (2 Original + 3 Added)
+       ========================================================= */
+    const TRAJECTORY_PATHS = [
+      {
+        name: "Path 1: Linear Horizontal Bridge",
+        width: 64,
+        points: [
+          { x: 100, y: 190 },
+          { x: 700, y: 190 }
+        ]
+      },
+      {
+        name: "Path 2: Smooth S-Curve Wave",
+        width: 58,
+        points: [
+          { x: 90, y: 110 },
+          { x: 250, y: 80 },
+          { x: 400, y: 190 },
+          { x: 550, y: 300 },
+          { x: 710, y: 270 }
+        ]
+      },
+      {
+        name: "Path 3: Diagonal Precision Ramp",
+        width: 52,
+        points: [
+          { x: 100, y: 310 },
+          { x: 300, y: 230 },
+          { x: 500, y: 150 },
+          { x: 700, y: 70 }
+        ]
+      },
+      {
+        name: "Path 4: Angular Zig-Zag Corridor",
+        width: 50,
+        points: [
+          { x: 90, y: 290 },
+          { x: 240, y: 90 },
+          { x: 400, y: 290 },
+          { x: 560, y: 90 },
+          { x: 710, y: 290 }
+        ]
+      },
+      {
+        name: "Path 5: U-Turn Archway",
+        width: 48,
+        points: [
+          { x: 140, y: 310 },
+          { x: 140, y: 110 },
+          { x: 400, y: 70 },
+          { x: 660, y: 110 },
+          { x: 660, y: 310 }
+        ]
+      }
+    ];
+
+    /* =========================================================
+       DATA: 6 WEBCAM GESTURES (4 Original + 2 Added)
+       ========================================================= */
+    const GESTURE_TASKS = [
+      {
+        name: 'Open Palm "Stop" Sign',
+        category: "Intransitive Gesture",
+        emoji: "&#9995;",
+        desc: "Raise your hand to shoulder height with all five fingers extended and spread apart."
+      },
+      {
+        name: 'Closed Fist "Grasp"',
+        category: "Intransitive Gesture",
+        emoji: "&#9994;",
+        desc: "Curl all fingers tightly into your palm with your thumb wrapped across the front."
+      },
+      {
+        name: 'Thumbs Up "Approval"',
+        category: "Intransitive Gesture",
+        emoji: "&#128077;",
+        desc: "Close your four fingers into a fist and extend your thumb straight upward."
+      },
+      {
+        name: 'Two-Finger "Peace / V" Sign',
+        category: "Intransitive Gesture",
+        emoji: "&#9996;",
+        desc: "Extend your index and middle fingers upward in a V while curling your ring and pinky fingers."
+      },
+      {
+        name: 'Precision Pinch "Key / Coin Hold"',
+        category: "Transitive Gesture",
+        emoji: "&#128076;",
+        desc: "Touch the tip of your thumb to the tip of your index finger to form a circle while extending the remaining three fingers."
+      },
+      {
+        name: 'Index Pointing "Direction"',
+        category: "Transitive Gesture",
+        emoji: "&#9757;",
+        desc: "Extend only your index finger upward as if pressing a button, keeping all other fingers curled."
+      }
+    ];
+
+    /* =========================================================
+       STATE & DOM REFERENCES
+       ========================================================= */
+    let currentPathIdx = 0;
+    let isTracing = false;
+    let traceStartTime = 0;
+    let traceErrors = 0;
+    let userTrail = [];
+    let stage1Results = [];
+
+    let currentGestureIdx = 0;
+    let holdDurationMs = 0;
+    let lastFrameTime = 0;
+    let cameraStream = null;
+    let trackingRAF = null;
+    let prevFrameData = null;
+    let stage2Results = [];
+    const HOLD_TARGET_MS = 1500;
+
+    const introScreen = document.getElementById("introScreen");
+    const stage1Screen = document.getElementById("stage1Screen");
+    const stage2Screen = document.getElementById("stage2Screen");
+    const summaryScreen = document.getElementById("summaryScreen");
+
+    const traceCanvas = document.getElementById("traceCanvas");
+    const ctx = traceCanvas.getContext("2d");
+
+    /* =========================================================
+       NAVIGATION
+       ========================================================= */
+    document.getElementById("startSessionBtn").addEventListener("click", () => {
+      stage1Results = [];
+      stage2Results = [];
+      currentPathIdx = 0;
+      currentGestureIdx = 0;
+      introScreen.classList.add("hidden");
+      stage1Screen.classList.remove("hidden");
+      loadPath(0);
+    });
+
+    document.getElementById("restartSessionBtn").addEventListener("click", () => {
+      summaryScreen.classList.add("hidden");
+      introScreen.classList.remove("hidden");
+    });
+
+    /* =========================================================
+       STAGE 1: VISUOMOTOR TRAJECTORY EXECUTION
+       ========================================================= */
+    function loadPath(index) {
+      const path = TRAJECTORY_PATHS[index];
+      isTracing = false;
+      traceErrors = 0;
+      userTrail = [];
+      document.getElementById("stage1ProgressBadge").textContent =
+        `Stage 1 of 2: Visuomotor Control — Path ${index + 1} of ${TRAJECTORY_PATHS.length}`;
+      document.getElementById("pathTitle").textContent = path.name;
+      document.getElementById("traceStatus").textContent =
+        "Touch or click inside the GREEN circle to begin tracing.";
+      document.getElementById("traceMetrics").textContent = "Errors: 0 | Time: 0.0s";
+      renderPathCanvas();
+    }
+
+    function renderPathCanvas() {
+      const path = TRAJECTORY_PATHS[currentPathIdx];
+      ctx.clearRect(0, 0, traceCanvas.width, traceCanvas.height);
+
+      // Grey corridor
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = path.width;
+      ctx.beginPath();
+      path.points.forEach((pt, i) => {
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+
+      // Center guide dashed line
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 8]);
+      ctx.stroke();
+      ctx.restore();
+
+      // User trace line
+      if (userTrail.length > 1) {
+        ctx.save();
+        ctx.strokeStyle = "#2563eb";
+        ctx.lineWidth = 6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        userTrail.forEach((pt, i) => {
+          if (i === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Start circle (Green)
+      const startPt = path.points[0];
+      ctx.fillStyle = "#16a34a";
+      ctx.beginPath();
+      ctx.arc(startPt.x, startPt.y, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("START", startPt.x, startPt.y + 4);
+
+      // End circle (Red)
+      const endPt = path.points[path.points.length - 1];
+      ctx.fillStyle = "#dc2626";
+      ctx.beginPath();
+      ctx.arc(endPt.x, endPt.y, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.fillText("END", endPt.x, endPt.y + 4);
+    }
+
+    function getCanvasCoords(e) {
+      const rect = traceCanvas.getBoundingClientRect();
+      const scaleX = traceCanvas.width / rect.width;
+      const scaleY = traceCanvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function distToSegment(p, v, w) {
+      const l2 = (v.x - w.x) ** 2 + (v.y - w.y) ** 2;
+      if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
+      let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+    }
+
+    function isInsideCorridor(pt, path) {
+      const maxDist = path.width / 2 + 6;
+      for (let i = 0; i < path.points.length - 1; i++) {
+        if (distToSegment(pt, path.points[i], path.points[i + 1]) <= maxDist) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    traceCanvas.addEventListener("pointerdown", (e) => {
+      const pt = getCanvasCoords(e);
+      const startPt = TRAJECTORY_PATHS[currentPathIdx].points[0];
+      if (Math.hypot(pt.x - startPt.x, pt.y - startPt.y) <= 28) {
+        isTracing = true;
+        traceStartTime = performance.now();
+        userTrail = [pt];
+        document.getElementById("traceStatus").textContent = "Tracing active — keep inside the grey corridor!";
+      }
+    });
+
+    traceCanvas.addEventListener("pointermove", (e) => {
+      if (!isTracing) return;
+      const pt = getCanvasCoords(e);
+      const path = TRAJECTORY_PATHS[currentPathIdx];
+      userTrail.push(pt);
+
+      const elapsed = ((performance.now() - traceStartTime) / 1000).toFixed(1);
+      if (!isInsideCorridor(pt, path)) {
+        traceErrors++;
+        document.getElementById("traceStatus").textContent = "Outside corridor! Return to the grey path.";
+      } else {
+        document.getElementById("traceStatus").textContent = "Good control — continue to the RED END circle.";
+      }
+
+      document.getElementById("traceMetrics").textContent = `Errors: ${traceErrors} | Time: ${elapsed}s`;
+      renderPathCanvas();
+
+      // Check completion
+      const endPt = path.points[path.points.length - 1];
+      if (Math.hypot(pt.x - endPt.x, pt.y - endPt.y) <= 26) {
+        isTracing = false;
+        stage1Results.push({
+          name: path.name,
+          errors: traceErrors,
+          time: `${elapsed}s`
+        });
+
+        currentPathIdx++;
+        if (currentPathIdx < TRAJECTORY_PATHS.length) {
+          loadPath(currentPathIdx);
+        } else {
+          stage1Screen.classList.add("hidden");
+          stage2Screen.classList.remove("hidden");
+          loadGesture(0);
+        }
+      }
+    });
+
+    window.addEventListener("pointerup", () => {
+      if (isTracing) {
+        isTracing = false;
+        document.getElementById("traceStatus").textContent =
+          "Pointer lifted early. Click inside the GREEN circle to retry.";
+        userTrail = [];
+        renderPathCanvas();
+      }
+    });
+
+    /* =========================================================
+       STAGE 2: WEBCAM GESTURE MIRRORING (CAMERA ONLY)
+       ========================================================= */
+    function loadGesture(index) {
+      const g = GESTURE_TASKS[index];
+      holdDurationMs = 0;
+      updateHoldUI();
+
+      document.getElementById("stage2ProgressBadge").textContent =
+        `Stage 2 of 2: Ideomotor Gesture Mirroring — Gesture ${index + 1} of ${GESTURE_TASKS.length}`;
+
+      const catBadge = document.getElementById("gestureCategoryBadge");
+      catBadge.textContent = g.category;
+      catBadge.className = g.category.includes("Transitive") ? "badge transitive" : "badge";
+
+      document.getElementById("gestureEmoji").innerHTML = g.emoji;
+      document.getElementById("gestureName").textContent = g.name;
+      document.getElementById("gestureDesc").textContent = g.desc;
+    }
+
+    function updateHoldUI() {
+      const pct = Math.min(100, Math.round((holdDurationMs / HOLD_TARGET_MS) * 100));
+      const sec = Math.min(1.5, holdDurationMs / 1000).toFixed(1);
+      document.getElementById("holdProgressFill").style.width = `${pct}%`;
+      document.getElementById("holdPercentText").textContent = `${pct}% (${sec}s / 1.5s)`;
+    }
+
+    function completeCurrentGesture(methodLabel) {
+      const g = GESTURE_TASKS[currentGestureIdx];
+      stage2Results.push({
+        name: g.name,
+        category: g.category,
+        status: methodLabel
+      });
+
+      currentGestureIdx++;
+      if (currentGestureIdx < GESTURE_TASKS.length) {
+        loadGesture(currentGestureIdx);
+      } else {
+        stopCamera();
+        showSummary();
+      }
+    }
+
+    document.getElementById("skipGestureBtn").addEventListener("click", () => {
+      completeCurrentGesture("Clinician Override / Skipped");
+    });
+
+    document.getElementById("enableCameraBtn").addEventListener("click", async () => {
+      const videoEl = document.getElementById("webcamVideo");
+      const motionCanvas = document.getElementById("motionCanvas");
+      const mCtx = motionCanvas.getContext("2d", { willReadFrequently: true });
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false
+        });
+        videoEl.srcObject = cameraStream;
+        await videoEl.play();
+
+        document.getElementById("cameraOverlay").classList.add("hidden");
+        document.getElementById("liveTrackingBadge").classList.remove("hidden");
+
+        lastFrameTime = performance.now();
+        prevFrameData = null;
+
+        function analyzePostureHold(now) {
+          if (!cameraStream) return;
+          const dt = now - lastFrameTime;
+          lastFrameTime = now;
+
+          if (videoEl.readyState >= 2) {
+            mCtx.drawImage(videoEl, 0, 0, motionCanvas.width, motionCanvas.height);
+            const frame = mCtx.getImageData(0, 0, motionCanvas.width, motionCanvas.height).data;
+
+            if (prevFrameData) {
+              let diffSum = 0;
+              const pixelCount = frame.length / 4;
+              for (let i = 0; i < frame.length; i += 4) {
+                const dR = Math.abs(frame[i] - prevFrameData[i]);
+                const dG = Math.abs(frame[i + 1] - prevFrameData[i + 1]);
+                const dB = Math.abs(frame[i + 2] - prevFrameData[i + 2]);
+                diffSum += (dR + dG + dB) / 3;
+              }
+              const avgMotion = diffSum / pixelCount;
+              const badge = document.getElementById("liveTrackingBadge");
+
+              // Steady hold detection when posture is maintained smoothly in frame
+              if (avgMotion < 14) {
+                badge.textContent = "Steady Posture Detected — Holding...";
+                badge.style.background = "rgba(22, 163, 74, 0.9)";
+                holdDurationMs += dt;
+                if (holdDurationMs >= HOLD_TARGET_MS) {
+                  holdDurationMs = HOLD_TARGET_MS;
+                  updateHoldUI();
+                  prevFrameData = new Uint8ClampedArray(frame);
+                  completeCurrentGesture("Completed via Front Camera");
+                  trackingRAF = requestAnimationFrame(analyzePostureHold);
+                  return;
+                }
+              } else {
+                badge.textContent = "Adjusting Posture — Hold Steady";
+                badge.style.background = "rgba(217, 119, 6, 0.9)";
+                holdDurationMs = Math.max(0, holdDurationMs - dt * 0.8);
+              }
+              updateHoldUI();
+            }
+            prevFrameData = new Uint8ClampedArray(frame);
+          }
+          trackingRAF = requestAnimationFrame(analyzePostureHold);
+        }
+
+        trackingRAF = requestAnimationFrame(analyzePostureHold);
+      } catch (err) {
+        alert("Unable to access front camera. Please verify browser permissions or use Clinician Override / Skip.");
+      }
+    });
+
+    function stopCamera() {
+      if (trackingRAF) {
+        cancelAnimationFrame(trackingRAF);
+        trackingRAF = null;
+      }
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+      prevFrameData = null;
+      document.getElementById("liveTrackingBadge").classList.add("hidden");
+      document.getElementById("cameraOverlay").classList.remove("hidden");
+    }
+
+    /* =========================================================
+       SUMMARY SCREEN
+       ========================================================= */
+    function showSummary() {
+      stage2Screen.classList.add("hidden");
+      summaryScreen.classList.remove("hidden");
+
+      const s1Body = document.getElementById("stage1SummaryBody");
+      s1Body.innerHTML = stage1Results
+        .map(r => `<tr><td>${r.name}</td><td>${r.errors}</td><td>${r.time}</td></tr>`)
+        .join("");
+
+      const s2Body = document.getElementById("stage2SummaryBody");
+      s2Body.innerHTML = stage2Results
+        .map(r => `<tr><td>${r.name}</td><td>${r.category}</td><td>${r.status}</td></tr>`)
+        .join("");
+    }
+  </script>
+</body>
+</html>
