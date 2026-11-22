@@ -63,6 +63,63 @@
     video { display: none; }
     canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+    /* Dedicated Separate Area for 5-Digit Span Sequence */
+    .sequence-stage {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .sequence-stage-label {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 0.02em;
+    }
+    .sequence-stage-boxes {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .stage-box {
+      width: 44px;
+      height: 46px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.35rem;
+      background: #0f172a;
+      border: 2px solid var(--border);
+      color: var(--text);
+      transition: all 0.2s ease;
+    }
+    .stage-box.memorize {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.14);
+      color: #facc15;
+    }
+    .stage-box.caught {
+      background: #16a34a;
+      border-color: #22c55e;
+      color: #ffffff;
+    }
+    .stage-box.active {
+      border-color: #38bdf8;
+      color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+    }
+    .stage-box.hidden-digit {
+      color: var(--muted);
+    }
+
     .sidebar { display: flex; flex-direction: column; gap: 14px; }
     .card {
       background: var(--panel); padding: 15px; border-radius: 12px;
@@ -219,9 +276,25 @@
   </div>
 
   <div class="main-grid">
-    <div class="video-container">
-      <video id="webcam" autoplay playsinline></video>
-      <canvas id="outputCanvas" width="800" height="600"></canvas>
+    <div>
+      <!-- Separate Dedicated Area Above Video for 5-Digit Span Sequence -->
+      <div class="sequence-stage">
+        <div id="sequenceStageLabel" class="sequence-stage-label">
+          5-DIGIT SPAN SEQUENCE (1–5):
+        </div>
+        <div id="sequenceStageBoxes" class="sequence-stage-boxes">
+          <div class="stage-box">-</div>
+          <div class="stage-box">-</div>
+          <div class="stage-box">-</div>
+          <div class="stage-box">-</div>
+          <div class="stage-box">-</div>
+        </div>
+      </div>
+
+      <div class="video-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="outputCanvas" width="800" height="600"></canvas>
+      </div>
     </div>
 
     <div class="sidebar">
@@ -509,6 +582,8 @@
     const memorizeSecondsVal = document.getElementById("memorizeSecondsVal");
     const hideSequenceToggle = document.getElementById("hideSequenceToggle");
     const spanSequenceBoxes = document.getElementById("spanSequenceBoxes");
+    const sequenceStageLabel = document.getElementById("sequenceStageLabel");
+    const sequenceStageBoxes = document.getElementById("sequenceStageBoxes");
     const currentStepDisplay = document.getElementById("currentStepDisplay");
 
     // Protocol Elements
@@ -695,16 +770,16 @@
     }
 
     function generateFiveDigitSequence() {
+      const baseDigits = [1, 2, 3, 4, 5];
       if (taskModeSelect.value === "FIXED_1_5") {
-        return [1, 2, 3, 4, 5];
+        return baseDigits;
       }
-      // Pick 5 unique digits from 0..9 in random order
-      const pool = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-      for (let i = pool.length - 1; i > 0; i--) {
+      // Random permutation of digits 1 to 5 only
+      for (let i = baseDigits.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
+        [baseDigits[i], baseDigits[j]] = [baseDigits[j], baseDigits[i]];
       }
-      return pool.slice(0, 5);
+      return baseDigits;
     }
 
     function spawnTargets() {
@@ -720,16 +795,17 @@
         memorizeEndTime = 0;
       }
 
-      const radius = 36;
-      const minDistance = radius * 2.4;
+      const radius = 38;
+      const minDistance = radius * 2.5;
 
       for (let i = 0; i < 5; i++) {
         let x, y, valid;
         let attempts = 0;
         do {
           valid = true;
-          x = canvas.width * (0.12 + Math.random() * 0.76);
-          y = canvas.height * (0.13 + Math.random() * 0.13);
+          // Spawn targets in the middle area of the screen
+          x = canvas.width * (0.16 + Math.random() * 0.68);
+          y = canvas.height * (0.35 + Math.random() * 0.27);
           for (const t of targets) {
             if (Math.hypot(x - t.x, y - t.y) < minDistance) {
               valid = false;
@@ -737,7 +813,7 @@
             }
           }
           attempts++;
-        } while (!valid && attempts < 50);
+        } while (!valid && attempts < 60);
 
         targets.push({
           id: i,
@@ -760,6 +836,31 @@
 
       currentStepDisplay.textContent = currentIndex < 5 ? `${currentIndex + 1} / 5` : "Done";
 
+      // Update dedicated separate sequence stage bar above the video
+      if (isMemorizing) {
+        const secsLeft = Math.ceil((memorizeEndTime - now) / 1000);
+        sequenceStageLabel.textContent = `MEMORIZE SEQUENCE (${secsLeft}s):`;
+        sequenceStageLabel.style.color = "#facc15";
+      } else {
+        sequenceStageLabel.textContent = "CATCH DIGITS IN ORDER (1–5):";
+        sequenceStageLabel.style.color = "#38bdf8";
+      }
+
+      sequenceStageBoxes.innerHTML = targetSequence.map((digit, idx) => {
+        if (idx < currentIndex) {
+          return `<div class="stage-box caught">${digit}</div>`;
+        }
+        if (isMemorizing) {
+          return `<div class="stage-box memorize">${digit}</div>`;
+        }
+        if (hidePrompt) {
+          return `<div class="stage-box hidden-digit ${idx === currentIndex ? 'active' : ''}">?</div>`;
+        }
+        const activeClass = (taskModeSelect.value === "FIXED_1_5" && idx === currentIndex) ? "active" : "";
+        return `<div class="stage-box ${activeClass}">${digit}</div>`;
+      }).join("");
+
+      // Update sidebar progress boxes
       spanSequenceBoxes.innerHTML = targetSequence.map((digit, idx) => {
         if (idx < currentIndex) {
           return `<div class="span-box caught">${digit}</div>`;
@@ -1242,7 +1343,6 @@
           }
         }
 
-        drawDigitSpanBanner(now, isMemorizing);
         drawTargets(angleInsufficient, isMemorizing);
         drawWarningBanner(now);
         drawSessionHUD(now);
@@ -1337,14 +1437,14 @@
         ctx.save();
         ctx.fillStyle = "rgba(239, 68, 68, 0.9)";
         ctx.beginPath();
-        ctx.roundRect(canvas.width * 0.18, canvas.height * 0.32, canvas.width * 0.64, 42, 8);
+        ctx.roundRect(canvas.width * 0.18, canvas.height * 0.10, canvas.width * 0.64, 42, 8);
         ctx.fill();
 
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 17px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(warningMessage, canvas.width * 0.5, canvas.height * 0.32 + 21);
+        ctx.fillText(warningMessage, canvas.width * 0.5, canvas.height * 0.10 + 21);
         ctx.restore();
       }
     }
@@ -1412,12 +1512,15 @@
     }
 
     function drawTargets(angleInsufficient, isMemorizing) {
+      // Draw middle screen target zone boundaries
       ctx.save();
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
-      ctx.moveTo(0, canvas.height * 0.30);
-      ctx.lineTo(canvas.width, canvas.height * 0.30);
+      ctx.moveTo(0, canvas.height * 0.27);
+      ctx.lineTo(canvas.width, canvas.height * 0.27);
+      ctx.moveTo(0, canvas.height * 0.70);
+      ctx.lineTo(canvas.width, canvas.height * 0.70);
       ctx.stroke();
       ctx.restore();
 
