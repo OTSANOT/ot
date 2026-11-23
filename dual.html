@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dual-Task Cognitive-Motor Pose Game</title>
+  <title>Lower-Limb Stepper — 1-Digit Arithmetic Dual-Task</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #1e293b;
+      --bg: #0b1120;
+      --panel: #162033;
+      --card: #0f172a;
       --text: #f8fafc;
       --muted: #94a3b8;
       --accent: #38bdf8;
@@ -23,17 +24,17 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
+      padding: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
-      padding: 20px;
       gap: 16px;
     }
 
     header {
       width: 100%;
-      max-width: 980px;
+      max-width: 1060px;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
@@ -42,8 +43,8 @@
     }
 
     h1 {
-      font-size: 1.25rem;
       margin: 0;
+      font-size: 1.25rem;
     }
 
     .controls {
@@ -54,11 +55,11 @@
 
     button {
       background: var(--accent);
-      color: #082f49;
+      color: #06283d;
       border: none;
       border-radius: 8px;
       padding: 9px 14px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       font-size: 0.9rem;
     }
@@ -69,23 +70,23 @@
     }
 
     button.secondary {
-      background: #334155;
+      background: #283548;
       color: var(--text);
     }
 
-    .layout {
+    .grid {
       width: 100%;
-      max-width: 980px;
+      max-width: 1060px;
       display: grid;
-      grid-template-columns: 1.5fr 1fr;
+      grid-template-columns: 1.55fr 1fr;
       gap: 16px;
     }
 
-    @media (max-width: 820px) {
-      .layout { grid-template-columns: 1fr; }
+    @media (max-width: 880px) {
+      .grid { grid-template-columns: 1fr; }
     }
 
-    .stage-card, .stats-card {
+    .panel {
       background: var(--panel);
       border-radius: 12px;
       padding: 14px;
@@ -101,9 +102,7 @@
       overflow: hidden;
     }
 
-    video {
-      display: none;
-    }
+    video { display: none; }
 
     canvas {
       width: 100%;
@@ -111,153 +110,159 @@
       display: block;
     }
 
-    .prompt-banner {
+    .problem-bar {
       margin-top: 12px;
-      padding: 12px;
-      border-radius: 8px;
-      background: #0f172a;
+      background: var(--card);
+      border-radius: 10px;
+      padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
     }
 
-    .rule-badge {
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.85rem;
-      background: rgba(56, 189, 248, 0.18);
+    .equation {
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
       color: var(--accent);
     }
 
-    .metrics-grid {
+    .choices-preview {
+      display: flex;
+      gap: 10px;
+      font-weight: 700;
+    }
+
+    .choice-chip {
+      background: #1e293b;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.95rem;
+    }
+
+    .metrics {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
-      margin-top: 8px;
     }
 
     .metric {
-      background: #0f172a;
+      background: var(--card);
       padding: 10px 12px;
       border-radius: 8px;
     }
 
     .metric .label {
-      font-size: 0.75rem;
-      color: var(--muted);
+      font-size: 0.72rem;
       text-transform: uppercase;
+      color: var(--muted);
       letter-spacing: 0.04em;
     }
 
-    .metric .value {
-      font-size: 1.25rem;
+    .metric .val {
+      font-size: 1.2rem;
       font-weight: 700;
       margin-top: 2px;
     }
 
-    .feedback {
+    .status-box {
       margin-top: 12px;
-      padding: 10px 12px;
+      background: var(--card);
       border-radius: 8px;
-      background: #0f172a;
-      font-size: 0.9rem;
-      min-height: 44px;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      min-height: 46px;
       display: flex;
       align-items: center;
     }
 
-    .good { color: var(--good); }
-    .bad { color: var(--bad); }
-    .muted { color: var(--muted); font-size: 0.85rem; }
-
-    .trial-log {
+    .log {
       margin-top: 12px;
-      max-height: 190px;
+      max-height: 210px;
       overflow-y: auto;
-      font-size: 0.8rem;
-      background: #0f172a;
+      background: var(--card);
       border-radius: 8px;
       padding: 8px 10px;
+      font-size: 0.78rem;
     }
 
-    .trial-row {
-      padding: 4px 0;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    .log-row {
       display: flex;
       justify-content: space-between;
       gap: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     }
+
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
+    .muted { color: var(--muted); font-size: 0.84rem; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Dual-Task Cognitive-Motor Pose Game</h1>
+    <h1>Lower-Limb Stepper — 1-Digit Arithmetic Trainer</h1>
     <div class="controls">
-      <button id="btn-start">Start Game</button>
-      <button id="btn-stop" class="secondary" disabled>Stop</button>
+      <button id="btn-start">Start Stepping</button>
+      <button id="btn-stop" class="secondary" disabled>Pause</button>
       <button id="btn-export" class="secondary">Export HTML Report</button>
     </div>
   </header>
 
-  <div class="layout">
-    <section class="stage-card">
+  <div class="grid">
+    <section class="panel">
       <div class="canvas-wrap">
         <video id="webcam" playsinline></video>
         <canvas id="game-canvas"></canvas>
       </div>
-      <div class="prompt-banner">
+
+      <div class="problem-bar">
         <div>
-          <div class="muted">Active Rule</div>
-          <div id="rule-text" style="font-weight:700; font-size:1.1rem;">MATCH</div>
+          <div class="muted">Solve (1-Digit +, -, ×, ÷)</div>
+          <div id="ui-equation" class="equation">7 + 4 = ?</div>
         </div>
-        <div>
-          <div class="muted">Cue Side</div>
-          <div id="cue-text" style="font-weight:700; font-size:1.1rem;">LEFT</div>
+        <div class="choices-preview">
+          <div class="choice-chip">LEFT: <span id="ui-left-ans">11</span></div>
+          <div class="choice-chip">RIGHT: <span id="ui-right-ans">9</span></div>
         </div>
-        <span id="trial-type-badge" class="rule-badge">REPEAT</span>
       </div>
+
       <p class="muted" style="margin: 10px 0 0;">
-        Reach your <strong>right wrist</strong> (green dot) past your right shoulder toward the target side, then return near your torso for the next trial. <strong>MATCH</strong> = reach cued side; <strong>INVERT</strong> = reach opposite side.
+        Stand back so your <strong>hips and ankles</strong> are visible. <strong>Step left</strong> with your left foot into the LEFT answer pad or <strong>step right</strong> with your right foot into the RIGHT answer pad, then bring feet back near center for the next problem.
       </p>
     </section>
 
-    <aside class="stats-card">
-      <h2 style="margin: 0 0 8px; font-size: 1rem;">Session Telemetry</h2>
-      <div class="metrics-grid">
+    <aside class="panel">
+      <h2 style="margin: 0 0 10px; font-size: 1rem;">Performance & Step Telemetry</h2>
+      <div class="metrics">
         <div class="metric">
-          <div class="label">Overall Accuracy</div>
+          <div class="label">Accuracy</div>
           <div id="m-acc" class="value">0%</div>
         </div>
         <div class="metric">
-          <div class="label">Completed Trials</div>
+          <div class="label">Completed Steps</div>
           <div id="m-trials" class="value">0</div>
         </div>
         <div class="metric">
-          <div class="label">Switch Accuracy</div>
-          <div id="m-switch-acc" class="value">0%</div>
-        </div>
-        <div class="metric">
-          <div class="label">Repeat Accuracy</div>
-          <div id="m-repeat-acc" class="value">0%</div>
-        </div>
-        <div class="metric">
-          <div class="label">Avg Latency</div>
+          <div class="label">Avg Step Latency</div>
           <div id="m-latency" class="value">0 ms</div>
         </div>
         <div class="metric">
-          <div class="label">Switch Cost</div>
-          <div id="m-switch-cost" class="value">0 ms</div>
+          <div class="label">Left / Right Steps</div>
+          <div id="m-lr" class="value">0 / 0</div>
         </div>
       </div>
 
-      <div id="feedback-box" class="feedback muted">
-        Click "Start Game" and allow webcam access to begin.
+      <div id="status-box" class="status-box muted">
+        Allow webcam access and click "Start Stepping" to begin.
       </div>
 
-      <div class="trial-log" id="trial-log">
-        <div class="muted">Trial history will appear here...</div>
+      <div id="trial-log" class="log">
+        <div class="muted">Arithmetic step trials will appear here...</div>
       </div>
     </aside>
   </div>
@@ -265,17 +270,84 @@
   <script type="module">
     import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm";
 
-    const LANDMARK = {
-      RIGHT_SHOULDER: 12,
-      RIGHT_WRIST: 16,
+    const LM = {
+      LEFT_HIP: 23,
+      RIGHT_HIP: 24,
+      LEFT_ANKLE: 27,
+      RIGHT_ANKLE: 28,
     };
 
-    const RULES = {
-      MATCH: "MATCH",
-      INVERT: "INVERT",
-    };
+    const OPS = ["+", "-", "×", "÷"];
 
-    class DualTaskPoseGame {
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Generates 1-digit (1..9) arithmetic problems across +, -, ×, ÷
+    function generateOneDigitProblem() {
+      const op = OPS[randInt(0, OPS.length - 1)];
+      let a = 1;
+      let b = 1;
+      let answer = 0;
+
+      if (op === "+") {
+        a = randInt(1, 9);
+        b = randInt(1, 9);
+        answer = a + b;
+      } else if (op === "-") {
+        a = randInt(1, 9);
+        b = randInt(1, 9);
+        if (b > a) [a, b] = [b, a]; // keep non-negative 1-digit subtraction
+        answer = a - b;
+      } else if (op === "×") {
+        a = randInt(1, 9);
+        b = randInt(1, 9);
+        answer = a * b;
+      } else if (op === "÷") {
+        // Construct from single-digit divisor & single-digit quotient so dividend is exact
+        b = randInt(1, 9);
+        answer = randInt(1, 9);
+        a = b * answer;
+        // Ensure displayed dividend is 1-digit or small clean division (1..9); if a > 9, retry cleanly
+        if (a > 9) {
+          b = randInt(1, 9);
+          answer = randInt(1, Math.max(1, Math.floor(9 / b)));
+          a = b * answer;
+        }
+      }
+
+      // Generate a distinct non-negative distractor close to answer
+      let distractor = answer;
+      const offsets = [-3, -2, -1, 1, 2, 3, 4];
+      const shuffled = [...offsets].sort(() => Math.random() - 0.5);
+      for (const delta of shuffled) {
+        const candidate = answer + delta;
+        if (candidate >= 0 && candidate !== answer) {
+          distractor = candidate;
+          break;
+        }
+      }
+      if (distractor === answer) {
+        distractor = answer === 0 ? 1 : answer - 1;
+      }
+
+      const correctSide = Math.random() < 0.5 ? "LEFT" : "RIGHT";
+      const leftChoice = correctSide === "LEFT" ? answer : distractor;
+      const rightChoice = correctSide === "RIGHT" ? answer : distractor;
+
+      return {
+        expression: `${a} ${op} ${b} = ?`,
+        op,
+        a,
+        b,
+        answer,
+        leftChoice,
+        rightChoice,
+        correctSide,
+      };
+    }
+
+    class LowerLimbArithmeticGame {
       constructor({ videoEl, canvasEl, onUpdate }) {
         this.videoEl = videoEl;
         this.canvasEl = canvasEl;
@@ -286,27 +358,29 @@
         this.rafId = null;
         this.isRunning = false;
 
-        this.currentRule = RULES.MATCH;
-        this.cuedSide = "LEFT";
-        this.trialsSinceRuleSwitch = 0;
-        this.switchEveryNTrials = 4;
-        this.trialStartTime = performance.now();
-        this.lastResponseTime = 0;
-        this.responseCooldownMs = 650;
-        this.hasReturnedToCenter = true;
+        this.problem = generateOneDigitProblem();
+        this.trialStartMs = performance.now();
+        this.lastStepMs = 0;
+        this.cooldownMs = 700;
+        this.feetCentered = true;
+
+        this.lastLeftAnkle = null;
+        this.lastRightAnkle = null;
+        this.ankleVisible = false;
 
         this.history = [];
         this.metrics = {
           totalTrials: 0,
           correctTrials: 0,
-          switchTrials: 0,
-          switchCorrect: 0,
-          repeatTrials: 0,
-          repeatCorrect: 0,
-          occludedFrames: 0,
+          leftSteps: 0,
+          rightSteps: 0,
           latenciesMs: [],
-          switchLatenciesMs: [],
-          repeatLatenciesMs: [],
+          byOp: {
+            "+": { total: 0, correct: 0 },
+            "-": { total: 0, correct: 0 },
+            "×": { total: 0, correct: 0 },
+            "÷": { total: 0, correct: 0 },
+          },
         };
       }
 
@@ -346,8 +420,9 @@
         await this.init();
         if (this.isRunning) return;
         this.isRunning = true;
-        this.nextTrial(true);
-        this.emitState(null);
+        this.problem = generateOneDigitProblem();
+        this.trialStartMs = performance.now();
+        this.emit(null);
         this.loop();
       }
 
@@ -356,94 +431,97 @@
         if (this.rafId) cancelAnimationFrame(this.rafId);
       }
 
-      nextTrial(isFirst = false) {
-        if (!isFirst) {
-          this.trialsSinceRuleSwitch += 1;
-          if (this.trialsSinceRuleSwitch >= this.switchEveryNTrials) {
-            this.currentRule =
-              this.currentRule === RULES.MATCH ? RULES.INVERT : RULES.MATCH;
-            this.trialsSinceRuleSwitch = 0;
-          }
-        }
-        this.cuedSide = Math.random() < 0.5 ? "LEFT" : "RIGHT";
-        this.trialStartTime = performance.now();
-      }
-
-      getExpectedSide() {
-        if (this.currentRule === RULES.MATCH) return this.cuedSide;
-        return this.cuedSide === "LEFT" ? "RIGHT" : "LEFT";
-      }
-
-      toMirroredScreenCoords(landmark) {
+      // Mirror X so stepping to player's left matches LEFT side of mirrored canvas
+      mirrorPt(lm) {
         return {
-          x: (1 - landmark.x) * this.canvasEl.width,
-          y: landmark.y * this.canvasEl.height,
-          visibility: landmark.visibility ?? 0,
+          x: (1 - lm.x) * this.canvasEl.width,
+          y: lm.y * this.canvasEl.height,
+          visibility: lm.visibility ?? 0,
         };
       }
 
-      evaluateReach(wristPt, shoulderPt, now) {
-        const minVisibility = 0.7;
-        if (wristPt.visibility < minVisibility || shoulderPt.visibility < minVisibility) {
-          this.metrics.occludedFrames += 1;
+      evaluateLowerLimbs(pose, now) {
+        const lh = this.mirrorPt(pose[LM.LEFT_HIP]);
+        const rh = this.mirrorPt(pose[LM.RIGHT_HIP]);
+        const la = this.mirrorPt(pose[LM.LEFT_ANKLE]);
+        const ra = this.mirrorPt(pose[LM.RIGHT_ANKLE]);
+
+        const minVis = 0.55;
+        this.ankleVisible = la.visibility >= minVis && ra.visibility >= minVis;
+
+        if (!this.ankleVisible) {
+          this.lastLeftAnkle = la;
+          this.lastRightAnkle = ra;
           return;
         }
 
-        const dx = wristPt.x - shoulderPt.x;
-        const reachThresholdPx = this.canvasEl.width * 0.14;
-        const centerDeadzonePx = this.canvasEl.width * 0.06;
+        this.lastLeftAnkle = la;
+        this.lastRightAnkle = ra;
 
-        if (Math.abs(dx) < centerDeadzonePx) {
-          this.hasReturnedToCenter = true;
+        const hipCenterX = (lh.x + rh.x) / 2;
+        const leftOffset = la.x - hipCenterX;
+        const rightOffset = ra.x - hipCenterX;
+
+        const stepThresholdPx = this.canvasEl.width * 0.16;
+        const centerBandPx = this.canvasEl.width * 0.1;
+
+        // Feet must return near center before registering another step
+        if (Math.abs(leftOffset) < centerBandPx && Math.abs(rightOffset) < centerBandPx) {
+          this.feetCentered = true;
           return;
         }
 
-        if (!this.hasReturnedToCenter) return;
-        if (now - this.lastResponseTime < this.responseCooldownMs) return;
+        if (!this.feetCentered) return;
+        if (now - this.lastStepMs < this.cooldownMs) return;
 
-        let chosenSide = null;
-        if (dx < -reachThresholdPx) chosenSide = "LEFT";
-        else if (dx > reachThresholdPx) chosenSide = "RIGHT";
-        if (!chosenSide) return;
+        let steppedSide = null;
+        if (leftOffset < -stepThresholdPx) {
+          steppedSide = "LEFT";
+        } else if (rightOffset > stepThresholdPx) {
+          steppedSide = "RIGHT";
+        }
 
-        this.hasReturnedToCenter = false;
-        this.lastResponseTime = now;
+        if (!steppedSide) return;
 
-        const expectedSide = this.getExpectedSide();
-        const isCorrect = chosenSide === expectedSide;
-        const isSwitchTrial = this.trialsSinceRuleSwitch === 0;
-        const latencyMs = Math.round(now - this.trialStartTime);
+        this.feetCentered = false;
+        this.lastStepMs = now;
+
+        const chosenValue =
+          steppedSide === "LEFT" ? this.problem.leftChoice : this.problem.rightChoice;
+        const isCorrect = steppedSide === this.problem.correctSide;
+        const latencyMs = Math.round(now - this.trialStartMs);
 
         const event = {
-          trialNumber: this.metrics.totalTrials + 1,
-          rule: this.currentRule,
-          cuedSide: this.cuedSide,
-          expectedSide,
-          chosenSide,
+          trial: this.metrics.totalTrials + 1,
+          expression: this.problem.expression,
+          op: this.problem.op,
+          answer: this.problem.answer,
+          leftChoice: this.problem.leftChoice,
+          rightChoice: this.problem.rightChoice,
+          steppedSide,
+          chosenValue,
           isCorrect,
-          isSwitchTrial,
           latencyMs,
         };
 
-        this.recordResult(event);
-        this.nextTrial(false);
-        this.emitState(event);
+        this.recordEvent(event);
+        this.problem = generateOneDigitProblem();
+        this.trialStartMs = now;
+        this.emit(event);
       }
 
-      recordResult(ev) {
+      recordEvent(ev) {
         const m = this.metrics;
         m.totalTrials += 1;
         if (ev.isCorrect) m.correctTrials += 1;
+        if (ev.steppedSide === "LEFT") m.leftSteps += 1;
+        else m.rightSteps += 1;
         m.latenciesMs.push(ev.latencyMs);
 
-        if (ev.isSwitchTrial) {
-          m.switchTrials += 1;
-          if (ev.isCorrect) m.switchCorrect += 1;
-          m.switchLatenciesMs.push(ev.latencyMs);
-        } else {
-          m.repeatTrials += 1;
-          if (ev.isCorrect) m.repeatCorrect += 1;
-          m.repeatLatenciesMs.push(ev.latencyMs);
+        const opStat = m.byOp[ev.op];
+        if (opStat) {
+          opStat.total += 1;
+          if (ev.isCorrect) opStat.correct += 1;
         }
 
         this.history.unshift(ev);
@@ -458,22 +536,20 @@
         return {
           totalTrials: m.totalTrials,
           accuracyPct: pct(m.correctTrials, m.totalTrials),
-          switchAccuracyPct: pct(m.switchCorrect, m.switchTrials),
-          repeatAccuracyPct: pct(m.repeatCorrect, m.repeatTrials),
           avgLatencyMs: avg(m.latenciesMs),
-          switchCostMs: avg(m.switchLatenciesMs) - avg(m.repeatLatenciesMs),
-          occludedFrames: m.occludedFrames,
+          leftSteps: m.leftSteps,
+          rightSteps: m.rightSteps,
+          byOp: m.byOp,
         };
       }
 
-      emitState(lastEvent) {
+      emit(lastEvent) {
         this.onUpdate({
-          rule: this.currentRule,
-          cuedSide: this.cuedSide,
-          isSwitchTrial: this.trialsSinceRuleSwitch === 0,
+          problem: this.problem,
           lastEvent,
           summary: this.getSummary(),
           history: this.history,
+          ankleVisible: this.ankleVisible,
         });
       }
 
@@ -482,6 +558,8 @@
         const now = performance.now();
 
         this.ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
+
+        // Draw mirrored webcam video
         this.ctx.save();
         this.ctx.scale(-1, 1);
         this.ctx.drawImage(
@@ -493,53 +571,76 @@
         );
         this.ctx.restore();
 
-        this.drawZones();
+        this.drawStepPads();
 
         const results = this.poseLandmarker.detectForVideo(this.videoEl, now);
         if (results.landmarks && results.landmarks.length > 0) {
-          const pose = results.landmarks[0];
-          const wristPt = this.toMirroredScreenCoords(pose[LANDMARK.RIGHT_WRIST]);
-          const shoulderPt = this.toMirroredScreenCoords(pose[LANDMARK.RIGHT_SHOULDER]);
-          this.drawTracker(wristPt, shoulderPt);
-          this.evaluateReach(wristPt, shoulderPt, now);
+          this.evaluateLowerLimbs(results.landmarks[0], now);
+          this.drawAnkles();
         }
 
         this.rafId = requestAnimationFrame(this.loop);
       };
 
-      drawZones() {
+      drawStepPads() {
         const { width, height } = this.canvasEl;
-        const zoneW = width * 0.18;
+        const padW = width * 0.25;
+        const padH = height * 0.34;
+        const padY = height - padH - 12;
 
         this.ctx.save();
-        this.ctx.globalAlpha = 0.22;
-        this.ctx.fillStyle = this.cuedSide === "LEFT" ? "#38bdf8" : "#64748b";
-        this.ctx.fillRect(0, 0, zoneW, height);
 
-        this.ctx.fillStyle = this.cuedSide === "RIGHT" ? "#38bdf8" : "#64748b";
-        this.ctx.fillRect(width - zoneW, 0, zoneW, height);
-        this.ctx.globalAlpha = 1;
+        // Left pad
+        this.ctx.fillStyle = "rgba(56, 189, 248, 0.22)";
+        this.ctx.fillRect(12, padY, padW, padH);
+        this.ctx.strokeStyle = "#38bdf8";
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(12, padY, padW, padH);
 
-        this.ctx.font = "bold 18px system-ui, sans-serif";
+        // Right pad
+        this.ctx.fillStyle = "rgba(56, 189, 248, 0.22)";
+        this.ctx.fillRect(width - padW - 12, padY, padW, padH);
+        this.ctx.strokeRect(width - padW - 12, padY, padW, padH);
+
+        // Answer labels on pads
         this.ctx.fillStyle = "#ffffff";
-        this.ctx.fillText(`RULE: ${this.currentRule}`, 18, 30);
-        this.ctx.fillText(`CUE: ${this.cuedSide}`, 18, 54);
+        this.ctx.font = "bold 36px system-ui, sans-serif";
+        this.ctx.textAlign = "center";
+        this.ctx.fillText(String(this.problem.leftChoice), 12 + padW / 2, padY + padH / 2 + 12);
+        this.ctx.fillText(
+          String(this.problem.rightChoice),
+          width - padW - 12 + padW / 2,
+          padY + padH / 2 + 12
+        );
+
+        // Top equation banner inside canvas
+        this.ctx.textAlign = "center";
+        this.ctx.font = "bold 28px system-ui, sans-serif";
+        this.ctx.fillStyle = "#f8fafc";
+        this.ctx.fillText(this.problem.expression, width / 2, 42);
+
+        if (!this.ankleVisible && this.isRunning) {
+          this.ctx.font = "bold 15px system-ui, sans-serif";
+          this.ctx.fillStyle = "#f59e0b";
+          this.ctx.fillText("Step back so both ankles are visible", width / 2, 70);
+        }
+
         this.ctx.restore();
       }
 
-      drawTracker(wristPt, shoulderPt) {
+      drawAnkles() {
         this.ctx.save();
-        this.ctx.beginPath();
-        this.ctx.arc(wristPt.x, wristPt.y, 12, 0, Math.PI * 2);
-        this.ctx.fillStyle = wristPt.visibility > 0.7 ? "#22c55e" : "#ef4444";
-        this.ctx.fill();
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(shoulderPt.x, shoulderPt.y);
-        this.ctx.lineTo(wristPt.x, wristPt.y);
-        this.ctx.strokeStyle = "#38bdf8";
-        this.ctx.lineWidth = 3;
-        this.ctx.stroke();
+        [this.lastLeftAnkle, this.lastRightAnkle].forEach((pt, idx) => {
+          if (!pt) return;
+          const visible = pt.visibility >= 0.55;
+          this.ctx.beginPath();
+          this.ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
+          this.ctx.fillStyle = visible ? "#22c55e" : "#ef4444";
+          this.ctx.fill();
+          this.ctx.fillStyle = "#ffffff";
+          this.ctx.font = "bold 11px sans-serif";
+          this.ctx.fillText(idx === 0 ? "L-ANK" : "R-ANK", pt.x - 18, pt.y - 15);
+        });
         this.ctx.restore();
       }
     }
@@ -548,43 +649,39 @@
     const btnStop = document.getElementById("btn-stop");
     const btnExport = document.getElementById("btn-export");
 
-    const ruleText = document.getElementById("rule-text");
-    const cueText = document.getElementById("cue-text");
-    const trialTypeBadge = document.getElementById("trial-type-badge");
-    const feedbackBox = document.getElementById("feedback-box");
+    const uiEquation = document.getElementById("ui-equation");
+    const uiLeftAns = document.getElementById("ui-left-ans");
+    const uiRightAns = document.getElementById("ui-right-ans");
+    const statusBox = document.getElementById("status-box");
     const trialLog = document.getElementById("trial-log");
 
     const mAcc = document.getElementById("m-acc");
     const mTrials = document.getElementById("m-trials");
-    const mSwitchAcc = document.getElementById("m-switch-acc");
-    const mRepeatAcc = document.getElementById("m-repeat-acc");
     const mLatency = document.getElementById("m-latency");
-    const mSwitchCost = document.getElementById("m-switch-cost");
+    const mLr = document.getElementById("m-lr");
 
     let latestState = null;
 
-    const game = new DualTaskPoseGame({
+    const game = new LowerLimbArithmeticGame({
       videoEl: document.getElementById("webcam"),
       canvasEl: document.getElementById("game-canvas"),
       onUpdate: (state) => {
         latestState = state;
-        ruleText.textContent = state.rule;
-        cueText.textContent = state.cuedSide;
-        trialTypeBadge.textContent = state.isSwitchTrial ? "SWITCH TRIAL" : "REPEAT";
+        uiEquation.textContent = state.problem.expression;
+        uiLeftAns.textContent = String(state.problem.leftChoice);
+        uiRightAns.textContent = String(state.problem.rightChoice);
 
         const s = state.summary;
         mAcc.textContent = `${s.accuracyPct}%`;
         mTrials.textContent = String(s.totalTrials);
-        mSwitchAcc.textContent = `${s.switchAccuracyPct}%`;
-        mRepeatAcc.textContent = `${s.repeatAccuracyPct}%`;
         mLatency.textContent = `${s.avgLatencyMs} ms`;
-        mSwitchCost.textContent = `${s.switchCostMs >= 0 ? "+" : ""}${s.switchCostMs} ms`;
+        mLr.textContent = `${s.leftSteps} / ${s.rightSteps}`;
 
         if (state.lastEvent) {
           const ev = state.lastEvent;
-          feedbackBox.innerHTML = ev.isCorrect
-            ? `<span class="good"><strong>Correct</strong> — reached ${ev.chosenSide} in ${ev.latencyMs} ms (${ev.rule} / ${ev.cuedSide})</span>`
-            : `<span class="bad"><strong>Missed</strong> — reached ${ev.chosenSide}, expected ${ev.expectedSide} (${ev.rule} / ${ev.cuedSide})</span>`;
+          statusBox.innerHTML = ev.isCorrect
+            ? `<span class="good"><strong>Correct Step (${ev.steppedSide})</strong> — ${ev.expression.replace("?", ev.chosenValue)} in ${ev.latencyMs} ms</span>`
+            : `<span class="bad"><strong>Incorrect (${ev.steppedSide})</strong> — stepped on ${ev.chosenValue}, answer was ${ev.answer}</span>`;
         }
 
         if (state.history.length > 0) {
@@ -592,9 +689,9 @@
             .slice(0, 30)
             .map(
               (ev) => `
-              <div class="trial-row">
-                <span>#${ev.trialNumber} ${ev.rule} (${ev.cuedSide}) → <strong>${ev.chosenSide}</strong></span>
-                <span class="${ev.isCorrect ? "good" : "bad"}">${ev.isCorrect ? "✓" : "✕"} ${ev.latencyMs}ms${ev.isSwitchTrial ? " [SW]" : ""}</span>
+              <div class="log-row">
+                <span>#${ev.trial} ${ev.expression} → <strong>${ev.steppedSide} (${ev.chosenValue})</strong></span>
+                <span class="${ev.isCorrect ? "good" : "bad"}">${ev.isCorrect ? "✓" : "✕"} ${ev.latencyMs}ms</span>
               </div>`
             )
             .join("");
@@ -607,10 +704,10 @@
       try {
         await game.start();
         btnStop.disabled = false;
-        feedbackBox.textContent = "Tracking active — reach left or right to respond.";
+        statusBox.textContent = "Stepping active — step left or right onto the matching answer.";
       } catch (err) {
         btnStart.disabled = false;
-        feedbackBox.innerHTML = `<span class="bad">Camera / Pose init error: ${err.message}</span>`;
+        statusBox.innerHTML = `<span class="bad">Error: ${err.message}</span>`;
       }
     });
 
@@ -618,81 +715,90 @@
       game.stop();
       btnStart.disabled = false;
       btnStop.disabled = true;
-      feedbackBox.textContent = "Game paused. You can export your HTML report now.";
+      statusBox.textContent = "Paused. Click Export HTML Report to download your results.";
     });
 
-    function exportSessionReportHtml() {
-      const summary = latestState ? latestState.summary : game.getSummary();
+    function exportHtmlReport() {
+      const s = latestState ? latestState.summary : game.getSummary();
       const history = latestState ? latestState.history : [];
       const exportedAt = new Date().toISOString();
 
-      const rowsHtml = history
+      const opRows = Object.entries(s.byOp)
+        .map(([op, st]) => {
+          const pct = st.total ? Math.round((st.correct / st.total) * 100) : 0;
+          return `<tr><td>${op}</td><td>${st.total}</td><td>${st.correct}</td><td>${pct}%</td></tr>`;
+        })
+        .join("");
+
+      const trialRows = history
         .map(
           (ev) => `
           <tr>
-            <td>${ev.trialNumber}</td>
-            <td>${ev.rule}</td>
-            <td>${ev.cuedSide}</td>
-            <td>${ev.expectedSide}</td>
-            <td>${ev.chosenSide}</td>
+            <td>${ev.trial}</td>
+            <td>${ev.expression}</td>
+            <td>${ev.op}</td>
+            <td>${ev.steppedSide}</td>
+            <td>${ev.chosenValue}</td>
+            <td>${ev.answer}</td>
             <td>${ev.isCorrect ? "Correct" : "Incorrect"}</td>
-            <td>${ev.isSwitchTrial ? "Switch" : "Repeat"}</td>
             <td>${ev.latencyMs} ms</td>
           </tr>`
         )
         .join("");
 
-      const reportDoc = `<!DOCTYPE html>
+      const htmlDoc = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Dual-Task Pose Game — Session Report</title>
+  <title>Lower-Limb Arithmetic Stepper Report</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 860px; margin: 32px auto; padding: 0 16px; color: #0f172a; }
-    h1 { margin-bottom: 4px; }
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; color: #0f172a; }
     .meta { color: #475569; margin-bottom: 20px; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
     .card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; }
-    .label { font-size: 0.75rem; text-transform: uppercase; color: #64748b; }
-    .val { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+    .label { font-size: 0.72rem; text-transform: uppercase; color: #64748b; }
+    .val { font-size: 1.35rem; font-weight: 700; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-bottom: 24px; }
+    th, td { border: 1px solid #cbd5e1; padding: 7px 8px; text-align: left; }
     th { background: #f1f5f9; }
   </style>
 </head>
 <body>
-  <h1>Dual-Task Cognitive-Motor Session Report</h1>
+  <h1>Lower-Limb Stepper — 1-Digit Arithmetic Report</h1>
   <div class="meta">Exported: ${exportedAt}</div>
   <div class="grid">
-    <div class="card"><div class="label">Overall Accuracy</div><div class="val">${summary.accuracyPct}%</div></div>
-    <div class="card"><div class="label">Completed Trials</div><div class="val">${summary.totalTrials}</div></div>
-    <div class="card"><div class="label">Average Latency</div><div class="val">${summary.avgLatencyMs} ms</div></div>
-    <div class="card"><div class="label">Switch Accuracy</div><div class="val">${summary.switchAccuracyPct}%</div></div>
-    <div class="card"><div class="label">Repeat Accuracy</div><div class="val">${summary.repeatAccuracyPct}%</div></div>
-    <div class="card"><div class="label">Switch Cost</div><div class="val">${summary.switchCostMs} ms</div></div>
+    <div class="card"><div class="label">Overall Accuracy</div><div class="val">${s.accuracyPct}%</div></div>
+    <div class="card"><div class="label">Completed Steps</div><div class="val">${s.totalTrials}</div></div>
+    <div class="card"><div class="label">Avg Step Latency</div><div class="val">${s.avgLatencyMs} ms</div></div>
+    <div class="card"><div class="label">Left / Right Steps</div><div class="val">${s.leftSteps} / ${s.rightSteps}</div></div>
   </div>
+  <h2>Accuracy by Operation</h2>
+  <table>
+    <thead><tr><th>Operation</th><th>Trials</th><th>Correct</th><th>Accuracy</th></tr></thead>
+    <tbody>${opRows}</tbody>
+  </table>
   <h2>Trial Log</h2>
   <table>
     <thead>
       <tr>
-        <th>#</th><th>Rule</th><th>Cue</th><th>Expected</th><th>Reached</th><th>Result</th><th>Type</th><th>Latency</th>
+        <th>#</th><th>Problem</th><th>Op</th><th>Stepped</th><th>Chosen</th><th>Answer</th><th>Result</th><th>Latency</th>
       </tr>
     </thead>
-    <tbody>${rowsHtml || '<tr><td colspan="8">No completed trials recorded yet.</td></tr>'}</tbody>
+    <tbody>${trialRows || '<tr><td colspan="8">No step trials recorded yet.</td></tr>'}</tbody>
   </table>
 </body>
 </html>`;
 
-      const blob = new Blob([reportDoc], { type: "text/html;charset=utf-8" });
+      const blob = new Blob([htmlDoc], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `pose-session-report-${Date.now()}.html`;
+      a.download = `lower-limb-arithmetic-report-${Date.now()}.html`;
       a.click();
       URL.revokeObjectURL(url);
     }
 
-    btnExport.addEventListener("click", exportSessionReportHtml);
+    btnExport.addEventListener("click", exportHtmlReport);
   </script>
 </body>
 </html>
