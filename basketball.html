@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sit-to-Stand Basketball Trainer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Teko for sports scoreboard & Inter for UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Teko:wght@600;700&display=swap" rel="stylesheet">
+    <!-- MediaPipe Pose & Drawing Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <!-- Tone.js for procedural sports sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        .font-sports {
+            font-family: 'Teko', sans-serif;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+            aspect-ratio: 16 / 9;
+            margin: 0 auto;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            background: #1e293b;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        /* Custom Button Styling */
+        .btn-sport {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px 0 rgba(249, 115, 22, 0.39);
+        }
+        .btn-sport:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+        }
+        .btn-sport:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background: rgba(51, 65, 85, 0.95);
+        }
+        /* Pulse animation for posture prompt */
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(249, 115, 22, 0.4); }
+            50% { border-color: rgba(249, 115, 22, 1); }
+        }
+        .animate-pulse-border {
+            animation: pulse-border 2s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 sm:p-6">
+
+    <!-- Header & Scoreboard -->
+    <header class="w-full max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M5.6 5.6c3.5 3.5 3.5 9.3 0 12.8M18.4 5.6c-3.5 3.5-3.5 9.3 0 12.8M2 12h20M12 2v20"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Sit-to-Stand Hoops</h1>
+                <p class="text-xs sm:text-sm text-slate-400">Rehab & Fitness Pose Trainer</p>
+            </div>
+        </div>
+
+        <!-- Scoreboard Cards -->
+        <div class="flex items-center gap-3 sm:gap-5 bg-slate-800/90 border border-slate-700 px-5 py-2.5 rounded-2xl shadow-xl">
+            <div class="text-center">
+                <span class="block text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 font-semibold">State</span>
+                <span id="state-badge" class="inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-bold bg-slate-700 text-amber-400">
+                    WAITING
+                </span>
+            </div>
+            <div class="h-8 w-px bg-slate-700"></div>
+            <div class="text-center">
+                <span class="block text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 font-semibold">Reps / Shots</span>
+                <span id="reps-count" class="font-sports text-3xl sm:text-4xl text-white leading-none">0</span>
+            </div>
+            <div class="h-8 w-px bg-slate-700"></div>
+            <div class="text-center">
+                <span class="block text-[10px] sm:text-xs uppercase tracking-wider text-slate-400 font-semibold">Score</span>
+                <span id="score-count" class="font-sports text-3xl sm:text-4xl text-orange-500 leading-none">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Viewport -->
+    <main class="w-full flex-grow flex flex-col items-center justify-center my-auto">
+        <div class="canvas-container border-2 border-slate-700" id="game-wrapper">
+            <!-- Hidden raw video element for MediaPipe -->
+            <video id="input-video" class="hidden" playsinline></video>
+            
+            <!-- Main Composite Canvas (Court + Segmented User + Basketball + UI Overlays) -->
+            <canvas id="output-canvas"></canvas>
+
+            <!-- Start / Loading Overlay -->
+            <div id="overlay-screen" class="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 transition-opacity duration-300">
+                <div class="max-w-md space-y-5">
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400">
+                        <svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white">Ready to Hit the Court?</h2>
+                    <p class="text-sm sm:text-base text-slate-300 leading-relaxed">
+                        Position your camera so your full body (or hips & knees) is visible while seated on a chair. 
+                        <strong class="text-orange-400">Stand up completely</strong> to automatically shoot the basketball!
+                    </p>
+                    <div id="loading-status" class="hidden flex items-center justify-center gap-3 text-amber-400 font-medium text-sm py-2">
+                        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Loading AI Pose & Segmentation Model...</span>
+                    </div>
+                    <button id="start-btn" class="btn-sport w-full py-3.5 px-6 rounded-xl font-bold text-white text-lg tracking-wide cursor-pointer">
+                        Enable Camera & Start Training
+                    </button>
+                    <p id="error-msg" class="hidden text-red-400 text-xs bg-red-950/60 border border-red-800/60 p-3 rounded-lg"></p>
+                </div>
+            </div>
+
+            <!-- Live Coaching Banner inside Canvas Top-Left -->
+            <div id="coach-banner" class="hidden absolute top-3 left-3 sm:top-4 sm:left-4 z-10 max-w-[65%] sm:max-w-md bg-slate-900/80 backdrop-blur-md border border-slate-600/80 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-2xl shadow-lg flex items-center gap-2.5">
+                <span id="coach-dot" class="w-2.5 h-2.5 shrink-0 rounded-full bg-amber-400 animate-ping"></span>
+                <span id="coach-text" class="text-xs sm:text-sm font-semibold text-white tracking-wide leading-snug">Sit down on your chair to load the ball</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Controls Bar -->
+    <footer class="w-full max-w-6xl mx-auto mt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+        <button id="toggle-skeleton-btn" class="btn-secondary px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 flex items-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>Pose Skeleton: <strong id="skeleton-status" class="text-emerald-400">ON</strong></span>
+        </button>
+
+        <button id="toggle-sound-btn" class="btn-secondary px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-200 flex items-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+            <span>Sound: <strong id="sound-status" class="text-emerald-400">ON</strong></span>
+        </button>
+
+        <button id="manual-shoot-btn" class="btn-secondary px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-amber-300 flex items-center gap-2 cursor-pointer" title="Test a shot without standing">
+            <span>🏀 Test Shot</span>
+        </button>
+
+        <button id="reset-btn" class="btn-secondary px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white flex items-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Reset Score</span>
+        </button>
+    </footer>
+
+    <script>
+        /**
+         * Sit-to-Stand Basketball Trainer
+         * Uses MediaPipe Pose with Segmentation Mask to replace background with a custom 2D Basketball Court,
+         * detects knee/hip angles to track Sit -> Stand transitions, and triggers a physics-based basketball shot.
+         */
+
+        // --- DOM Elements ---
+        const videoElement = document.getElementById('input-video');
+        const canvasElement = document.getElementById('output-canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const overlayScreen = document.getElementById('overlay-screen');
+        const startBtn = document.getElementById('start-btn');
+        const loadingStatus = document.getElementById('loading-status');
+        const errorMsg = document.getElementById('error-msg');
+        const coachBanner = document.getElementById('coach-banner');
+        const coachText = document.getElementById('coach-text');
+        const coachDot = document.getElementById('coach-dot');
+        const stateBadge = document.getElementById('state-badge');
+        const repsCountEl = document.getElementById('reps-count');
+        const scoreCountEl = document.getElementById('score-count');
+
+        // Offscreen canvases for clean segmentation compositing and cached background
+        const personCanvas = document.createElement('canvas');
+        const personCtx = personCanvas.getContext('2d');
+        const courtCanvas = document.createElement('canvas');
+        const courtCtx = courtCanvas.getContext('2d');
+
+        // --- Application State ---
+        let isRunning = false;
+        let showSkeleton = true;
+        let soundEnabled = true;
+        let reps = 0;
+        let score = 0;
+
+        // Sit-to-Stand State Machine: 'UNKNOWN' -> 'SITTING' -> 'STANDING'
+        let postureState = 'UNKNOWN';
+        let currentKneeAngle = 180;
+        let angleBuffer = []; // Smoothing buffer for jitter-free detection
+        const BUFFER_SIZE = 5;
+
+        // Thresholds (in degrees)
+        const SITTING_ANGLE_THRESHOLD = 128; // Knees bent <= 128 deg -> Sitting
+        const STANDING_ANGLE_THRESHOLD = 158; // Knees straight >= 158 deg -> Standing
+
+        // Basketball & Hoop Physics State
+        const hoop = {
+            x: 0.82, // Normalized coordinates (0 to 1)
+            y: 0.30,
+            rimRadius: 0.048,
+            backboardX: 0.87,
+            backboardY: 0.16,
+            backboardHeight: 0.20,
+            netSway: 0
+        };
+
+        let ball = {
+            active: false,      // Is currently flying toward hoop?
+            held: false,        // Is held by player while sitting/preparing?
+            x: 0.25,
+            y: 0.55,
+            startX: 0.25,
+            startY: 0.55,
+            targetX: 0.82,
+            targetY: 0.30,
+            progress: 0,        // 0 to 1 trajectory progress
+            duration: 1.05,     // Flight time in seconds
+            lastTime: 0,
+            radius: 22,
+            rotation: 0,
+            scoredThisShot: false,
+            trail: []
+        };
+
+        // Floating celebratory popups (+2 PTS, SWISH!)
+        let floatingTexts = [];
+
+        // --- Sound Effects (Tone.js Procedural Audio) ---
+        let synth, noiseSynth;
+        function initAudio() {
+            try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.4 }
+                }).toDestination();
+
+                noiseSynth = new Tone.NoiseSynth({
+                    noise: { type: 'white' },
+                    envelope: { attack: 0.01, decay: 0.18, sustain: 0 }
+                }).toDestination();
+                noiseSynth.volume.value = -12;
+            } catch (e) {
+                console.warn('Audio initialization deferred:', e);
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled || !synth) return;
+            try {
+                const now = Tone.now();
+                if (type === 'sit') {
+                    // Low ready tone
+                    synth.triggerAttackRelease('C4', '16n', now);
+                } else if (type === 'shoot') {
+                    // Rising launch whoosh
+                    synth.triggerAttackRelease('G4', '16n', now);
+                    synth.triggerAttackRelease('C5', '16n', now + 0.07);
+                } else if (type === 'swish') {
+                    // Net swish + celebratory major triad
+                    noiseSynth.triggerAttackRelease('16n', now);
+                    synth.triggerAttackRelease(['C5', 'E5', 'G5', 'C6'], '8n', now + 0.05);
+                }
+            } catch (e) {
+                // Ignore audio context timing warnings
+            }
+        }
+
+        // --- Responsive Canvas Sizing & Pre-rendered Basketball Court ---
+        function resizeCanvases() {
+            const rect = canvasElement.parentElement.getBoundingClientRect();
+            const width = Math.max(640, Math.floor(rect.width));
+            const height = Math.max(360, Math.floor(rect.height));
+
+            canvasElement.width = width;
+            canvasElement.height = height;
+            personCanvas.width = width;
+            personCanvas.height = height;
+            courtCanvas.width = width;
+            courtCanvas.height = height;
+
+            ball.radius = Math.max(16, Math.min(28, width * 0.024));
+            renderBasketballCourtBackground(courtCtx, width, height);
+        }
+
+        /**
+         * Draws a rich, vibrant indoor stadium basketball court onto an offscreen canvas
+         */
+        function renderBasketballCourtBackground(ctx, w, h) {
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Arena Upper Wall & Stadium Crowd Silhouette Gradient
+            const wallGrad = ctx.createLinearGradient(0, 0, 0, h * 0.68);
+            wallGrad.addColorStop(0, '#0f172a');
+            wallGrad.addColorStop(0.6, '#1e293b');
+            wallGrad.addColorStop(1, '#334155');
+            ctx.fillStyle = wallGrad;
+            ctx.fillRect(0, 0, w, h * 0.68);
+
+            // Stadium Spotlights (Ambient Glows)
+            const drawSpotlight = (sx, sy, radius) => {
+                const glow = ctx.createRadialGradient(sx, sy, 5, sx, sy, radius);
+                glow.addColorStop(0, 'rgba(255, 250, 235, 0.35)');
+                glow.addColorStop(0.5, 'rgba(255, 240, 200, 0.08)');
+                glow.addColorStop(1, 'rgba(255, 240, 200, 0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+                ctx.fill();
+            };
+            drawSpotlight(w * 0.25, h * 0.12, w * 0.25);
+            drawSpotlight(w * 0.75, h * 0.12, w * 0.25);
+
+            // Arena Wall Padding (Deep Navy/Blue)
+            const padY = h * 0.56;
+            const padH = h * 0.12;
+            ctx.fillStyle = '#1d4ed8';
+            ctx.fillRect(0, padY, w, padH);
+            ctx.fillStyle = '#1e40af';
+            for (let x = 0; x < w; x += w / 12) {
+                ctx.fillRect(x, padY, 3, padH);
+            }
+            // Top trim on wall padding
+            ctx.fillStyle = '#f97316';
+            ctx.fillRect(0, padY, w, 5);
+
+            // 2. Hardwood Maple Court Floor
+            const floorY = h * 0.68;
+            const floorH = h - floorY;
+            const floorGrad = ctx.createLinearGradient(0, floorY, 0, h);
+            floorGrad.addColorStop(0, '#d97706');
+            floorGrad.addColorStop(0.4, '#ea8c2a');
+            floorGrad.addColorStop(1, '#b45309');
+            ctx.fillStyle = floorGrad;
+            ctx.fillRect(0, floorY, w, floorH);
+
+            // Wood Plank Lines (Perspective horizontal & vertical joints)
+            ctx.strokeStyle = 'rgba(120, 53, 15, 0.25)';
+            ctx.lineWidth = 1.5;
+            const rows = 8;
+            for (let i = 1; i <= rows; i++) {
+                const y = floorY + (floorH * (i / rows));
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            // 3. Painted Key / Free-Throw Lane & Three-Point Arc on Floor
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.lineWidth = 4;
+
+            // Baseline
+            ctx.beginPath();
+            ctx.moveTo(0, floorY + 6);
+            ctx.lineTo(w, floorY + 6);
+            ctx.stroke();
+
+            // Painted Key Area on Right Side (under hoop)
+            ctx.fillStyle = 'rgba(29, 78, 216, 0.35)';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.62, floorY + 6);
+            ctx.lineTo(w * 0.94, floorY + 6);
+            ctx.lineTo(w * 0.99, h);
+            ctx.lineTo(w * 0.52, h);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Three-point arc perspective curve
+            ctx.beginPath();
+            ctx.ellipse(w * 0.85, floorY + floorH * 0.35, w * 0.48, floorH * 0.58, 0, Math.PI * 0.55, Math.PI * 1.15);
+            ctx.stroke();
+            ctx.restore();
+
+            // 4. Hoop Support Pole & Backboard Structure (Back Layer)
+            const bx = w * hoop.backboardX;
+            const by = h * hoop.backboardY;
+            const bh = h * hoop.backboardHeight;
+
+            // Stanchion Pole
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(bx + 18, by + bh * 0.3, 18, floorY - (by + bh * 0.3) + 12);
+            // Pole Padding
+            ctx.fillStyle = '#1e3a8a';
+            ctx.fillRect(bx + 12, floorY - h * 0.22, 30, h * 0.22 + 12);
+
+            // Support Arm connecting pole to backboard
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(bx + 22, by + bh * 0.45);
+            ctx.lineTo(bx, by + bh * 0.45);
+            ctx.stroke();
+
+            // Glass Backboard
+            ctx.fillStyle = 'rgba(226, 232, 240, 0.25)';
+            ctx.strokeStyle = '#f8fafc';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.roundRect(bx - 6, by, 12, bh, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // Orange Shooter's Square on Backboard
+            ctx.strokeStyle = '#f97316';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(bx - 5, by + bh * 0.45, 10, bh * 0.32);
+        }
+
+        /**
+         * Draws the Hoop Rim and Dynamic Swishing Net (Foreground Layer so ball passes through)
+         */
+        function drawHoopRimAndNet(ctx, w, h) {
+            const rx = w * hoop.x;
+            const ry = h * hoop.y;
+            const rRad = w * hoop.rimRadius;
+            const bx = w * hoop.backboardX;
+
+            // Decay net sway smoothly
+            hoop.netSway *= 0.92;
+            const swayOffset = Math.sin(Date.now() * 0.02) * hoop.netSway;
+
+            // Net (White mesh lines)
+            const netDepth = rRad * 1.35;
+            const bottomWidth = rRad * 0.62;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 2.2;
+
+            const strands = 7;
+            for (let i = 0; i <= strands; i++) {
+                const t = i / strands;
+                const topX = (rx - rRad) + t * (rRad * 2);
+                const botX = (rx - bottomWidth) + t * (bottomWidth * 2) + swayOffset;
+
+                ctx.beginPath();
+                ctx.moveTo(topX, ry + 3);
+                ctx.quadraticCurveTo(
+                    (topX + botX) / 2 + swayOffset * 0.5,
+                    ry + netDepth * 0.55,
+                    botX,
+                    ry + netDepth
+                );
+                ctx.stroke();
+            }
+
+            // Cross-net diamond lines
+            ctx.beginPath();
+            ctx.moveTo(rx - rRad * 0.85, ry + netDepth * 0.35);
+            ctx.lineTo(rx + rRad * 0.85 + swayOffset * 0.4, ry + netDepth * 0.35);
+            ctx.moveTo(rx - rRad * 0.72, ry + netDepth * 0.7);
+            ctx.lineTo(rx + rRad * 0.72 + swayOffset * 0.8, ry + netDepth * 0.7);
+            ctx.stroke();
+
+            // Rim Connector Bracket
+            ctx.fillStyle = '#ea580c';
+            ctx.fillRect(rx + rRad - 2, ry - 3, bx - (rx + rRad), 7);
+
+            // Orange Rim Front Bar
+            ctx.strokeStyle = '#f97316';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(rx - rRad, ry);
+            ctx.lineTo(rx + rRad, ry);
+            ctx.stroke();
+        }
+
+        /**
+         * Draws a realistic basketball with seams and motion trail
+         */
+        function drawBasketball(ctx, x, y, radius, rotation, trail) {
+            // Motion Trail
+            for (let i = 0; i < trail.length; i++) {
+                const pt = trail[i];
+                const alpha = (i / trail.length) * 0.35;
+                const r = radius * (0.4 + 0.6 * (i / trail.length));
+                ctx.fillStyle = `rgba(249, 115, 22, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+
+            // Ball Base Gradient
+            const grad = ctx.createRadialGradient(-radius * 0.3, -radius * 0.3, radius * 0.1, 0, 0, radius);
+            grad.addColorStop(0, '#fb923c');
+            grad.addColorStop(0.6, '#ea580c');
+            grad.addColorStop(1, '#9a3412');
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Basketball Seams
+            ctx.strokeStyle = '#1e1b18';
+            ctx.lineWidth = Math.max(1.5, radius * 0.08);
+            ctx.beginPath();
+            ctx.moveTo(-radius, 0);
+            ctx.lineTo(radius, 0);
+            ctx.moveTo(0, -radius);
+            ctx.lineTo(0, radius);
+            ctx.stroke();
+
+            // Curved Side Seams
+            ctx.beginPath();
+            ctx.arc(-radius * 0.65, 0, radius * 0.75, -Math.PI * 0.38, Math.PI * 0.38);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(radius * 0.65, 0, radius * 0.75, Math.PI * 0.62, Math.PI * 1.38);
+            ctx.stroke();
+
+            // Outer Border
+            ctx.strokeStyle = '#431407';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // --- Geometry Helper: Calculate Joint Angle (in Degrees) ---
+        function calculateAngle(a, b, c) {
+            if (!a || !b || !c) return 180;
+            const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+            let angle = Math.abs((radians * 180.0) / Math.PI);
+            if (angle > 180.0) {
+                angle = 360.0 - angle;
+            }
+            return angle;
+        }
+
+        // --- Trigger Basketball Shot ---
+        function triggerBasketballShot(launchXNorm, launchYNorm) {
+            if (ball.active) return; // Prevent double firing mid-air
+
+            ball.active = true;
+            ball.held = false;
+            ball.startX = launchXNorm !== undefined ? launchXNorm : 0.28;
+            ball.startY = launchYNorm !== undefined ? launchYNorm : 0.45;
+            ball.x = ball.startX;
+            ball.y = ball.startY;
+            ball.targetX = hoop.x;
+            ball.targetY = hoop.y;
+            ball.progress = 0;
+            ball.lastTime = performance.now();
+            ball.scoredThisShot = false;
+            ball.trail = [];
+
+            reps++;
+            repsCountEl.textContent = reps;
+            playSound('shoot');
+        }
+
+        // --- Update Basketball Parabolic Arc Physics ---
+        function updateBallPhysics(w, h) {
+            if (!ball.active) return;
+
+            const now = performance.now();
+            const dt = Math.min(0.05, (now - ball.lastTime) / 1000);
+            ball.lastTime = now;
+
+            ball.progress += dt / ball.duration;
+            const t = Math.min(1.0, ball.progress);
+
+            // Parabolic trajectory: linear X interpolation + high arc Y interpolation
+            const currentX = ball.startX + (ball.targetX - ball.startX) * t;
+            const arcPeak = 0.34; // High basketball arc height
+            const linearY = ball.startY + (ball.targetY - ball.startY) * t;
+            const currentY = linearY - Math.sin(t * Math.PI) * arcPeak;
+
+            ball.x = currentX;
+            ball.y = currentY;
+            ball.rotation += dt * 11;
+
+            // Record trail points in pixel coordinates
+            ball.trail.push({ x: currentX * w, y: currentY * h });
+            if (ball.trail.length > 10) ball.trail.shift();
+
+            // Check when ball enters the hoop rim (around t >= 0.88)
+            if (t >= 0.88 && !ball.scoredThisShot) {
+                ball.scoredThisShot = true;
+                score += 2;
+                scoreCountEl.textContent = score;
+                hoop.netSway = 14; // Trigger net swish animation
+                playSound('swish');
+
+                // Spawn celebratory floating text
+                floatingTexts.push({
+                    text: 'SWISH! +2',
+                    x: hoop.x * w,
+                    y: (hoop.y - 0.05) * h,
+                    alpha: 1.0,
+                    vy: -1.8
+                });
+            }
+
+            // Finish shot after passing through net
+            if (ball.progress >= 1.15) {
+                ball.active = false;
+                ball.trail = [];
+            }
+        }
+
+        // --- Update & Render Floating Text Popups ---
+        function updateAndDrawFloatingTexts(ctx) {
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y += ft.vy;
+                ft.alpha -= 0.018;
+
+                if (ft.alpha <= 0) {
+                    floatingTexts.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.font = '700 36px Teko, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = `rgba(251, 191, 36, ${ft.alpha})`;
+                ctx.strokeStyle = `rgba(15, 23, 42, ${ft.alpha})`;
+                ctx.lineWidth = 4;
+                ctx.strokeText(ft.text, ft.x, ft.y);
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+        }
+
+        // --- Update Coaching UI & State Badge ---
+        function updateCoachUI(state, avgAngle) {
+            if (state === 'SITTING') {
+                stateBadge.textContent = 'SITTING (LOADED)';
+                stateBadge.className = 'inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40';
+                coachText.textContent = 'Great! Now STAND UP fast to shoot the ball!';
+                coachDot.className = 'w-3 h-3 rounded-full bg-emerald-400 animate-ping';
+            } else if (state === 'STANDING') {
+                stateBadge.textContent = 'STANDING (SHOT!)';
+                stateBadge.className = 'inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40';
+                coachText.textContent = 'Nice shot! Slowly sit back down for the next rep.';
+                coachDot.className = 'w-3 h-3 rounded-full bg-orange-400';
+            } else {
+                stateBadge.textContent = 'DETECTING...';
+                stateBadge.className = 'inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-bold bg-slate-700 text-amber-400';
+                coachText.textContent = 'Sit down on your chair so your hips & knees are visible.';
+                coachDot.className = 'w-3 h-3 rounded-full bg-amber-400 animate-ping';
+            }
+        }
+
+        // --- MediaPipe Pose Results Callback ---
+        function onPoseResults(results) {
+            const w = canvasElement.width;
+            const h = canvasElement.height;
+
+            // 1. Draw the pre-rendered Basketball Court Background
+            canvasCtx.clearRect(0, 0, w, h);
+            canvasCtx.drawImage(courtCanvas, 0, 0, w, h);
+
+            // 2. Background Removal via MediaPipe Segmentation Mask
+            // Mirror horizontally so movement feels natural like a mirror
+            personCtx.save();
+            personCtx.clearRect(0, 0, w, h);
+            personCtx.translate(w, 0);
+            personCtx.scale(-1, 1);
+
+            if (results.segmentationMask) {
+                // Draw segmentation mask first
+                personCtx.drawImage(results.segmentationMask, 0, 0, w, h);
+                // Keep only the video pixels where the person mask exists
+                personCtx.globalCompositeOperation = 'source-in';
+                personCtx.drawImage(results.image, 0, 0, w, h);
+                personCtx.globalCompositeOperation = 'source-over';
+            } else {
+                // Fallback if segmentation mask isn't ready on first frame
+                personCtx.drawImage(results.image, 0, 0, w, h);
+            }
+            personCtx.restore();
+
+            // Composite the background-removed user onto the basketball court
+            // Position user slightly toward the left side of the court (shooting toward right hoop)
+            canvasCtx.drawImage(personCanvas, 0, 0, w, h);
+
+            // 3. Process Pose Landmarks for Sit-to-Stand Detection
+            let handXNorm = 0.30;
+            let handYNorm = 0.45;
+
+            if (results.poseLandmarks) {
+                const lm = results.poseLandmarks;
+
+                // Mirror landmark X coordinates for drawing & ball attachment
+                const mirroredLandmarks = lm.map(pt => ({
+                    ...pt,
+                    x: 1.0 - pt.x
+                }));
+
+                // Draw Pose Skeleton if enabled
+                if (showSkeleton) {
+                    drawConnectors(canvasCtx, mirroredLandmarks, POSE_CONNECTIONS, {
+                        color: 'rgba(249, 115, 22, 0.75)',
+                        lineWidth: 3
+                    });
+                    drawLandmarks(canvasCtx, mirroredLandmarks, {
+                        color: '#ffffff',
+                        fillColor: '#f97316',
+                        lineWidth: 2,
+                        radius: 4
+                    });
+                }
+
+                // Calculate Knee Angle (Hip -> Knee -> Ankle)
+                // Pick whichever leg has better visibility
+                const leftVis = (lm[23].visibility + lm[25].visibility + lm[27].visibility) / 3;
+                const rightVis = (lm[24].visibility + lm[26].visibility + lm[28].visibility) / 3;
+
+                let rawAngle = 180;
+                if (leftVis > rightVis && leftVis > 0.45) {
+                    rawAngle = calculateAngle(lm[23], lm[25], lm[27]);
+                } else if (rightVis > 0.45) {
+                    rawAngle = calculateAngle(lm[24], lm[26], lm[28]);
+                } else {
+                    // Fallback: Use Hip-to-Shoulder vertical compression if ankles are out of frame
+                    const hipY = (lm[23].y + lm[24].y) / 2;
+                    const shoulderY = (lm[11].y + lm[12].y) / 2;
+                    const torsoSpan = Math.abs(hipY - shoulderY);
+                    // Estimate posture if lower legs aren't visible
+                    rawAngle = hipY > 0.68 ? 115 : 170;
+                }
+
+                // Smooth angle with rolling average
+                angleBuffer.push(rawAngle);
+                if (angleBuffer.length > BUFFER_SIZE) angleBuffer.shift();
+                currentKneeAngle = angleBuffer.reduce((a, b) => a + b, 0) / angleBuffer.length;
+
+                // Get mirrored wrist/hand position to hold the basketball
+                const leftWrist = mirroredLandmarks[15];
+                const rightWrist = mirroredLandmarks[16];
+                if (leftWrist && rightWrist) {
+                    handXNorm = (leftWrist.x + rightWrist.x) / 2;
+                    handYNorm = Math.min(leftWrist.y, rightWrist.y) - 0.04;
+                }
+
+                // State Machine Transitions: Sit -> Stand triggers Shot!
+                if (currentKneeAngle <= SITTING_ANGLE_THRESHOLD) {
+                    if (postureState !== 'SITTING') {
+                        postureState = 'SITTING';
+                        ball.held = true;
+                        playSound('sit');
+                        updateCoachUI('SITTING', currentKneeAngle);
+                    }
+                } else if (currentKneeAngle >= STANDING_ANGLE_THRESHOLD) {
+                    if (postureState === 'SITTING') {
+                        // Transitioned from SITTING to STANDING!
+                        postureState = 'STANDING';
+                        updateCoachUI('STANDING', currentKneeAngle);
+                        triggerBasketballShot(handXNorm, handYNorm);
+                    } else if (postureState === 'UNKNOWN') {
+                        postureState = 'STANDING';
+                        updateCoachUI('STANDING', currentKneeAngle);
+                    }
+                }
+
+                // Draw Knee Angle Gauge near the user's knee
+                const kneePt = leftVis > rightVis ? mirroredLandmarks[25] : mirroredLandmarks[26];
+                if (kneePt && kneePt.visibility > 0.4) {
+                    const kx = kneePt.x * w;
+                    const ky = kneePt.y * h;
+                    canvasCtx.save();
+                    canvasCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                    canvasCtx.beginPath();
+                    canvasCtx.roundRect(kx - 34, ky - 18, 68, 28, 8);
+                    canvasCtx.fill();
+                    canvasCtx.strokeStyle = postureState === 'SITTING' ? '#38bdf8' : '#f97316';
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.stroke();
+
+                    canvasCtx.fillStyle = '#ffffff';
+                    canvasCtx.font = 'bold 13px Inter, sans-serif';
+                    canvasCtx.textAlign = 'center';
+                    canvasCtx.fillText(`${Math.round(currentKneeAngle)}°`, kx, ky + 1);
+                    canvasCtx.restore();
+                }
+            }
+
+            // 4. Update & Render Basketball (either held by player or flying to hoop)
+            if (ball.active) {
+                updateBallPhysics(w, h);
+                drawBasketball(canvasCtx, ball.x * w, ball.y * h, ball.radius, ball.rotation, ball.trail);
+            } else if (ball.held || postureState === 'SITTING') {
+                // Held in player's hands ready to shoot when they stand up
+                drawBasketball(canvasCtx, handXNorm * w, handYNorm * h, ball.radius, 0, []);
+            }
+
+            // 5. Draw Hoop Rim & Net in front of ball (so ball visibly swishes through net)
+            drawHoopRimAndNet(canvasCtx, w, h);
+
+            // 6. Draw Floating Score Popups
+            updateAndDrawFloatingTexts(canvasCtx);
+        }
+
+        // --- Initialize MediaPipe Pose & Camera ---
+        async function startTraining() {
+            startBtn.disabled = true;
+            loadingStatus.classList.remove('hidden');
+            errorMsg.classList.add('hidden');
+            initAudio();
+
+            try {
+                const pose = new Pose({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+                });
+
+                pose.setOptions({
+                    modelComplexity: 1,
+                    smoothLandmarks: true,
+                    enableSegmentation: true,       // Enables real-time background removal
+                    smoothSegmentation: true,
+                    minDetectionConfidence: 0.55,
+                    minTrackingConfidence: 0.55
+                });
+
+                pose.onResults(onPoseResults);
+
+                const camera = new Camera(videoElement, {
+                    onFrame: async () => {
+                        if (isRunning) {
+                            await pose.send({ image: videoElement });
+                        }
+                    },
+                    width: 1280,
+                    height: 720
+                });
+
+                isRunning = true;
+                await camera.start();
+
+                // Hide welcome overlay & show live coaching banner
+                overlayScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => overlayScreen.classList.add('hidden'), 300);
+                coachBanner.classList.remove('hidden');
+                updateCoachUI('UNKNOWN', 180);
+
+            } catch (err) {
+                console.error('Camera/MediaPipe Error:', err);
+                isRunning = false;
+                startBtn.disabled = false;
+                loadingStatus.classList.add('hidden');
+                errorMsg.textContent = 'Unable to access webcam. Please ensure camera permissions are granted and no other app is using it.';
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startTraining);
+
+        document.getElementById('toggle-skeleton-btn').addEventListener('click', () => {
+            showSkeleton = !showSkeleton;
+            const statusEl = document.getElementById('skeleton-status');
+            statusEl.textContent = showSkeleton ? 'ON' : 'OFF';
+            statusEl.className = showSkeleton ? 'text-emerald-400' : 'text-slate-400';
+        });
+
+        document.getElementById('toggle-sound-btn').addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            if (soundEnabled) initAudio();
+            const statusEl = document.getElementById('sound-status');
+            statusEl.textContent = soundEnabled ? 'ON' : 'OFF';
+            statusEl.className = soundEnabled ? 'text-emerald-400' : 'text-slate-400';
+        });
+
+        document.getElementById('manual-shoot-btn').addEventListener('click', () => {
+            initAudio();
+            triggerBasketballShot(0.28, 0.48);
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            reps = 0;
+            score = 0;
+            repsCountEl.textContent = '0';
+            scoreCountEl.textContent = '0';
+            postureState = 'UNKNOWN';
+            updateCoachUI('UNKNOWN', 180);
+        });
+
+        window.addEventListener('resize', resizeCanvases);
+        window.onload = () => {
+            resizeCanvases();
+            // Render initial preview court behind overlay
+            canvasCtx.drawImage(courtCanvas, 0, 0);
+            drawHoopRimAndNet(canvasCtx, canvasElement.width, canvasElement.height);
+        };
+    </script>
+</body>
+</html>
