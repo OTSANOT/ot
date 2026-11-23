@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lower-Limb Stepper — 1-Digit Arithmetic Dual-Task</title>
+  <title>Bilateral Knee Stepper — 1-Digit Arithmetic Trainer</title>
   <style>
     :root {
       --bg: #0b1120;
@@ -199,17 +199,15 @@
 
     .good { color: var(--good); }
     .bad { color: var(--bad); }
-    .warn { color: var(--warn); }
     .muted { color: var(--muted); font-size: 0.84rem; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Lower-Limb Stepper — 1-Digit Arithmetic Trainer</h1>
+    <h1>Bilateral Knee Stepper — 1-Digit Arithmetic Trainer</h1>
     <div class="controls">
       <button id="btn-start">Start Stepping</button>
       <button id="btn-stop" class="secondary" disabled>Pause</button>
-      <button id="btn-export" class="secondary">Export HTML Report</button>
     </div>
   </header>
 
@@ -232,12 +230,12 @@
       </div>
 
       <p class="muted" style="margin: 10px 0 0;">
-        Stand back so your <strong>hips and ankles</strong> are visible. <strong>Step left</strong> with your left foot into the LEFT answer pad or <strong>step right</strong> with your right foot into the RIGHT answer pad, then bring feet back near center for the next problem.
+        Stand back so your <strong>hips and both knees</strong> are visible. <strong>Step/shift left</strong> with your left knee into the LEFT pad or <strong>step/shift right</strong> with your right knee into the RIGHT pad, then return near center for the next problem.
       </p>
     </section>
 
     <aside class="panel">
-      <h2 style="margin: 0 0 10px; font-size: 1rem;">Performance & Step Telemetry</h2>
+      <h2 style="margin: 0 0 10px; font-size: 1rem;">Performance & Knee Telemetry</h2>
       <div class="metrics">
         <div class="metric">
           <div class="label">Accuracy</div>
@@ -252,7 +250,7 @@
           <div id="m-latency" class="value">0 ms</div>
         </div>
         <div class="metric">
-          <div class="label">Left / Right Steps</div>
+          <div class="label">Left / Right Knee</div>
           <div id="m-lr" class="value">0 / 0</div>
         </div>
       </div>
@@ -273,8 +271,8 @@
     const LM = {
       LEFT_HIP: 23,
       RIGHT_HIP: 24,
-      LEFT_ANKLE: 27,
-      RIGHT_ANKLE: 28,
+      LEFT_KNEE: 25,
+      RIGHT_KNEE: 26,
     };
 
     const OPS = ["+", "-", "×", "÷"];
@@ -283,7 +281,6 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    // Generates 1-digit (1..9) arithmetic problems across +, -, ×, ÷
     function generateOneDigitProblem() {
       const op = OPS[randInt(0, OPS.length - 1)];
       let a = 1;
@@ -297,18 +294,16 @@
       } else if (op === "-") {
         a = randInt(1, 9);
         b = randInt(1, 9);
-        if (b > a) [a, b] = [b, a]; // keep non-negative 1-digit subtraction
+        if (b > a) [a, b] = [b, a];
         answer = a - b;
       } else if (op === "×") {
         a = randInt(1, 9);
         b = randInt(1, 9);
         answer = a * b;
       } else if (op === "÷") {
-        // Construct from single-digit divisor & single-digit quotient so dividend is exact
         b = randInt(1, 9);
         answer = randInt(1, 9);
         a = b * answer;
-        // Ensure displayed dividend is 1-digit or small clean division (1..9); if a > 9, retry cleanly
         if (a > 9) {
           b = randInt(1, 9);
           answer = randInt(1, Math.max(1, Math.floor(9 / b)));
@@ -316,7 +311,6 @@
         }
       }
 
-      // Generate a distinct non-negative distractor close to answer
       let distractor = answer;
       const offsets = [-3, -2, -1, 1, 2, 3, 4];
       const shuffled = [...offsets].sort(() => Math.random() - 0.5);
@@ -347,7 +341,7 @@
       };
     }
 
-    class LowerLimbArithmeticGame {
+    class BilateralKneeArithmeticGame {
       constructor({ videoEl, canvasEl, onUpdate }) {
         this.videoEl = videoEl;
         this.canvasEl = canvasEl;
@@ -362,25 +356,19 @@
         this.trialStartMs = performance.now();
         this.lastStepMs = 0;
         this.cooldownMs = 700;
-        this.feetCentered = true;
+        this.kneesCentered = true;
 
-        this.lastLeftAnkle = null;
-        this.lastRightAnkle = null;
-        this.ankleVisible = false;
+        this.lastLeftKnee = null;
+        this.lastRightKnee = null;
+        this.kneesVisible = false;
 
         this.history = [];
         this.metrics = {
           totalTrials: 0,
           correctTrials: 0,
-          leftSteps: 0,
-          rightSteps: 0,
+          leftKneeSteps: 0,
+          rightKneeSteps: 0,
           latenciesMs: [],
-          byOp: {
-            "+": { total: 0, correct: 0 },
-            "-": { total: 0, correct: 0 },
-            "×": { total: 0, correct: 0 },
-            "÷": { total: 0, correct: 0 },
-          },
         };
       }
 
@@ -431,7 +419,6 @@
         if (this.rafId) cancelAnimationFrame(this.rafId);
       }
 
-      // Mirror X so stepping to player's left matches LEFT side of mirrored canvas
       mirrorPt(lm) {
         return {
           x: (1 - lm.x) * this.canvasEl.width,
@@ -440,50 +427,45 @@
         };
       }
 
-      evaluateLowerLimbs(pose, now) {
+      evaluateBilateralKnees(pose, now) {
         const lh = this.mirrorPt(pose[LM.LEFT_HIP]);
         const rh = this.mirrorPt(pose[LM.RIGHT_HIP]);
-        const la = this.mirrorPt(pose[LM.LEFT_ANKLE]);
-        const ra = this.mirrorPt(pose[LM.RIGHT_ANKLE]);
+        const lk = this.mirrorPt(pose[LM.LEFT_KNEE]);
+        const rk = this.mirrorPt(pose[LM.RIGHT_KNEE]);
 
-        const minVis = 0.55;
-        this.ankleVisible = la.visibility >= minVis && ra.visibility >= minVis;
+        const minVis = 0.6;
+        this.lastLeftKnee = lk;
+        this.lastRightKnee = rk;
+        this.kneesVisible = lk.visibility >= minVis && rk.visibility >= minVis;
 
-        if (!this.ankleVisible) {
-          this.lastLeftAnkle = la;
-          this.lastRightAnkle = ra;
-          return;
-        }
-
-        this.lastLeftAnkle = la;
-        this.lastRightAnkle = ra;
+        if (!this.kneesVisible) return;
 
         const hipCenterX = (lh.x + rh.x) / 2;
-        const leftOffset = la.x - hipCenterX;
-        const rightOffset = ra.x - hipCenterX;
+        const leftKneeOffset = lk.x - hipCenterX;
+        const rightKneeOffset = rk.x - hipCenterX;
 
-        const stepThresholdPx = this.canvasEl.width * 0.16;
-        const centerBandPx = this.canvasEl.width * 0.1;
+        const stepThresholdPx = this.canvasEl.width * 0.14;
+        const centerBandPx = this.canvasEl.width * 0.09;
 
-        // Feet must return near center before registering another step
-        if (Math.abs(leftOffset) < centerBandPx && Math.abs(rightOffset) < centerBandPx) {
-          this.feetCentered = true;
+        // Both knees must return near hip center before registering another step
+        if (Math.abs(leftKneeOffset) < centerBandPx && Math.abs(rightKneeOffset) < centerBandPx) {
+          this.kneesCentered = true;
           return;
         }
 
-        if (!this.feetCentered) return;
+        if (!this.kneesCentered) return;
         if (now - this.lastStepMs < this.cooldownMs) return;
 
         let steppedSide = null;
-        if (leftOffset < -stepThresholdPx) {
+        if (leftKneeOffset < -stepThresholdPx) {
           steppedSide = "LEFT";
-        } else if (rightOffset > stepThresholdPx) {
+        } else if (rightKneeOffset > stepThresholdPx) {
           steppedSide = "RIGHT";
         }
 
         if (!steppedSide) return;
 
-        this.feetCentered = false;
+        this.kneesCentered = false;
         this.lastStepMs = now;
 
         const chosenValue =
@@ -494,311 +476,4 @@
         const event = {
           trial: this.metrics.totalTrials + 1,
           expression: this.problem.expression,
-          op: this.problem.op,
-          answer: this.problem.answer,
-          leftChoice: this.problem.leftChoice,
-          rightChoice: this.problem.rightChoice,
-          steppedSide,
-          chosenValue,
-          isCorrect,
-          latencyMs,
-        };
-
-        this.recordEvent(event);
-        this.problem = generateOneDigitProblem();
-        this.trialStartMs = now;
-        this.emit(event);
-      }
-
-      recordEvent(ev) {
-        const m = this.metrics;
-        m.totalTrials += 1;
-        if (ev.isCorrect) m.correctTrials += 1;
-        if (ev.steppedSide === "LEFT") m.leftSteps += 1;
-        else m.rightSteps += 1;
-        m.latenciesMs.push(ev.latencyMs);
-
-        const opStat = m.byOp[ev.op];
-        if (opStat) {
-          opStat.total += 1;
-          if (ev.isCorrect) opStat.correct += 1;
-        }
-
-        this.history.unshift(ev);
-      }
-
-      getSummary() {
-        const m = this.metrics;
-        const avg = (arr) =>
-          arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
-        const pct = (num, den) => (den ? Math.round((num / den) * 100) : 0);
-
-        return {
-          totalTrials: m.totalTrials,
-          accuracyPct: pct(m.correctTrials, m.totalTrials),
-          avgLatencyMs: avg(m.latenciesMs),
-          leftSteps: m.leftSteps,
-          rightSteps: m.rightSteps,
-          byOp: m.byOp,
-        };
-      }
-
-      emit(lastEvent) {
-        this.onUpdate({
-          problem: this.problem,
-          lastEvent,
-          summary: this.getSummary(),
-          history: this.history,
-          ankleVisible: this.ankleVisible,
-        });
-      }
-
-      loop = () => {
-        if (!this.isRunning) return;
-        const now = performance.now();
-
-        this.ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
-
-        // Draw mirrored webcam video
-        this.ctx.save();
-        this.ctx.scale(-1, 1);
-        this.ctx.drawImage(
-          this.videoEl,
-          -this.canvasEl.width,
-          0,
-          this.canvasEl.width,
-          this.canvasEl.height
-        );
-        this.ctx.restore();
-
-        this.drawStepPads();
-
-        const results = this.poseLandmarker.detectForVideo(this.videoEl, now);
-        if (results.landmarks && results.landmarks.length > 0) {
-          this.evaluateLowerLimbs(results.landmarks[0], now);
-          this.drawAnkles();
-        }
-
-        this.rafId = requestAnimationFrame(this.loop);
-      };
-
-      drawStepPads() {
-        const { width, height } = this.canvasEl;
-        const padW = width * 0.25;
-        const padH = height * 0.34;
-        const padY = height - padH - 12;
-
-        this.ctx.save();
-
-        // Left pad
-        this.ctx.fillStyle = "rgba(56, 189, 248, 0.22)";
-        this.ctx.fillRect(12, padY, padW, padH);
-        this.ctx.strokeStyle = "#38bdf8";
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(12, padY, padW, padH);
-
-        // Right pad
-        this.ctx.fillStyle = "rgba(56, 189, 248, 0.22)";
-        this.ctx.fillRect(width - padW - 12, padY, padW, padH);
-        this.ctx.strokeRect(width - padW - 12, padY, padW, padH);
-
-        // Answer labels on pads
-        this.ctx.fillStyle = "#ffffff";
-        this.ctx.font = "bold 36px system-ui, sans-serif";
-        this.ctx.textAlign = "center";
-        this.ctx.fillText(String(this.problem.leftChoice), 12 + padW / 2, padY + padH / 2 + 12);
-        this.ctx.fillText(
-          String(this.problem.rightChoice),
-          width - padW - 12 + padW / 2,
-          padY + padH / 2 + 12
-        );
-
-        // Top equation banner inside canvas
-        this.ctx.textAlign = "center";
-        this.ctx.font = "bold 28px system-ui, sans-serif";
-        this.ctx.fillStyle = "#f8fafc";
-        this.ctx.fillText(this.problem.expression, width / 2, 42);
-
-        if (!this.ankleVisible && this.isRunning) {
-          this.ctx.font = "bold 15px system-ui, sans-serif";
-          this.ctx.fillStyle = "#f59e0b";
-          this.ctx.fillText("Step back so both ankles are visible", width / 2, 70);
-        }
-
-        this.ctx.restore();
-      }
-
-      drawAnkles() {
-        this.ctx.save();
-        [this.lastLeftAnkle, this.lastRightAnkle].forEach((pt, idx) => {
-          if (!pt) return;
-          const visible = pt.visibility >= 0.55;
-          this.ctx.beginPath();
-          this.ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-          this.ctx.fillStyle = visible ? "#22c55e" : "#ef4444";
-          this.ctx.fill();
-          this.ctx.fillStyle = "#ffffff";
-          this.ctx.font = "bold 11px sans-serif";
-          this.ctx.fillText(idx === 0 ? "L-ANK" : "R-ANK", pt.x - 18, pt.y - 15);
-        });
-        this.ctx.restore();
-      }
-    }
-
-    const btnStart = document.getElementById("btn-start");
-    const btnStop = document.getElementById("btn-stop");
-    const btnExport = document.getElementById("btn-export");
-
-    const uiEquation = document.getElementById("ui-equation");
-    const uiLeftAns = document.getElementById("ui-left-ans");
-    const uiRightAns = document.getElementById("ui-right-ans");
-    const statusBox = document.getElementById("status-box");
-    const trialLog = document.getElementById("trial-log");
-
-    const mAcc = document.getElementById("m-acc");
-    const mTrials = document.getElementById("m-trials");
-    const mLatency = document.getElementById("m-latency");
-    const mLr = document.getElementById("m-lr");
-
-    let latestState = null;
-
-    const game = new LowerLimbArithmeticGame({
-      videoEl: document.getElementById("webcam"),
-      canvasEl: document.getElementById("game-canvas"),
-      onUpdate: (state) => {
-        latestState = state;
-        uiEquation.textContent = state.problem.expression;
-        uiLeftAns.textContent = String(state.problem.leftChoice);
-        uiRightAns.textContent = String(state.problem.rightChoice);
-
-        const s = state.summary;
-        mAcc.textContent = `${s.accuracyPct}%`;
-        mTrials.textContent = String(s.totalTrials);
-        mLatency.textContent = `${s.avgLatencyMs} ms`;
-        mLr.textContent = `${s.leftSteps} / ${s.rightSteps}`;
-
-        if (state.lastEvent) {
-          const ev = state.lastEvent;
-          statusBox.innerHTML = ev.isCorrect
-            ? `<span class="good"><strong>Correct Step (${ev.steppedSide})</strong> — ${ev.expression.replace("?", ev.chosenValue)} in ${ev.latencyMs} ms</span>`
-            : `<span class="bad"><strong>Incorrect (${ev.steppedSide})</strong> — stepped on ${ev.chosenValue}, answer was ${ev.answer}</span>`;
-        }
-
-        if (state.history.length > 0) {
-          trialLog.innerHTML = state.history
-            .slice(0, 30)
-            .map(
-              (ev) => `
-              <div class="log-row">
-                <span>#${ev.trial} ${ev.expression} → <strong>${ev.steppedSide} (${ev.chosenValue})</strong></span>
-                <span class="${ev.isCorrect ? "good" : "bad"}">${ev.isCorrect ? "✓" : "✕"} ${ev.latencyMs}ms</span>
-              </div>`
-            )
-            .join("");
-        }
-      },
-    });
-
-    btnStart.addEventListener("click", async () => {
-      btnStart.disabled = true;
-      try {
-        await game.start();
-        btnStop.disabled = false;
-        statusBox.textContent = "Stepping active — step left or right onto the matching answer.";
-      } catch (err) {
-        btnStart.disabled = false;
-        statusBox.innerHTML = `<span class="bad">Error: ${err.message}</span>`;
-      }
-    });
-
-    btnStop.addEventListener("click", () => {
-      game.stop();
-      btnStart.disabled = false;
-      btnStop.disabled = true;
-      statusBox.textContent = "Paused. Click Export HTML Report to download your results.";
-    });
-
-    function exportHtmlReport() {
-      const s = latestState ? latestState.summary : game.getSummary();
-      const history = latestState ? latestState.history : [];
-      const exportedAt = new Date().toISOString();
-
-      const opRows = Object.entries(s.byOp)
-        .map(([op, st]) => {
-          const pct = st.total ? Math.round((st.correct / st.total) * 100) : 0;
-          return `<tr><td>${op}</td><td>${st.total}</td><td>${st.correct}</td><td>${pct}%</td></tr>`;
-        })
-        .join("");
-
-      const trialRows = history
-        .map(
-          (ev) => `
-          <tr>
-            <td>${ev.trial}</td>
-            <td>${ev.expression}</td>
-            <td>${ev.op}</td>
-            <td>${ev.steppedSide}</td>
-            <td>${ev.chosenValue}</td>
-            <td>${ev.answer}</td>
-            <td>${ev.isCorrect ? "Correct" : "Incorrect"}</td>
-            <td>${ev.latencyMs} ms</td>
-          </tr>`
-        )
-        .join("");
-
-      const htmlDoc = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Lower-Limb Arithmetic Stepper Report</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 32px auto; padding: 0 16px; color: #0f172a; }
-    .meta { color: #475569; margin-bottom: 20px; }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-    .card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; }
-    .label { font-size: 0.72rem; text-transform: uppercase; color: #64748b; }
-    .val { font-size: 1.35rem; font-weight: 700; margin-top: 4px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-bottom: 24px; }
-    th, td { border: 1px solid #cbd5e1; padding: 7px 8px; text-align: left; }
-    th { background: #f1f5f9; }
-  </style>
-</head>
-<body>
-  <h1>Lower-Limb Stepper — 1-Digit Arithmetic Report</h1>
-  <div class="meta">Exported: ${exportedAt}</div>
-  <div class="grid">
-    <div class="card"><div class="label">Overall Accuracy</div><div class="val">${s.accuracyPct}%</div></div>
-    <div class="card"><div class="label">Completed Steps</div><div class="val">${s.totalTrials}</div></div>
-    <div class="card"><div class="label">Avg Step Latency</div><div class="val">${s.avgLatencyMs} ms</div></div>
-    <div class="card"><div class="label">Left / Right Steps</div><div class="val">${s.leftSteps} / ${s.rightSteps}</div></div>
-  </div>
-  <h2>Accuracy by Operation</h2>
-  <table>
-    <thead><tr><th>Operation</th><th>Trials</th><th>Correct</th><th>Accuracy</th></tr></thead>
-    <tbody>${opRows}</tbody>
-  </table>
-  <h2>Trial Log</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>#</th><th>Problem</th><th>Op</th><th>Stepped</th><th>Chosen</th><th>Answer</th><th>Result</th><th>Latency</th>
-      </tr>
-    </thead>
-    <tbody>${trialRows || '<tr><td colspan="8">No step trials recorded yet.</td></tr>'}</tbody>
-  </table>
-</body>
-</html>`;
-
-      const blob = new Blob([htmlDoc], { type: "text/html;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `lower-limb-arithmetic-report-${Date.now()}.html`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    btnExport.addEventListener("click", exportHtmlReport);
-  </script>
-</body>
-</html>
+          op: this.problem.
