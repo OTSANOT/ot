@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
   <meta charset="UTF-8">
-  <title>OT 職業治療：伸手定位＋手指對掌雙重訓練</title>
+  <title>OT 職業治療：伸手定位＋手指對掌雙重訓練 (Timer + Fix)</title>
   <style>
     body {
       font-family: "Microsoft JhengHei", sans-serif;
@@ -18,6 +18,33 @@
       margin: 8px 0; font-size: 16px; font-weight: bold;
     }
     .badge { padding: 5px 12px; border-radius: 20px; color: #000; }
+    .controls {
+      background: #1e293b;
+      padding: 10px 20px;
+      border-radius: 10px;
+      display: inline-flex;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      border: 1px solid #334155;
+    }
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+    }
+    select {
+      padding: 6px 10px;
+      font-size: 15px;
+      border-radius: 6px;
+      background: #0f172a;
+      color: white;
+      border: 1px solid #475569;
+      cursor: pointer;
+    }
     .game-box {
       position: relative; display: inline-block;
       border: 4px solid #334155; border-radius: 12px; overflow: hidden;
@@ -25,28 +52,37 @@
     video, canvas { transform: scaleX(-1); display: block; }
     canvas { position: absolute; left: 0; top: 0; }
     .hud {
-      font-size: 22px; margin: 10px;
-      display: flex; justify-content: center; gap: 35px;
+      font-size: 20px; margin: 10px;
+      display: flex; justify-content: center; gap: 30px;
+      flex-wrap: wrap;
     }
-    .score { color: #38bdf8; font-weight: bold; font-size: 30px; }
+    .score { color: #38bdf8; font-weight: bold; font-size: 28px; }
+    .timer-text { color: #f43f5e; font-weight: bold; font-size: 28px; }
     button {
       padding: 12px 28px; font-size: 18px; font-weight: bold;
       background: #10b981; color: white; border: none;
       border-radius: 8px; cursor: pointer;
     }
     button:disabled { background: #64748b; cursor: not-allowed; }
-    footer {
-      margin-top: 18px;
-      font-size: 12px;
-      color: #94a3b8;
+    #summaryOverlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.92);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
     }
+    #summaryOverlay h3 { font-size: 32px; color: #38bdf8; margin-bottom: 10px; }
+    #summaryOverlay p { font-size: 22px; margin: 8px 0; }
   </style>
 </head>
 <body>
 
   <div class="header">
-    <h2>🎯 OT 雙重任務訓練：伸手對準 ＋ 手指捏合</h2>
-    <p>步驟 1：伸手將【拇指】移入泡泡範圍 ➔ 步驟 2：用拇指捏合對應顏色【手指尖】！</p>
+    <h2>🎯 OT 雙重任務訓練：伸手對準 ＋ 手指捏合（高靈敏度＋計時版）</h2>
+    <p>步驟 1：伸手將【手掌或手指】移入泡泡範圍 ➔ 步驟 2：用拇指輕觸對應顏色【手指】！</p>
     <div class="legend">
       <span class="badge" style="background:#FF4D4D;">食指（紅）</span>
       <span class="badge" style="background:#4DFF88;">中指（綠）</span>
@@ -55,9 +91,37 @@
     </div>
   </div>
 
+  <div class="controls">
+    <div class="control-item">
+      <label for="durationSelect">⏱️ 訓練時間：</label>
+      <select id="durationSelect">
+        <option value="1">1 分鐘</option>
+        <option value="2" selected>2 分鐘</option>
+        <option value="3">3 分鐘</option>
+        <option value="4">4 分鐘</option>
+        <option value="5">5 分鐘</option>
+        <option value="6">6 分鐘</option>
+        <option value="7">7 分鐘</option>
+        <option value="8">8 分鐘</option>
+        <option value="9">9 分鐘</option>
+        <option value="10">10 分鐘</option>
+      </select>
+    </div>
+    <div class="control-item">
+      <label for="pinchSlider">捏合靈敏度：<span id="pinchVal">0.12</span></label>
+      <input type="range" id="pinchSlider" min="0.05" max="0.22" step="0.01" value="0.12">
+    </div>
+    <div class="control-item">
+      <label for="sizeSlider">泡泡大小：<span id="sizeVal">75</span>px</label>
+      <input type="range" id="sizeSlider" min="45" max="115" step="5" value="75">
+    </div>
+  </div>
+  <br>
+
   <button id="startBtn" disabled>正在載入手部追蹤模型...</button>
 
   <div class="hud">
+    <div>剩餘時間：<span id="timerEl" class="timer-text">02:00</span></div>
     <div>完成目標：<span id="scoreEl" class="score">0</span></div>
     <div>當前任務：<span id="targetText" style="color:#FFD633;">準備開始</span></div>
   </div>
@@ -65,11 +129,14 @@
   <div class="game-box">
     <video id="webcam" autoplay playsinline width="640" height="480"></video>
     <canvas id="gameCanvas" width="640" height="480"></canvas>
+    <div id="summaryOverlay">
+      <h3>🎉 訓練完成！</h3>
+      <p id="finalScoreText">總完成次數：0 次</p>
+      <p id="avgRateText">平均速度：0 次 / 分鐘</p>
+      <br>
+      <button id="restartBtn">再玩一次</button>
+    </div>
   </div>
-
-  <footer>
-    This is for informational purposes only. For medical advice or diagnosis, consult a professional. AI responses may include mistakes.
-  </footer>
 
   <script type="module">
     import {
@@ -81,48 +148,168 @@
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
     const scoreEl = document.getElementById("scoreEl");
+    const timerEl = document.getElementById("timerEl");
     const targetText = document.getElementById("targetText");
+    const durationSelect = document.getElementById("durationSelect");
+    const pinchSlider = document.getElementById("pinchSlider");
+    const pinchVal = document.getElementById("pinchVal");
+    const sizeSlider = document.getElementById("sizeSlider");
+    const sizeVal = document.getElementById("sizeVal");
+    const summaryOverlay = document.getElementById("summaryOverlay");
+    const finalScoreText = document.getElementById("finalScoreText");
+    const avgRateText = document.getElementById("avgRateText");
+
+    let pinchThreshold = parseFloat(pinchSlider.value);
+    let bubbleRadius = parseInt(sizeSlider.value, 10);
+
+    pinchSlider.addEventListener("input", () => {
+      pinchThreshold = parseFloat(pinchSlider.value);
+      pinchVal.innerText = pinchThreshold.toFixed(2);
+    });
+
+    sizeSlider.addEventListener("input", () => {
+      bubbleRadius = parseInt(sizeSlider.value, 10);
+      sizeVal.innerText = bubbleRadius;
+      if (targetBubble) targetBubble.radius = bubbleRadius;
+    });
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, "0");
+      const s = (sec % 60).toString().padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    durationSelect.addEventListener("change", () => {
+      if (!isPlaying) {
+        const mins = parseInt(durationSelect.value, 10);
+        timerEl.innerText = formatTime(mins * 60);
+      }
+    });
 
     const FINGERS = [
-      { id: 8,  name: "食指", color: "#FF4D4D" },
-      { id: 12, name: "中指", color: "#4DFF88" },
-      { id: 16, name: "無名指", color: "#4DA6FF" },
-      { id: 20, name: "尾指", color: "#FFD633" }
+      { id: 8,  midId: 7,  name: "食指", color: "#FF4D4D" },
+      { id: 12, midId: 11, name: "中指", color: "#4DFF88" },
+      { id: 16, midId: 15, name: "無名指", color: "#4DA6FF" },
+      { id: 20, midId: 19, name: "尾指", color: "#FFD633" }
     ];
 
     let handLandmarker;
     let lastVideoTime = -1;
     let score = 0;
     let isPlaying = false;
-    let isPinching = false;
+    let pinchCooldown = 0; // 時間冷卻鎖，避免卡死
     let targetBubble = null;
+    let remainingSeconds = 120;
+    let selectedMinutes = 2;
+    let countdownInterval = null;
+    let streamStarted = false;
 
     function playSuccessSound() {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.2);
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      } catch (e) {}
+    }
+
+    function playFinishSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + idx * 0.12);
+          gain.gain.setValueAtTime(0.25, audioCtx.currentTime + idx * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + idx * 0.12 + 0.35);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + idx * 0.12);
+          osc.stop(audioCtx.currentTime + idx * 0.12 + 0.35);
+        });
+      } catch (e) {}
     }
 
     function spawnTarget() {
-      const randomFinger = FINGERS[Math.floor(Math.random() * FINGERS.length)];
+      const prevId = targetBubble ? targetBubble.finger.id : -1;
+      let candidates = FINGERS.filter(f => f.id !== prevId);
+      const randomFinger = candidates[Math.floor(Math.random() * candidates.length)];
+
+      const marginX = Math.max(110, bubbleRadius + 30);
+      const marginY = Math.max(95, bubbleRadius + 25);
+
+      let newX = marginX + Math.random() * (canvas.width - marginX * 2);
+      let newY = marginY + Math.random() * (canvas.height - marginY * 2);
+
+      // 確保新泡泡位置與上一個明顯不同，視覺上清楚看到新目標出現
+      if (targetBubble) {
+        let attempts = 0;
+        while (Math.hypot(newX - targetBubble.x, newY - targetBubble.y) < 120 && attempts < 10) {
+          newX = marginX + Math.random() * (canvas.width - marginX * 2);
+          newY = marginY + Math.random() * (canvas.height - marginY * 2);
+          attempts++;
+        }
+      }
+
       targetBubble = {
         finger: randomFinger,
-        x: 110 + Math.random() * (canvas.width - 220),
-        y: 80 + Math.random() * (canvas.height - 200),
-        radius: 52
+        x: newX,
+        y: newY,
+        radius: bubbleRadius,
+        spawnTime: performance.now()
       };
       targetText.innerText = `移到泡泡並捏合【${randomFinger.name}】`;
       targetText.style.color = randomFinger.color;
+    }
+
+    function startSession() {
+      selectedMinutes = parseInt(durationSelect.value, 10);
+      remainingSeconds = selectedMinutes * 60;
+      score = 0;
+      pinchCooldown = 0;
+      scoreEl.innerText = score;
+      timerEl.innerText = formatTime(remainingSeconds);
+      summaryOverlay.style.display = "none";
+      durationSelect.disabled = true;
+      isPlaying = true;
+      spawnTarget();
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        if (!isPlaying) return;
+        remainingSeconds--;
+        timerEl.innerText = formatTime(remainingSeconds);
+        if (remainingSeconds <= 0) {
+          endSession();
+        }
+      }, 1000);
+    }
+
+    function endSession() {
+      isPlaying = false;
+      clearInterval(countdownInterval);
+      durationSelect.disabled = false;
+      targetText.innerText = "訓練結束";
+      targetText.style.color = "#38bdf8";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const rate = (score / selectedMinutes).toFixed(1);
+      finalScoreText.innerText = `總完成次數：${score} 次（訓練時間：${selectedMinutes} 分鐘）`;
+      avgRateText.innerText = `平均速度：${rate} 次 / 分鐘`;
+      summaryOverlay.style.display = "flex";
+      playFinishSound();
     }
 
     async function init() {
@@ -135,7 +322,7 @@
           delegate: "GPU"
         },
         runningMode: "VIDEO",
-        numHands: 1
+        numHands: 2
       });
       startBtn.disabled = false;
       startBtn.innerText = "開啟鏡頭開始雙重訓練";
@@ -143,46 +330,72 @@
     init();
 
     startBtn.addEventListener("click", async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
-      video.addEventListener("loadeddata", () => {
-        isPlaying = true;
-        spawnTarget();
-        gameLoop();
-      });
-      startBtn.style.display = "none";
+      if (!streamStarted) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.addEventListener("loadeddata", () => {
+          streamStarted = true;
+          startBtn.style.display = "none";
+          startSession();
+          gameLoop();
+        });
+      } else {
+        startBtn.style.display = "none";
+        startSession();
+      }
+    });
+
+    restartBtn.addEventListener("click", () => {
+      startSession();
     });
 
     async function gameLoop() {
-      if (!isPlaying) return;
-
-      if (lastVideoTime !== video.currentTime) {
+      if (isPlaying && lastVideoTime !== video.currentTime) {
         lastVideoTime = video.currentTime;
-        const results = handLandmarker.detectForVideo(video, performance.now());
+        const now = performance.now();
+        const results = handLandmarker.detectForVideo(video, now);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         let isHandInsideTarget = false;
+        const hands = results.landmarks || [];
 
-        if (results.landmarks && results.landmarks.length > 0 && targetBubble) {
-          const landmarks = results.landmarks;
-          const thumb = landmarks;
-          const thumbPxX = thumb.x * canvas.width;
-          const thumbPxY = thumb.y * canvas.height;
+        // 檢查任何一隻手是否在泡泡範圍內
+        if (hands.length > 0 && targetBubble) {
+          for (const landmarks of hands) {
+            const targetFingerObj = targetBubble.finger;
+            const checkPoints = [
+              landmarks[4],                    // 拇指尖
+              landmarks[targetFingerObj.id],   // 目標手指尖
+              landmarks[9],                    // 手掌中心
+              landmarks[0]                     // 手腕
+            ];
 
-          const distToBubble = Math.hypot(thumbPxX - targetBubble.x, thumbPxY - targetBubble.y);
-          if (distToBubble <= targetBubble.radius) {
-            isHandInsideTarget = true;
+            for (const pt of checkPoints) {
+              if (!pt) continue;
+              const pxX = pt.x * canvas.width;
+              const pxY = pt.y * canvas.height;
+              if (Math.hypot(pxX - targetBubble.x, pxY - targetBubble.y) <= targetBubble.radius + 25) {
+                isHandInsideTarget = true;
+                break;
+              }
+            }
+            if (isHandInsideTarget) break;
           }
         }
 
+        // 1. 畫出目標泡泡（加入新泡泡彈出動畫）
         if (targetBubble) {
+          const age = now - targetBubble.spawnTime;
+          const scale = age < 180 ? 0.6 + 0.4 * (age / 180) : 1.0;
+          const drawRadius = targetBubble.radius * scale;
+
           ctx.beginPath();
-          ctx.arc(targetBubble.x, targetBubble.y, targetBubble.radius, 0, Math.PI * 2);
-          ctx.fillStyle = isHandInsideTarget ? targetBubble.finger.color : targetBubble.finger.color + "AA";
+          ctx.arc(targetBubble.x, targetBubble.y, drawRadius, 0, Math.PI * 2);
+          ctx.fillStyle = isHandInsideTarget ? targetBubble.finger.color : targetBubble.finger.color + "BB";
           ctx.fill();
 
-          ctx.lineWidth = isHandInsideTarget ? 8 : 3;
+          ctx.lineWidth = isHandInsideTarget ? 9 : 4;
           ctx.strokeStyle = isHandInsideTarget ? "#FFFFFF" : "#CBD5E1";
           ctx.stroke();
 
@@ -190,58 +403,58 @@
           ctx.translate(targetBubble.x, targetBubble.y);
           ctx.scale(-1, 1);
           ctx.fillStyle = "#000000";
-          ctx.font = "bold 22px Microsoft JhengHei";
+          ctx.font = "bold 24px Microsoft JhengHei";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(targetBubble.finger.name, 0, -8);
-          ctx.font = "bold 14px Microsoft JhengHei";
-          ctx.fillText(isHandInsideTarget ? "✓ 位置對準！請捏合" : "請伸手移入", 0, 16);
+          ctx.fillText(targetBubble.finger.name, 0, -10);
+          ctx.font = "bold 15px Microsoft JhengHei";
+          ctx.fillText(isHandInsideTarget ? "✓ 已對準！請捏合" : "請伸手移入", 0, 18);
           ctx.restore();
         }
 
-        if (results.landmarks && results.landmarks.length > 0) {
-          const landmarks = results.landmarks;
-          const thumb = landmarks;
+        // 2. 畫出所有偵測到的手部關鍵點並檢查捏合
+        for (const landmarks of hands) {
+          const thumb = landmarks[4];
+          if (!thumb) continue;
           const thumbPxX = thumb.x * canvas.width;
           const thumbPxY = thumb.y * canvas.height;
 
           ctx.beginPath();
-          ctx.arc(thumbPxX, thumbPxY, 13, 0, Math.PI * 2);
+          ctx.arc(thumbPxX, thumbPxY, 15, 0, Math.PI * 2);
           ctx.fillStyle = "#FFFFFF";
           ctx.fill();
           ctx.lineWidth = 3;
           ctx.strokeStyle = "#000000";
           ctx.stroke();
 
-          let anyFingerTouching = false;
-
           for (const f of FINGERS) {
             const tip = landmarks[f.id];
+            const mid = landmarks[f.midId];
+            if (!tip || !mid) continue;
+
             const tx = tip.x * canvas.width;
             const ty = tip.y * canvas.height;
 
             ctx.beginPath();
-            ctx.arc(tx, ty, 11, 0, Math.PI * 2);
+            ctx.arc(tx, ty, 13, 0, Math.PI * 2);
             ctx.fillStyle = f.color;
             ctx.fill();
 
-            const pinchDist = Math.hypot(thumb.x - tip.x, thumb.y - tip.y);
+            const distTip = Math.hypot(thumb.x - tip.x, thumb.y - tip.y);
+            const distMid = Math.hypot(thumb.x - mid.x, thumb.y - mid.y);
+            const minPinchDist = Math.min(distTip, distMid);
 
-            if (pinchDist < 0.06) {
-              anyFingerTouching = true;
-
-              if (targetBubble && isHandInsideTarget && f.id === targetBubble.finger.id && !isPinching) {
-                isPinching = true;
+            // 使用 0.5 秒時間冷卻鎖 (now > pinchCooldown)，防止狀態鎖死導致無法觸發下一個泡泡
+            if (minPinchDist < pinchThreshold && now > pinchCooldown) {
+              if (targetBubble && isHandInsideTarget && f.id === targetBubble.finger.id) {
+                pinchCooldown = now + 500; // 0.5 秒冷卻時間後自動解鎖
                 score++;
                 scoreEl.innerText = score;
                 playSuccessSound();
                 spawnTarget();
+                break;
               }
             }
-          }
-
-          if (!anyFingerTouching) {
-            isPinching = false;
           }
         }
       }
