@@ -252,7 +252,24 @@
       I confirm and strongly agree！
     </button>
   </div>
-</div>
+  
+<div id="globalCounter" class="note">Total visits: <span id="globalCount">—</span></div>
+<script>
+  async function updateViewCounter() {
+    try {
+      // Replace with your counter endpoint or serverless function URL
+      const res = await fetch("/api/views?page=" + encodeURIComponent(window.location.pathname), {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Failed to update view count");
+      const data = await res.json();
+      document.getElementById("globalCount").textContent = Number(data.views).toLocaleString();
+    } catch (err) {
+      document.getElementById("globalCount").textContent = "Unavailable";
+    }
+  }
+  updateViewCounter();
+</script>
 
 </body>
 </html>
