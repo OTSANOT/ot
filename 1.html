@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <title>OT 職業治療：伸手定位＋手指對掌雙重訓練</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      text-align: center;
+      background: #121826;
+      color: white;
+      margin: 0;
+      padding: 15px;
+    }
+    .header { margin-bottom: 8px; }
+    .legend {
+      display: flex; justify-content: center; gap: 15px;
+      margin: 8px 0; font-size: 16px; font-weight: bold;
+    }
+    .badge { padding: 5px 12px; border-radius: 20px; color: #000; }
+    .game-box {
+      position: relative; display: inline-block;
+      border: 4px solid #334155; border-radius: 12px; overflow: hidden;
+    }
+    video, canvas { transform: scaleX(-1); display: block; }
+    canvas { position: absolute; left: 0; top: 0; }
+    .hud {
+      font-size: 22px; margin: 10px;
+      display: flex; justify-content: center; gap: 35px;
+    }
+    .score { color: #38bdf8; font-weight: bold; font-size: 30px; }
+    button {
+      padding: 12px 28px; font-size: 18px; font-weight: bold;
+      background: #10b981; color: white; border: none;
+      border-radius: 8px; cursor: pointer;
+    }
+    button:disabled { background: #64748b; cursor: not-allowed; }
+    footer {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>🎯 OT 雙重任務訓練：伸手對準 ＋ 手指捏合</h2>
+    <p>步驟 1：伸手將【拇指】移入泡泡範圍 ➔ 步驟 2：用拇指捏合對應顏色【手指尖】！</p>
+    <div class="legend">
+      <span class="badge" style="background:#FF4D4D;">食指（紅）</span>
+      <span class="badge" style="background:#4DFF88;">中指（綠）</span>
+      <span class="badge" style="background:#4DA6FF;">無名指（藍）</span>
+      <span class="badge" style="background:#FFD633;">尾指（黃）</span>
+    </div>
+  </div>
+
+  <button id="startBtn" disabled>正在載入手部追蹤模型...</button>
+
+  <div class="hud">
+    <div>完成目標：<span id="scoreEl" class="score">0</span></div>
+    <div>當前任務：<span id="targetText" style="color:#FFD633;">準備開始</span></div>
+  </div>
+
+  <div class="game-box">
+    <video id="webcam" autoplay playsinline width="640" height="480"></video>
+    <canvas id="gameCanvas" width="640" height="480"></canvas>
+  </div>
+
+  <footer>
+    This is for informational purposes only. For medical advice or diagnosis, consult a professional. AI responses may include mistakes.
+  </footer>
+
+  <script type="module">
+    import {
+      HandLandmarker,
+      FilesetResolver
+    } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs";
+
+    const video = document.getElementById("webcam");
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const startBtn = document.getElementById("startBtn");
+    const scoreEl = document.getElementById("scoreEl");
+    const targetText = document.getElementById("targetText");
+
+    const FINGERS = [
+      { id: 8,  name: "食指", color: "#FF4D4D" },
+      { id: 12, name: "中指", color: "#4DFF88" },
+      { id: 16, name: "無名指", color: "#4DA6FF" },
+      { id: 20, name: "尾指", color: "#FFD633" }
+    ];
+
+    let handLandmarker;
+    let lastVideoTime = -1;
+    let score = 0;
+    let isPlaying = false;
+    let isPinching = false;
+    let targetBubble = null;
+
+    function playSuccessSound() {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    function spawnTarget() {
+      const randomFinger = FINGERS[Math.floor(Math.random() * FINGERS.length)];
+      targetBubble = {
+        finger: randomFinger,
+        x: 110 + Math.random() * (canvas.width - 220),
+        y: 80 + Math.random() * (canvas.height - 200),
+        radius: 52
+      };
+      targetText.innerText = `移到泡泡並捏合【${randomFinger.name}】`;
+      targetText.style.color = randomFinger.color;
+    }
+
+    async function init() {
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+      );
+      handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+          delegate: "GPU"
+        },
+        runningMode: "VIDEO",
+        numHands: 1
+      });
+      startBtn.disabled = false;
+      startBtn.innerText = "開啟鏡頭開始雙重訓練";
+    }
+    init();
+
+    startBtn.addEventListener("click", async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      video.addEventListener("loadeddata", () => {
+        isPlaying = true;
+        spawnTarget();
+        gameLoop();
+      });
+      startBtn.style.display = "none";
+    });
+
+    async function gameLoop() {
+      if (!isPlaying) return;
+
+      if (lastVideoTime !== video.currentTime) {
+        lastVideoTime = video.currentTime;
+        const results = handLandmarker.detectForVideo(video, performance.now());
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        let isHandInsideTarget = false;
+
+        if (results.landmarks && results.landmarks.length > 0 && targetBubble) {
+          const landmarks = results.landmarks;
+          const thumb = landmarks;
+          const thumbPxX = thumb.x * canvas.width;
+          const thumbPxY = thumb.y * canvas.height;
+
+          const distToBubble = Math.hypot(thumbPxX - targetBubble.x, thumbPxY - targetBubble.y);
+          if (distToBubble <= targetBubble.radius) {
+            isHandInsideTarget = true;
+          }
+        }
+
+        if (targetBubble) {
+          ctx.beginPath();
+          ctx.arc(targetBubble.x, targetBubble.y, targetBubble.radius, 0, Math.PI * 2);
+          ctx.fillStyle = isHandInsideTarget ? targetBubble.finger.color : targetBubble.finger.color + "AA";
+          ctx.fill();
+
+          ctx.lineWidth = isHandInsideTarget ? 8 : 3;
+          ctx.strokeStyle = isHandInsideTarget ? "#FFFFFF" : "#CBD5E1";
+          ctx.stroke();
+
+          ctx.save();
+          ctx.translate(targetBubble.x, targetBubble.y);
+          ctx.scale(-1, 1);
+          ctx.fillStyle = "#000000";
+          ctx.font = "bold 22px Microsoft JhengHei";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(targetBubble.finger.name, 0, -8);
+          ctx.font = "bold 14px Microsoft JhengHei";
+          ctx.fillText(isHandInsideTarget ? "✓ 位置對準！請捏合" : "請伸手移入", 0, 16);
+          ctx.restore();
+        }
+
+        if (results.landmarks && results.landmarks.length > 0) {
+          const landmarks = results.landmarks;
+          const thumb = landmarks;
+          const thumbPxX = thumb.x * canvas.width;
+          const thumbPxY = thumb.y * canvas.height;
+
+          ctx.beginPath();
+          ctx.arc(thumbPxX, thumbPxY, 13, 0, Math.PI * 2);
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fill();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "#000000";
+          ctx.stroke();
+
+          let anyFingerTouching = false;
+
+          for (const f of FINGERS) {
+            const tip = landmarks[f.id];
+            const tx = tip.x * canvas.width;
+            const ty = tip.y * canvas.height;
+
+            ctx.beginPath();
+            ctx.arc(tx, ty, 11, 0, Math.PI * 2);
+            ctx.fillStyle = f.color;
+            ctx.fill();
+
+            const pinchDist = Math.hypot(thumb.x - tip.x, thumb.y - tip.y);
+
+            if (pinchDist < 0.06) {
+              anyFingerTouching = true;
+
+              if (targetBubble && isHandInsideTarget && f.id === targetBubble.finger.id && !isPinching) {
+                isPinching = true;
+                score++;
+                scoreEl.innerText = score;
+                playSuccessSound();
+                spawnTarget();
+              }
+            }
+          }
+
+          if (!anyFingerTouching) {
+            isPinching = false;
+          }
+        }
+      }
+      requestAnimationFrame(gameLoop);
+    }
+  </script>
+</body>
+</html>
