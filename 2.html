@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <title>OT 職業治療：伸手定位＋手指對掌雙重訓練 (食指與中指版)</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      text-align: center;
+      background: #121826;
+      color: white;
+      margin: 0;
+      padding: 15px;
+    }
+    .header { margin-bottom: 8px; }
+    .legend {
+      display: flex; justify-content: center; gap: 15px;
+      margin: 8px 0; font-size: 16px; font-weight: bold;
+    }
+    .badge { padding: 5px 12px; border-radius: 20px; color: #000; }
+    .controls {
+      background: #1e293b;
+      padding: 10px 20px;
+      border-radius: 10px;
+      display: inline-flex;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      border: 1px solid #334155;
+    }
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+    }
+    select {
+      padding: 6px 10px;
+      font-size: 15px;
+      border-radius: 6px;
+      background: #0f172a;
+      color: white;
+      border: 1px solid #475569;
+      cursor: pointer;
+    }
+    .game-box {
+      position: relative; display: inline-block;
+      border: 4px solid #334155; border-radius: 12px; overflow: hidden;
+    }
+    video, canvas { transform: scaleX(-1); display: block; }
+    canvas { position: absolute; left: 0; top: 0; }
+    .hud {
+      font-size: 20px; margin: 10px;
+      display: flex; justify-content: center; gap: 30px;
+      flex-wrap: wrap;
+    }
+    .score { color: #38bdf8; font-weight: bold; font-size: 28px; }
+    .timer-text { color: #f43f5e; font-weight: bold; font-size: 28px; }
+    button {
+      padding: 12px 28px; font-size: 18px; font-weight: bold;
+      background: #10b981; color: white; border: none;
+      border-radius: 8px; cursor: pointer;
+    }
+    button:disabled { background: #64748b; cursor: not-allowed; }
+    #summaryOverlay {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.92);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+    #summaryOverlay h3 { font-size: 32px; color: #38bdf8; margin-bottom: 10px; }
+    #summaryOverlay p { font-size: 22px; margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>🎯 OT 雙重任務訓練：伸手對準 ＋ 手指捏合（食指與中指＋雙手互動版）</h2>
+    <p>步驟 1：伸出指定的手（左手或右手）移入泡泡 ➔ 步驟 2：用拇指輕觸對應顏色【手指】！</p>
+    <!-- 僅保留食指與中指圖例 -->
+    <div class="legend">
+      <span class="badge" style="background:#FF4D4D;">食指（紅）</span>
+      <span class="badge" style="background:#4DFF88;">中指（綠）</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="control-item">
+      <label for="durationSelect">⏱️ 訓練時間：</label>
+      <select id="durationSelect">
+        <option value="1">1 分鐘</option>
+        <option value="2" selected>2 分鐘</option>
+        <option value="3">3 分鐘</option>
+        <option value="4">4 分鐘</option>
+        <option value="5">5 分鐘</option>
+        <option value="6">6 分鐘</option>
+        <option value="7">7 分鐘</option>
+        <option value="8">8 分鐘</option>
+        <option value="9">9 分鐘</option>
+        <option value="10">10 分鐘</option>
+      </select>
+    </div>
+    <div class="control-item">
+      <label for="handModeSelect">👐 手部模式：</label>
+      <select id="handModeSelect">
+        <option value="bilateral" selected>雙手交替 (左/右區)</option>
+        <option value="any">不限單雙手 (自由位置)</option>
+      </select>
+    </div>
+    <div class="control-item">
+      <label for="pinchSlider">捏合靈敏度：<span id="pinchVal">0.12</span></label>
+      <input type="range" id="pinchSlider" min="0.05" max="0.22" step="0.01" value="0.12">
+    </div>
+    <div class="control-item">
+      <label for="sizeSlider">泡泡大小：<span id="sizeVal">75</span>px</label>
+      <input type="range" id="sizeSlider" min="45" max="115" step="5" value="75">
+    </div>
+  </div>
+  <br>
+
+  <button id="startBtn" disabled>正在載入手部追蹤模型...</button>
+
+  <div class="hud">
+    <div>剩餘時間：<span id="timerEl" class="timer-text">02:00</span></div>
+    <div>完成目標：<span id="scoreEl" class="score">0</span></div>
+    <div>當前任務：<span id="targetText" style="color:#FFD633;">準備開始</span></div>
+  </div>
+
+  <div class="game-box">
+    <video id="webcam" autoplay playsinline width="640" height="480"></video>
+    <canvas id="gameCanvas" width="640" height="480"></canvas>
+    <div id="summaryOverlay">
+      <h3>🎉 訓練完成！</h3>
+      <p id="finalScoreText">總完成次數：0 次</p>
+      <p id="bilateralStatsText" style="font-size: 18px; color: #94a3b8;"></p>
+      <p id="avgRateText">平均速度：0 次 / 分鐘</p>
+      <br>
+      <button id="restartBtn">再玩一次</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import {
+      HandLandmarker,
+      FilesetResolver
+    } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs";
+
+    const video = document.getElementById("webcam");
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const scoreEl = document.getElementById("scoreEl");
+    const timerEl = document.getElementById("timerEl");
+    const targetText = document.getElementById("targetText");
+    const durationSelect = document.getElementById("durationSelect");
+    const handModeSelect = document.getElementById("handModeSelect");
+    const pinchSlider = document.getElementById("pinchSlider");
+    const pinchVal = document.getElementById("pinchVal");
+    const sizeSlider = document.getElementById("sizeSlider");
+    const sizeVal = document.getElementById("sizeVal");
+    const summaryOverlay = document.getElementById("summaryOverlay");
+    const finalScoreText = document.getElementById("finalScoreText");
+    const bilateralStatsText = document.getElementById("bilateralStatsText");
+    const avgRateText = document.getElementById("avgRateText");
+
+    let pinchThreshold = parseFloat(pinchSlider.value);
+    let bubbleRadius = parseInt(sizeSlider.value, 10);
+
+    // 監聽靈敏度調整滑桿
+    pinchSlider.addEventListener("input", () => {
+      pinchThreshold = parseFloat(pinchSlider.value);
+      pinchVal.innerText = pinchThreshold.toFixed(2);
+    });
+
+    // 監聽泡泡半徑調整滑桿
+    sizeSlider.addEventListener("input", () => {
+      bubbleRadius = parseInt(sizeSlider.value, 10);
+      sizeVal.innerText = bubbleRadius;
+      if (targetBubble) targetBubble.radius = bubbleRadius;
+    });
+
+    // 格式化剩餘秒數為 MM:SS
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, "0");
+      const s = (sec % 60).toString().padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    durationSelect.addEventListener("change", () => {
+      if (!isPlaying) {
+        const mins = parseInt(durationSelect.value, 10);
+        timerEl.innerText = formatTime(mins * 60);
+      }
+    });
+
+    // 手指設定陣列：已移除無名指 (16) 與尾指 (20)，僅保留食指 (8) 與中指 (12)
+    const FINGERS = [
+      { id: 8,  midId: 7,  name: "食指", color: "#FF4D4D" },
+      { id: 12, midId: 11, name: "中指", color: "#4DFF88" }
+    ];
+
+    let handLandmarker;
+    let lastVideoTime = -1;
+    let score = 0;
+    let leftScore = 0;
+    let rightScore = 0;
+    let isPlaying = false;
+    let pinchCooldown = 0; // 時間冷卻鎖，避免狀態卡死或重複誤觸
+    let targetBubble = null;
+    let remainingSeconds = 120;
+    let selectedMinutes = 2;
+    let countdownInterval = null;
+    let streamStarted = false;
+
+    // 粒子特效與浮動得分文字陣列
+    let particles = [];
+    let floatingTexts = [];
+    let noteIndex = 0;
+
+    // C大調五聲音階/自然大調頻率表 (Do Re Mi Fa Sol La Ti Do)
+    const SCALE_NOTES = [
+      261.63, // C4 (Do)
+      293.66, // D4 (Re)
+      329.63, // E4 (Mi)
+      349.23, // F4 (Fa)
+      392.00, // G4 (Sol)
+      440.00, // A4 (La)
+      493.88, // B4 (Ti)
+      523.25  // C5 (Do)
+    ];
+
+    // 播放音階上升提示音效（每次成功彈奏下一個音符）
+    function playSuccessSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const freq = SCALE_NOTES[noteIndex % SCALE_NOTES.length];
+        noteIndex++;
+
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        // 尾音微幅上揚增加清脆感
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.02, audioCtx.currentTime + 0.18);
+
+        gain.gain.setValueAtTime(0.32, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.28);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.28);
+      } catch (e) {
+        console.warn("Audio playback failed:", e);
+      }
+    }
+
+    // 生成彩色粒子爆破與水波紋特效
+    function createExplosion(x, y, color) {
+      // 1. 擴散光環
+      particles.push({
+        type: "ring",
+        x,
+        y,
+        radius: 15,
+        maxRadius: bubbleRadius * 1.8,
+        color,
+        alpha: 1.0
+      });
+
+      // 2. 四散彩色粒子
+      const count = 28;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+        const speed = 2.5 + Math.random() * 6.5;
+        particles.push({
+          type: "dot",
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: 4 + Math.random() * 6,
+          color: i % 4 === 0 ? "#FFFFFF" : color,
+          alpha: 1.0,
+          decay: 0.02 + Math.random() * 0.015
+        });
+      }
+
+      // 3. 浮動 +1 獎勵文字
+      floatingTexts.push({
+        x,
+        y,
+        text: "+1 ♪",
+        color: "#FFFFFF",
+        alpha: 1.0,
+        vy: -2.2
+      });
+    }
+
+    // 更新與繪製粒子及浮動文字
+    function updateAndDrawEffects() {
+      // 更新與繪製粒子
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        if (p.type === "ring") {
+          p.radius += (p.maxRadius - p.radius) * 0.18;
+          p.alpha -= 0.045;
+          if (p.alpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.strokeStyle = p.color;
+          ctx.globalAlpha = p.alpha;
+          ctx.lineWidth = 4;
+          ctx.stroke();
+          ctx.restore();
+        } else {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.12; // 輕微重力感
+          p.alpha -= p.decay;
+          if (p.alpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.alpha;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // 更新與繪製浮動得分文字（因畫布水平翻轉，文字需局部反轉）
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y += ft.vy;
+        ft.alpha -= 0.025;
+        if (ft.alpha <= 0) {
+          floatingTexts.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.translate(ft.x, ft.y);
+        ctx.scale(-1, 1);
+        ctx.globalAlpha = ft.alpha;
+        ctx.font = "bold 28px Microsoft JhengHei";
+        ctx.fillStyle = ft.color;
+        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(0,0,0,0.8)";
+        ctx.shadowBlur = 6;
+        ctx.fillText(ft.text, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    // 播放訓練結束的慶祝音效
+    function playFinishSound() {
+    // 生成下一個隨機目標泡泡（支援雙手交替左右分區或自由模式）
+    function spawnTarget() {
+      const prevId = targetBubble ? targetBubble.finger.id : -1;
+      const prevHand = targetBubble ? targetBubble.requiredHand : null;
+
+      // 過濾掉上一次出現的手指，確保每次任務都交替訓練食指與中指
+      let candidates = FINGERS.filter(f => f.id !== prevId);
+      if (candidates.length === 0) candidates = FINGERS;
+      const randomFinger = candidates[Math.floor(Math.random() * candidates.length)];
+
+      const isBilateral = handModeSelect.value === "bilateral";
+      // 雙手模式下在左手與右手之間交替；注意畫布與視訊有 scaleX(-1) 鏡像翻轉：
+      // 畫布原始座標 x > width/2 在鏡像後會顯示於螢幕左側（對應使用者左手）
+      // 畫布原始座標 x < width/2 在鏡像後會顯示於螢幕右側（對應使用者右手）
+      let requiredHand = "ANY";
+      if (isBilateral) {
+        if (prevHand === "Left") requiredHand = "Right";
+        else if (prevHand === "Right") requiredHand = "Left";
+        else requiredHand = Math.random() < 0.5 ? "Left" : "Right";
+      }
+
+      const marginX = Math.max(95, bubbleRadius + 20);
+      const marginY = Math.max(95, bubbleRadius + 25);
+      const halfW = canvas.width / 2;
+
+      let minX = marginX;
+      let maxX = canvas.width - marginX;
+
+      if (requiredHand === "Left") {
+        // 螢幕左側區域（鏡像前為右半邊）
+        minX = halfW + bubbleRadius + 15;
+        maxX = canvas.width - marginX;
+      } else if (requiredHand === "Right") {
+        // 螢幕右側區域（鏡像前為左半邊）
+        minX = marginX;
+        maxX = halfW - bubbleRadius - 15;
+      }
+
+      // 避免泡泡過大導致區間反轉
+      if (minX >= maxX) {
+        minX = marginX;
+        maxX = canvas.width - marginX;
+      }
+
+      let newX = minX + Math.random() * (maxX - minX);
+      let newY = marginY + Math.random() * (canvas.height - marginY * 2);
+
+      // 確保新泡泡位置與上一個有足夠距離，讓使用者明確移動手臂
+      if (targetBubble) {
+        let attempts = 0;
+        while (Math.hypot(newX - targetBubble.x, newY - targetBubble.y) < 110 && attempts < 10) {
+          newX = minX + Math.random() * (maxX - minX);
+          newY = marginY + Math.random() * (canvas.height - marginY * 2);
+          attempts++;
+        }
+      }
+
+      targetBubble = {
+        finger: randomFinger,
+        requiredHand,
+        x: newX,
+        y: newY,
+        radius: bubbleRadius,
+        spawnTime: performance.now()
+      };
+
+      const handLabel = requiredHand === "Left" ? "【左手】" : (requiredHand === "Right" ? "【右手】" : "");
+      targetText.innerText = `${handLabel}移入並捏合【${randomFinger.name}】`;
+      targetText.style.color = randomFinger.color;
+    }
+
+    // 開始計時訓練回合
+    function startSession() {
+      selectedMinutes = parseInt(durationSelect.value, 10);
+      remainingSeconds = selectedMinutes * 60;
+      score = 0;
+      leftScore = 0;
+      rightScore = 0;
+      noteIndex = 0;
+      particles = [];
+      floatingTexts = [];
+      pinchCooldown = 0;
+      scoreEl.innerText = score;
+      timerEl.innerText = formatTime(remainingSeconds);
+      summaryOverlay.style.display = "none";
+      durationSelect.disabled = true;
+      handModeSelect.disabled = true;
+      isPlaying = true;
+      spawnTarget();
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        if (!isPlaying) return;
+        remainingSeconds--;
+        timerEl.innerText = formatTime(remainingSeconds);
+        if (remainingSeconds <= 0) {
+          endSession();
+        }
+      }, 1000);
+    }
+
+    // 結束訓練並顯示統計結算
+    function endSession() {
+      isPlaying = false;
+      clearInterval(countdownInterval);
+      durationSelect.disabled = false;
+      handModeSelect.disabled = false;
+      targetText.innerText = "訓練結束";
+      targetText.style.color = "#38bdf8";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const rate = (score / selectedMinutes).toFixed(1);
+      finalScoreText.innerText = `總完成次數：${score} 次（訓練時間：${selectedMinutes} 分鐘）`;
+      bilateralStatsText.innerText = `左手完成：${leftScore} 次 ｜ 右手完成：${rightScore} 次`;
+      avgRateText.innerText = `平均速度：${rate} 次 / 分鐘`;
+      summaryOverlay.style.display = "flex";
+      playFinishSound();
+    }
+
+    // 初始化 MediaPipe HandLandmarker 模型
+    async function init() {
+      try {
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+        );
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+            delegate: "GPU"
+          },
+          runningMode: "VIDEO",
+          numHands: 2
+        });
+        startBtn.disabled = false;
+        startBtn.innerText = "開啟鏡頭開始雙重訓練";
+      } catch (err) {
+        console.error("模型載入失敗:", err);
+        startBtn.innerText = "模型載入失敗，請重新整理頁面";
+      }
+    }
+    init();
+
+    // 開啟攝影機串流並啟動主迴圈
+    startBtn.addEventListener("click", async () => {
+      if (!streamStarted) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = stream;
+          video.addEventListener("loadeddata", () => {
+            streamStarted = true;
+            startBtn.style.display = "none";
+            startSession();
+            gameLoop();
+          });
+        } catch (err) {
+          console.error("無法存取攝影機:", err);
+          targetText.innerText = "無法開啟鏡頭，請檢查權限設定";
+          targetText.style.color = "#f43f5e";
+        }
+      } else {
+        startBtn.style.display = "none";
+        startSession();
+      }
+    });
+
+    restartBtn.addEventListener("click", () => {
+      startSession();
+    });
+
+    // 遊戲主繪圖與手勢偵測迴圈
+    async function gameLoop() {
+      if (isPlaying && lastVideoTime !== video.currentTime) {
+        lastVideoTime = video.currentTime;
+        const now = performance.now();
+        const results = handLandmarker.detectForVideo(video, now);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const hands = results.landmarks || [];
+        const handednesses = results.handedness || [];
+
+        // 雙手模式下繪製中線分隔與左右區提示水印
+        if (handModeSelect.value === "bilateral") {
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+          ctx.setLineDash([8, 8]);
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(canvas.width / 2, 0);
+          ctx.lineTo(canvas.width / 2, canvas.height);
+          ctx.stroke();
+
+          // 繪製左右手區標籤（鏡像翻轉）
+          ctx.scale(-1, 1);
+          ctx.font = "bold 16px Microsoft JhengHei";
+          ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+          ctx.textAlign = "center";
+          // 原始 x > width/2 鏡像後在左側 -> 顯示「左手區」
+          ctx.fillText("⬅ 左手區", -canvas.width * 0.75, 28);
+          // 原始 x < width/2 鏡像後在右側 -> 顯示「右手區」
+          ctx.fillText("右手區 ➡", -canvas.width * 0.25, 28);
+          ctx.restore();
+        }
+
+        // 判斷每隻手在鏡像螢幕上的實際左右手歸屬（因前置鏡頭鏡像，MediaPipe 的 Left 實際為使用者的右手，反之亦然）
+        function getUserHandSide(idx, landmarks) {
+          if (handednesses[idx] && handednesses[idx][0]) {
+            const label = handednesses[idx][0].categoryName; // "Left" or "Right"
+            // 自拍鏡像模式下，MediaPipe 回傳的 Left 對應使用者真實右手，Right 對應真實左手
+            return label === "Left" ? "Right" : "Left";
+          }
+          // 備援：依手腕位置判斷
+          return landmarks[0].x > 0.5 ? "Left" : "Right";
+        }
+
+        let isValidHandInsideTarget = false;
+        let isWrongHandInsideTarget = false;
+
+        // 步驟 1：檢查符合條件的手是否已伸入目標泡泡範圍內
+        if (hands.length > 0 && targetBubble) {
+          for (let hIdx = 0; hIdx < hands.length; hIdx++) {
+            const landmarks = hands[hIdx];
+            const userSide = getUserHandSide(hIdx, landmarks);
+            const targetFingerObj = targetBubble.finger;
+
+            const checkPoints = [
+              landmarks[4],                    // 拇指尖
+              landmarks[targetFingerObj.id],   // 目標手指尖（食指或中指）
+              landmarks[9],                    // 手掌中心
+              landmarks[0]                     // 手腕
+            ];
+
+            let handInBubble = false;
+            for (const pt of checkPoints) {
+              if (!pt) continue;
+              const pxX = pt.x * canvas.width;
+              const pxY = pt.y * canvas.height;
+              if (Math.hypot(pxX - targetBubble.x, pxY - targetBubble.y) <= targetBubble.radius + 25) {
+                handInBubble = true;
+                break;
+              }
+            }
+
+            if (handInBubble) {
+              if (targetBubble.requiredHand === "ANY" || targetBubble.requiredHand === userSide) {
+                isValidHandInsideTarget = true;
+              } else {
+                isWrongHandInsideTarget = true;
+              }
+            }
+          }
+        }
+
+        // 繪製目標泡泡與彈出動畫
+        if (targetBubble) {
+          const age = now - targetBubble.spawnTime;
+          const scale = age < 180 ? 0.6 + 0.4 * (age / 180) : 1.0;
+          const drawRadius = targetBubble.radius * scale;
+
+          ctx.beginPath();
+          ctx.arc(targetBubble.x, targetBubble.y, drawRadius, 0, Math.PI * 2);
+          ctx.fillStyle = isValidHandInsideTarget ? targetBubble.finger.color : targetBubble.finger.color + "BB";
+          ctx.fill();
+
+          ctx.lineWidth = isValidHandInsideTarget ? 9 : 4;
+          ctx.strokeStyle = isValidHandInsideTarget ? "#FFFFFF" : (isWrongHandInsideTarget ? "#F43F5E" : "#CBD5E1");
+          ctx.stroke();
+
+          // 鏡像翻轉文字以配合水平翻轉的畫布
+          ctx.save();
+          ctx.translate(targetBubble.x, targetBubble.y);
+          ctx.scale(-1, 1);
+          ctx.fillStyle = "#000000";
+
+          const handTag = targetBubble.requiredHand === "Left" ? "左手・" : (targetBubble.requiredHand === "Right" ? "右手・" : "");
+          ctx.font = "bold 21px Microsoft JhengHei";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`${handTag}${targetBubble.finger.name}`, 0, -12);
+
+          ctx.font = "bold 14px Microsoft JhengHei";
+          let subHint = "請伸手移入";
+          if (isValidHandInsideTarget) subHint = "✓ 已對準！請捏合";
+          else if (isWrongHandInsideTarget) subHint = `⚠ 請換${targetBubble.requiredHand === "Left" ? "左手" : "右手"}！`;
+          ctx.fillText(subHint, 0, 16);
+          ctx.restore();
+        }
+
+        // 步驟 2：繪製拇指、食指、中指關鍵點，並偵測對掌捏合動作
+        for (let hIdx = 0; hIdx < hands.length; hIdx++) {
+          const landmarks = hands[hIdx];
+          const userSide = getUserHandSide(hIdx, landmarks);
+          const thumb = landmarks[4];
+          if (!thumb) continue;
+          const thumbPxX = thumb.x * canvas.width;
+          const thumbPxY = thumb.y * canvas.height;
+
+          // 繪製拇指白點
+          ctx.beginPath();
+          ctx.arc(thumbPxX, thumbPxY, 15, 0, Math.PI * 2);
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fill();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "#000000";
+          ctx.stroke();
+
+          // 僅遍歷食指與中指
+          for (const f of FINGERS) {
+            const tip = landmarks[f.id];
+            const mid = landmarks[f.midId];
+            if (!tip || !mid) continue;
+
+            const tx = tip.x * canvas.width;
+            const ty = tip.y * canvas.height;
+
+            // 繪製對應手指顏色圓點
+            ctx.beginPath();
+            ctx.arc(tx, ty, 13, 0, Math.PI * 2);
+            ctx.fillStyle = f.color;
+            ctx.fill();
+
+            // 計算拇指與目標手指尖端及第二指節的距離
+            const distTip = Math.hypot(thumb.x - tip.x, thumb.y - tip.y);
+            const distMid = Math.hypot(thumb.x - mid.x, thumb.y - mid.y);
+            const minPinchDist = Math.min(distTip, distMid);
+
+            // 確認手部側別符合任務要求
+            const isCorrectHand = targetBubble && (targetBubble.requiredHand === "ANY" || targetBubble.requiredHand === userSide);
+
+            // 滿足捏合靈敏度且冷卻結束，並已將正確的手移入泡泡範圍內時觸發得分
+            if (minPinchDist < pinchThreshold && now > pinchCooldown) {
+              if (targetBubble && isValidHandInsideTarget && isCorrectHand && f.id === targetBubble.finger.id) {
+                pinchCooldown = now + 450; // 0.45 秒冷卻時間
+                score++;
+                if (userSide === "Left") leftScore++;
+                else rightScore++;
+
+                scoreEl.innerText = score;
+                createExplosion(targetBubble.x, targetBubble.y, targetBubble.finger.color);
+                playSuccessSound();
+                spawnTarget();
+                break;
+              }
+            }
+          }
+        }
+
+        // 繪製粒子爆破與浮動分數動畫
+        updateAndDrawEffects();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+  </script>
+</body>
+</html>
