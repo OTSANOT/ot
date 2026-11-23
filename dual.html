@@ -174,9 +174,10 @@
       border-radius: 8px;
       padding: 10px 12px;
       font-size: 0.88rem;
-      min-height: 46px;
+      min-height: 52px;
       display: flex;
       align-items: center;
+      line-height: 1.35;
     }
 
     .log {
@@ -199,6 +200,7 @@
 
     .good { color: var(--good); }
     .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
     .muted { color: var(--muted); font-size: 0.84rem; }
   </style>
 </head>
@@ -214,7 +216,7 @@
   <div class="grid">
     <section class="panel">
       <div class="canvas-wrap">
-        <video id="webcam" playsinline></video>
+        <video id="webcam" playsinline muted></video>
         <canvas id="game-canvas"></canvas>
       </div>
 
@@ -256,7 +258,7 @@
       </div>
 
       <div id="status-box" class="status-box muted">
-        Allow webcam access and click "Start Stepping" to begin.
+        Open via localhost or HTTPS, allow camera permission, and click "Start Stepping".
       </div>
 
       <div id="trial-log" class="log">
@@ -341,139 +343,18 @@
       };
     }
 
-    class BilateralKneeArithmeticGame {
-      constructor({ videoEl, canvasEl, onUpdate }) {
-        this.videoEl = videoEl;
-        this.canvasEl = canvasEl;
-        this.ctx = canvasEl.getContext("2d");
-        this.onUpdate = onUpdate;
-
-        this.poseLandmarker = null;
-        this.rafId = null;
-        this.isRunning = false;
-
-        this.problem = generateOneDigitProblem();
-        this.trialStartMs = performance.now();
-        this.lastStepMs = 0;
-        this.cooldownMs = 700;
-        this.kneesCentered = true;
-
-        this.lastLeftKnee = null;
-        this.lastRightKnee = null;
-        this.kneesVisible = false;
-
-        this.history = [];
-        this.metrics = {
-          totalTrials: 0,
-          correctTrials: 0,
-          leftKneeSteps: 0,
-          rightKneeSteps: 0,
-          latenciesMs: [],
-        };
+    function formatCameraError(err) {
+      if (!window.isSecureContext) {
+        return "Insecure page context: serve this file over http://localhost or https:// (not file://).";
       }
-
-      async init() {
-        if (this.poseLandmarker) return;
-
-        const vision = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-        );
-
-        this.poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-            delegate: "GPU",
-          },
-          runningMode: "VIDEO",
-          numPoses: 1,
-          minPoseDetectionConfidence: 0.6,
-          minPosePresenceConfidence: 0.6,
-          minTrackingConfidence: 0.6,
-        });
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, facingMode: "user" },
-          audio: false,
-        });
-
-        this.videoEl.srcObject = stream;
-        await this.videoEl.play();
-
-        this.canvasEl.width = this.videoEl.videoWidth || 640;
-        this.canvasEl.height = this.videoEl.videoHeight || 480;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return "This browser does not support navigator.mediaDevices.getUserMedia.";
       }
-
-      async start() {
-        await this.init();
-        if (this.isRunning) return;
-        this.isRunning = true;
-        this.problem = generateOneDigitProblem();
-        this.trialStartMs = performance.now();
-        this.emit(null);
-        this.loop();
+      const name = err?.name || "Error";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        return "Camera permission denied (NotAllowedError). Allow camera in browser site settings and OS privacy settings.";
       }
-
-      stop() {
-        this.isRunning = false;
-        if (this.rafId) cancelAnimationFrame(this.rafId);
+      if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        return "No camera device found (NotFoundError). Connect a webcam and try again.";
       }
-
-      mirrorPt(lm) {
-        return {
-          x: (1 - lm.x) * this.canvasEl.width,
-          y: lm.y * this.canvasEl.height,
-          visibility: lm.visibility ?? 0,
-        };
-      }
-
-      evaluateBilateralKnees(pose, now) {
-        const lh = this.mirrorPt(pose[LM.LEFT_HIP]);
-        const rh = this.mirrorPt(pose[LM.RIGHT_HIP]);
-        const lk = this.mirrorPt(pose[LM.LEFT_KNEE]);
-        const rk = this.mirrorPt(pose[LM.RIGHT_KNEE]);
-
-        const minVis = 0.6;
-        this.lastLeftKnee = lk;
-        this.lastRightKnee = rk;
-        this.kneesVisible = lk.visibility >= minVis && rk.visibility >= minVis;
-
-        if (!this.kneesVisible) return;
-
-        const hipCenterX = (lh.x + rh.x) / 2;
-        const leftKneeOffset = lk.x - hipCenterX;
-        const rightKneeOffset = rk.x - hipCenterX;
-
-        const stepThresholdPx = this.canvasEl.width * 0.14;
-        const centerBandPx = this.canvasEl.width * 0.09;
-
-        // Both knees must return near hip center before registering another step
-        if (Math.abs(leftKneeOffset) < centerBandPx && Math.abs(rightKneeOffset) < centerBandPx) {
-          this.kneesCentered = true;
-          return;
-        }
-
-        if (!this.kneesCentered) return;
-        if (now - this.lastStepMs < this.cooldownMs) return;
-
-        let steppedSide = null;
-        if (leftKneeOffset < -stepThresholdPx) {
-          steppedSide = "LEFT";
-        } else if (rightKneeOffset > stepThresholdPx) {
-          steppedSide = "RIGHT";
-        }
-
-        if (!steppedSide) return;
-
-        this.kneesCentered = false;
-        this.lastStepMs = now;
-
-        const chosenValue =
-          steppedSide === "LEFT" ? this.problem.leftChoice : this.problem.rightChoice;
-        const isCorrect = steppedSide === this.problem.correctSide;
-        const latencyMs = Math.round(now - this.trialStartMs);
-
-        const event = {
-          trial: this.metrics.totalTrials + 1,
-          expression: this.problem.expression,
-          op: this.problem.
+      if (name === "NotReadableError" || name === "TrackStartError")
