@@ -253,34 +253,5 @@
     </button>
   </div>
 
-  <div class="view-counter" id="view-counter">Views: —</div>
-  
-  <script type="module">
-  import { Counter } from 'https://cdn.jsdelivr.net/npm/counterapi/dist/counter.esm.min.js';
-
-  const el = document.getElementById('view-counter');
-  const counter = new Counter({ workspace: 'YOUR_WORKSPACE_NAME' });
-
-  try {
-    // Optional: avoid counting repeat reloads in the same browser tab session
-    const alreadyCounted = sessionStorage.getItem('hub_viewed');
-    const res = alreadyCounted
-      ? await counter.get('home-views')
-      : await counter.up('home-views');
-
-    if (!alreadyCounted) {
-      sessionStorage.setItem('hub_viewed', '1');
-    }
-
-    const count = res?.data?.up_count ?? res?.value;
-    if (typeof count === 'number') {
-      el.textContent = `Total Views: ${count.toLocaleString()}`;
-    }
-  } catch (err) {
-    console.error('Counter error:', err);
-    el.style.display = 'none';
-  }
-</script>
-
 </body>
 </html>
