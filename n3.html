@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>香港即時新聞（廣東話全文朗讀＋新聞內容測驗）</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Microsoft JhengHei", sans-serif;
+      background: #f3f4f6;
+      color: #1f2937;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #b91c1c;
+      color: #ffffff;
+      padding: 16px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .status {
+      font-size: 0.8rem;
+      opacity: 0.92;
+      margin-right: 4px;
+    }
+    .btn {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .btn-light {
+      background: #ffffff;
+      color: #b91c1c;
+    }
+    .btn-dark {
+      background: #7f1d1d;
+      color: #ffffff;
+    }
+    .btn-primary {
+      background: #b91c1c;
+      color: #ffffff;
+      padding: 9px 16px;
+      font-size: 0.92rem;
+    }
+    .btn-outline {
+      background: #f9fafb;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    .tabs {
+      display: flex;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 11px 8px;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #4b5563;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      color: #b91c1c;
+      border-bottom: 3px solid #b91c1c;
+      background: #ffffff;
+    }
+    .voice-bar {
+      padding: 8px 20px;
+      background: #fef2f2;
+      color: #991b1b;
+      font-size: 0.82rem;
+      border-bottom: 1px solid #fee2e2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .news-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .news-item {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: background 0.2s;
+    }
+    .news-item:last-child {
+      border-bottom: none;
+    }
+    .news-item.speaking {
+      background: #fef2f2;
+    }
+    .speak-btn {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: none;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+    }
+    .speak-btn:hover {
+      background: #fecaca;
+    }
+    .news-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .news-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .news-title-row a {
+      text-decoration: none;
+      color: #111827;
+      font-weight: 700;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+    .news-title-row a:hover {
+      color: #b91c1c;
+      text-decoration: underline;
+    }
+    .news-time {
+      font-size: 0.8rem;
+      color: #6b7280;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .news-summary {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #4b5563;
+      line-height: 1.55;
+    }
+    .message {
+      padding: 28px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    /* Quiz Section */
+    .quiz-header {
+      background: #1f2937;
+      color: #ffffff;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .quiz-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    .quiz-body {
+      padding: 20px;
+    }
+    .quiz-question {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .quiz-question:last-of-type {
+      border-bottom: none;
+      margin-bottom: 12px;
+    }
+    .q-title {
+      font-weight: 700;
+      margin: 0 0 10px 0;
+      color: #111827;
+      font-size: 0.98rem;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .option-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      background: #ffffff;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .option-label:hover {
+      background: #f9fafb;
+    }
+    .option-label input[type="radio"] {
+      margin-top: 4px;
+      accent-color: #b91c1c;
+    }
+    .option-label.correct {
+      border-color: #16a34a;
+      background: #f0fdf4;
+      color: #166534;
+      font-weight: 600;
+    }
+    .option-label.wrong {
+      border-color: #dc2626;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+    .q-feedback {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .quiz-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .score-box {
+      font-weight: 700;
+      font-size: 1rem;
+      color: #b91c1c;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- News Card -->
+  <div class="card">
+    <div class="header">
+      <h2>香港即時新聞</h2>
+      <div class="header-controls">
+        <span class="status" id="last-updated">更新中...</span>
+        <button class="btn btn-light" id="read-all-btn" title="朗讀所有標題及摘要">🔊 朗讀全部</button>
+        <button class="btn btn-dark" id="stop-btn" title="停止朗讀">⏹ 停止</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-feed="local">本地</button>
+      <button class="tab-btn" data-feed="finance">財經</button>
+      <button class="tab-btn" data-feed="world">國際</button>
+      <button class="tab-btn" data-feed="google">綜合頭條</button>
+    </div>
+
+    <div class="voice-bar">
+      <span id="voice-status">語音引擎：廣東話（zh-HK）｜點擊 🔊 可朗讀標題及新聞摘要</span>
+      <label>
+        語速：
+        <select id="rate-select">
+          <option value="0.85">0.85x 慢速</option>
+          <option value="1" selected>1.0x 正常</option>
+          <option value="1.2">1.2x 快速</option>
+        </select>
+      </label>
+    </div>
+
+    <ul class="news-list" id="news-list">
+      <li class="message">載入新聞中...</li>
+    </ul>
+  </div>
+
+  <!-- Dynamic Quiz Card -->
+  <div class="card">
+    <div class="quiz-header">
+      <h3>📝 新聞內容理解測驗（根據上方新聞自動生成 3 題）</h3>
+      <button class="btn btn-outline" id="regen-quiz-btn">🔄 重新出題</button>
+    </div>
+    <div class="quiz-body" id="quiz-body">
+      <div class="message">載入新聞後將自動生成 3 條選擇題...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const FEEDS = {
+    local: 'https://rthk.hk/rthk/news/rss/c_expressnews_clocal.xml',
+    finance: 'https://rthk.hk/rthk/news/rss/c_expressnews_cfinance.xml',
+    world: 'https://rthk.hk/rthk/news/rss/c_expressnews_cinternational.xml',
+    google: 'https://news.google.com/rss?hl=zh-HK&gl=HK&ceid=HK:zh-Hant'
+  };
+
+  let currentFeed = 'local';
+  let loadedArticles = [];
+  let currentQuestions = [];
+  let isReadingAll = false;
+  let readIndex = 0;
+
+  const newsList = document.getElementById('news-list');
+  const statusEl = document.getElementById('last-updated');
+  const voiceStatusEl = document.getElementById('voice-status');
+  const rateSelect = document.getElementById('rate-select');
+  const quizBody = document.getElementById('quiz-body');
+
+  function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html || '';
+    return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function formatHKTime(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return '';
+    return date.toLocaleTimeString('zh-HK', {
+      timeZone: 'Asia/Hong_Kong',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  }
+
+  function getCantoneseVoice() {
+    const voices = window.speechSynthesis.getVoices();
+    return (
+      voices.find(v => v.lang.toLowerCase() === 'zh-hk') ||
+      voices.find(v => v.lang.toLowerCase().includes('hk')) ||
+      voices.find(v => v.name.includes('Cantonese') || v.name.includes('廣東話') || v.name.includes('粵語')) ||
+      voices.find(v => v.lang.toLowerCase().startsWith('zh'))
+    );
+  }
+
+  function clearHighlight() {
+    document.querySelectorAll('.news-item').forEach(el => el.classList.remove('speaking'));
+  }
+
+  function stopSpeech() {
+    isReadingAll = false;
+    window.speechSynthesis.cancel();
+    clearHighlight();
+  }
+
+  function speakArticle(index, onDone) {
+    const article = loadedArticles[index];
+    if (!article) return;
+
+    window.speechSynthesis.cancel();
+    clearHighlight();
+
+    const items = document.querySelectorAll('.news-item');
+    if (items[index]) {
+      items[index].classList.add('speaking');
+      items[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    const fullText = article.summary && article.summary !== article.title
+      ? `${article.title}。內容摘要：${article.summary}`
+      : article.title;
+
+    const utterance = new SpeechSynthesisUtterance(fullText);
+    utterance.lang = 'zh-HK';
+    utterance.rate = parseFloat(rateSelect.value) || 1.0;
+
+    const voice = getCantoneseVoice();
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    utterance.onend = () => {
+      clearHighlight();
+      if (typeof onDone === 'function') onDone();
+    };
+
+    utterance.onerror = () => {
+      clearHighlight();
+      isReadingAll = false;
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function readAllSequentially() {
+    if (!loadedArticles.length) return;
+    isReadingAll = true;
+    readIndex = 0;
+
+    function next() {
+      if (!isReadingAll || readIndex >= loadedArticles.length) {
+        isReadingAll = false;
+        clearHighlight();
+        return;
+      }
+      const idx = readIndex++;
+      speakArticle(idx, next);
+    }
+
+    next();
+  }
+
+  function shuffle(arr) {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  function truncate(str, maxLen) {
+    if (!str) return '';
+    return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
+  }
+
+  function generateQuizFromNews(articles) {
+    if (!articles || articles.length < 3) {
+      quizBody.innerHTML = '<div class="message">新聞數量不足，暫時無法生成選擇題。</div>';
+      return;
+    }
+
+    const pool = shuffle(articles);
+    const questions = [];
+
+    // Question 1: Match summary detail to correct headline
+    const q1Target = pool[0];
+    const q1Distractors = pool.slice(1).filter(a => a.title !== q1Target.title).slice(0, 2);
+    const q1Summary = truncate(q1Target.summary || q1Target.title, 75);
+    const q1Options = shuffle([
+      { text: q1Target.title, isCorrect: true },
+      { text: q1Distractors[0].title, isCorrect: false },
+      { text: q1Distractors[1].title, isCorrect: false }
+    ]);
+    questions.push({
+      prompt: `1. 根據以下新聞摘要：「${q1Summary}」，這段內容屬於哪一則新聞報道？`,
+      options: q1Options,
+      explanation: `正確新聞標題為「${q1Target.title}」。`
+    });
+
+    // Question 2: Match headline to its actual summary content
+    const q2Target = pool[1];
+    const q2Distractors = pool.filter(a => a.title !== q2Target.title).slice(0, 2);
+    const q2Options = shuffle([
+      { text: truncate(q2Target.summary || q2Target.title, 70), isCorrect: true },
+      { text: truncate(q2Distractors[0].summary || q2Distractors[0].title, 70), isCorrect: false },
+      { text: truncate(q2Distractors[1].summary || q2Distractors[1].title, 70), isCorrect: false }
+    ]);
+    questions.push({
+      prompt: `2. 關於「${q2Target.title}」的報道，以下哪一項符合該則新聞的摘要內容？`,
+      options: q2Options,
+      explanation: `該摘要直接節錄自「${q2Target.title}」的報道內容。`
+    });
+
+    // Question 3: Publication time or factual sentence verification
+    const q3Target = pool[2];
+    const q3Sentences = (q3Target.summary || q3Target.title)
+      .split(/[。！？；]/)
+      .map(s => s.trim())
+      .filter(s => s.length >= 8);
+    const trueFact = q3Sentences[0] || q3Target.title;
+    const otherArticles = pool.filter(a => a.title !== q3Target.title);
+    const fakeFact1 = `報道指香港天文台已於今日發出十號颶風信號並宣布全港停市`;
+    const fakeFact2 = otherArticles[0]
+      ? `該則「${q3Target.title}」報道主要講述：${truncate(otherArticles[0].title, 42)}`
+      : `報道指所有公共交通工具今日起永久免費乘搭`;
+
+    const q3Options = shuffle([
+      { text: truncate(trueFact, 70), isCorrect: true },
+      { text: fakeFact1, isCorrect: false },
+      { text: fakeFact2, isCorrect: false }
+    ]);
+    questions.push({
+      prompt: `3. 閱讀「${q3Target.title}」（發布時間：${q3Target.time || '今日'}）後，以下哪項陳述是正確的？`,
+      options: q3Options,
+      explanation: `正確陳述來自「${q3Target.title}」的新聞內容。`
+    });
+
+    currentQuestions = questions;
+    renderQuiz();
+  }
+
+  function renderQuiz() {
+    const letters = ['A', 'B', 'C'];
+    quizBody.innerHTML = '';
+
+    currentQuestions.forEach((q, qIdx) => {
+      const qDiv = document.createElement('div');
+      qDiv.className = 'quiz-question';
+
+      const p = document.createElement('p');
+      p.className = 'q-title';
+      p.textContent = q.prompt;
+      qDiv.appendChild(p);
+
+      const optsDiv = document.createElement('div');
+      optsDiv.className = 'options';
+
+      q.options.forEach((opt, oIdx) => {
+        const label = document.createElement('label');
+        label.className = 'option-label';
+        label.dataset.qIdx = qIdx;
+        label.dataset.oIdx = oIdx;
+
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = `question_${qIdx}`;
+        radio.value = oIdx;
+
+        const span = document.createElement('span');
+        span.textContent = `${letters[oIdx]}. ${opt.text}`;
+
+        label.appendChild(radio);
+        label.appendChild(span);
+        optsDiv.appendChild(label);
+      });
+
+      const feedback = document.createElement('div');
+      feedback.className = 'q-feedback';
+      feedback.id = `feedback_${qIdx}`;
+
+      qDiv.appendChild(optsDiv);
+      qDiv.appendChild(feedback);
+      quizBody.appendChild(qDiv);
+    });
+
+    const footer = document.createElement('div');
+    footer.className = 'quiz-footer';
+
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'btn btn-primary';
+    submitBtn.textContent = '提交答案並核對';
+    submitBtn.addEventListener('click', gradeQuiz);
+
+    const scoreBox = document.createElement('div');
+    scoreBox.className = 'score-box';
+    scoreBox.id = 'quiz-score';
+
+    footer.appendChild(submitBtn);
+    footer.appendChild(scoreBox);
+    quizBody.appendChild(footer);
+  }
+
+  function gradeQuiz() {
+    let score = 0;
+
+    currentQuestions.forEach((q, qIdx) => {
+      const selected = document.querySelector(`input[name="question_${qIdx}"]:checked`);
+      const labels = document.querySelectorAll(`.option-label[data-q-idx="${qIdx}"]`);
+      const feedbackEl = document.getElementById(`feedback_${qIdx}`);
+
+      labels.forEach((lbl, oIdx) => {
+        lbl.classList.remove('correct', 'wrong');
+        if (q.options[oIdx].isCorrect) {
+          lbl.classList.add('correct');
+        }
+      });
+
+      if (!selected) {
+        feedbackEl.style.color = '#b45309';
+        feedbackEl.textContent = `未作答。${q.explanation}`;
+        return;
+      }
+
+      const chosenIdx = parseInt(selected.value, 10);
+      if (q.options[chosenIdx].isCorrect) {
+        score++;
+        feedbackEl.style.color = '#15803d';
+        feedbackEl.textContent = `✓ 答對！${q.explanation}`;
+      } else {
+        labels[chosenIdx].classList.add('wrong');
+        feedbackEl.style.color = '#b91c1c';
+        feedbackEl.textContent = `✗ 答錯。${q.explanation}`;
+      }
+    });
+
+    const scoreBox = document.getElementById('quiz-score');
+    scoreBox.textContent = `得分：${score} / ${currentQuestions.length} 題`;
+  }
+
+  async function loadNews(feedKey = currentFeed) {
+    stopSpeech();
+    currentFeed = feedKey;
+    const rssUrl = encodeURIComponent(FEEDS[feedKey]);
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
+
+    try {
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+
+      if (data.status !== 'ok' || !data.items) {
+        throw new Error('Feed error');
+      }
+
+      loadedArticles = data.items.slice(0, 8).map(item => {
+        const cleanDesc = stripHtml(item.description || item.content || '');
+        return {
+          title: stripHtml(item.title),
+          summary: cleanDesc || stripHtml(item.title),
+          link: item.link,
+          time: formatHKTime(item.pubDate)
+        };
+      });
+
+      newsList.innerHTML = '';
+      loadedArticles.forEach((article, idx) => {
+        const li = document.createElement('li');
+        li.className = 'news-item';
+
+        const speakBtn = document.createElement('button');
+        speakBtn.className = 'speak-btn';
+        speakBtn.title = '廣東話朗讀標題及摘要';
+        speakBtn.textContent = '🔊';
+        speakBtn.addEventListener('click', () => {
+          isReadingAll = false;
+          speakArticle(idx);
+        });
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'news-content';
+
+        const titleRow = document.createElement('div');
+        titleRow.className = 'news-title-row';
+
+        const link = document.createElement('a');
+        link.href = article.link;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = article.title;
+
+        const time = document.createElement('span');
+        time.className = 'news-time';
+        time.textContent = article.time;
+
+        titleRow.appendChild(link);
+        titleRow.appendChild(time);
+
+        const summaryP = document.createElement('p');
+        summaryP.className = 'news-summary';
+        summaryP.textContent = article.summary;
+
+        contentDiv.appendChild(titleRow);
+        contentDiv.appendChild(summaryP);
+
+        li.appendChild(speakBtn);
+        li.appendChild(contentDiv);
+        newsList.appendChild(li);
+      });
+
+      generateQuizFromNews(loadedArticles);
+
+      const now = new Date().toLocaleTimeString('zh-HK', {
+        timeZone: 'Asia/Hong_Kong',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      statusEl.textContent = `最後更新 ${now}`;
+    } catch (err) {
+      newsList.innerHTML = '<li class="message">暫時未能載入新聞，請稍後再試。</li>';
+      statusEl.textContent = '更新失敗';
+    }
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      newsList.innerHTML = '<li class="message">載入中...</li>';
+      loadNews(btn.dataset.feed);
+    });
+  });
+
+  document.getElementById('read-all-btn').addEventListener('click', readAllSequentially);
+  document.getElementById('stop-btn').addEventListener('click', stopSpeech);
+  document.getElementById('regen-quiz-btn').addEventListener('click', () => {
+    generateQuizFromNews(loadedArticles);
+  });
+
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      const v = getCantoneseVoice();
+      if (v) {
+        voiceStatusEl.textContent = `語音引擎：${v.name}（${v.lang}）｜點擊 🔊 朗讀標題及新聞摘要`;
+      }
+    };
+  }
+
+  loadNews();
+  setInterval(() => loadNews(), 5 * 60 * 1000);
+</script>
+
+</body>
+</html>
