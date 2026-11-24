@@ -6,144 +6,30 @@
   <title>香港每日新聞認知訓練</title>
   <style>
     * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Microsoft JhengHei", sans-serif;
-      max-width: 760px;
-      margin: 20px auto;
-      padding: 0 16px 40px;
-      line-height: 1.75;
-      background-color: #f4f7fa;
-      color: #1f2937;
-    }
-    header {
-      background: #0056b3;
-      color: white;
-      padding: 18px 20px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0, 86, 179, 0.15);
-    }
+    body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; max-width: 760px; margin: 20px auto; padding: 0 16px 40px; line-height: 1.75; background: #f4f7fa; color: #1f2937; }
+    header { background: #0056b3; color: #fff; padding: 18px 20px; border-radius: 12px; margin-bottom: 20px; }
     header h1 { margin: 0 0 6px 0; font-size: 22px; }
-    .date-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      font-size: 14px;
-      opacity: 0.95;
-    }
-    .toolbar {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
-    button {
-      background-color: #0056b3;
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 15px;
-      font-weight: 500;
-      transition: background 0.2s;
-    }
-    button:hover { background-color: #004085; }
-    button.secondary { background-color: #2b7a78; }
-    button.secondary:hover { background-color: #205c5a; }
-    button.outline {
-      background-color: white;
-      color: #0056b3;
-      border: 1.5px solid #0056b3;
-    }
-    button.outline:hover { background-color: #eef5ff; }
-    .card {
-      background: white;
-      padding: 22px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-      margin-bottom: 20px;
-    }
-    .tag {
-      display: inline-block;
-      background: #e0edff;
-      color: #0056b3;
-      font-size: 13px;
-      font-weight: bold;
-      padding: 3px 10px;
-      border-radius: 20px;
-      margin-bottom: 10px;
-    }
-    .news-title {
-      margin: 0 0 12px 0;
-      font-size: 21px;
-      color: #111827;
-      line-height: 1.4;
-    }
-    .news-body {
-      font-size: 17px;
-      color: #374151;
-      margin: 0;
-      text-align: justify;
-    }
-    .quiz-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid #e5e7eb;
-      padding-bottom: 10px;
-      margin-bottom: 16px;
-    }
+    .date-bar { display: flex; justify-content: space-between; font-size: 14px; }
+    .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+    button { background: #0056b3; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+    button:hover { background: #004085; }
+    button.secondary { background: #2b7a78; }
+    button.outline { background: #fff; color: #0056b3; border: 1.5px solid #0056b3; }
+    .card { background: #fff; padding: 22px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    .tag { display: inline-block; background: #e0edff; color: #0056b3; font-size: 13px; font-weight: bold; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; }
+    .news-title { margin: 0 0 12px 0; font-size: 21px; color: #111827; }
+    .news-body { font-size: 17px; color: #374151; margin: 0; }
+    .quiz-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-bottom: 16px; }
     .quiz-header h2 { margin: 0; font-size: 19px; color: #0056b3; }
-    .score-badge {
-      background: #fef3c7;
-      color: #92400e;
-      font-weight: bold;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 15px;
-    }
-    .question-block {
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 1px dashed #d1d5db;
-    }
+    .score-badge { background: #fef3c7; color: #92400e; font-weight: bold; padding: 4px 12px; border-radius: 20px; font-size: 15px; }
+    .question-block { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px dashed #d1d5db; }
     .question-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-    .q-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #111827; }
-    .option-btn {
-      display: block;
-      width: 100%;
-      text-align: left;
-      background: #f9fafb;
-      color: #1f2937;
-      border: 1.5px solid #d1d5db;
-      padding: 10px 14px;
-      margin-bottom: 8px;
-      border-radius: 8px;
-      font-size: 15px;
-    }
-    .option-btn:hover:not(:disabled) {
-      background: #eff6ff;
-      border-color: #3b82f6;
-    }
-    .option-btn.correct {
-      background: #d1fae5;
-      border-color: #10b981;
-      color: #065f46;
-      font-weight: bold;
-    }
-    .option-btn.wrong {
-      background: #fee2e2;
-      border-color: #ef4444;
-      color: #991b1b;
-    }
-    .feedback {
-      font-size: 14px;
-      margin-top: 6px;
-      font-weight: 500;
-    }
+    .q-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+    .option-btn { display: block; width: 100%; text-align: left; background: #f9fafb; color: #1f2937; border: 1.5px solid #d1d5db; padding: 10px 14px; margin-bottom: 8px; border-radius: 8px; font-size: 15px; }
+    .option-btn:hover:not(:disabled) { background: #eff6ff; border-color: #3b82f6; }
+    .option-btn.correct { background: #d1fae5; border-color: #10b981; color: #065f46; font-weight: bold; }
+    .option-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+    .feedback { font-size: 14px; margin-top: 6px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -151,7 +37,7 @@
   <header>
     <h1>📰 香港每日新聞認知訓練</h1>
     <div class="date-bar">
-      <span id="today-date">載入日期中...</span>
+      <span id="today-date">今日新聞</span>
       <span>每日自動更新主題</span>
     </div>
   </header>
@@ -162,14 +48,12 @@
     <button onclick="nextNews()">🔄 切換另一則新聞</button>
   </div>
 
-  <!-- 新聞閱讀區 -->
   <div class="card">
     <span class="tag" id="news-category">本地民生</span>
     <h2 class="news-title" id="news-title"></h2>
     <p class="news-body" id="news-content"></p>
   </div>
 
-  <!-- 3 條理解練習區 -->
   <div class="card">
     <div class="quiz-header">
       <h2>🧠 理解力練習（共 3 題）</h2>
@@ -179,28 +63,15 @@
   </div>
 
   <script>
-    // 內建香港本地新聞資料庫（系統會根據每日日期自動輪換，確保每天開啟都是不同新聞）
-    const NEWS_DATABASE = [
+    var NEWS_DATABASE = [
       {
         category: "社區與健康",
         title: "地區康健中心推出長者防跌及居家安全免費評估計劃",
         content: "為減低長者在家居發生意外的風險，全港十八區地區康健中心本週起推出「長者防跌及居家安全計劃」。凡年滿六十歲或以上的香港居民，均可預約由職業治療師及物理治療師提供的免費身體平衡力測試與家居環境評估。中心人員會根據評估結果，建議長者在浴室加裝扶手、鋪設防滑墊及改善客廳照明，並開辦每週兩次的肌力訓練班。",
         questions: [
-          {
-            q: "1. 【何人】這項免費評估計劃的服務對象是哪一類人士？",
-            options: ["年滿六十歲或以上的香港居民", "所有在職年輕人", "小學及中學生", "海外來港旅客"],
-            answer: 0
-          },
-          {
-            q: "2. 【何人／機構】評估服務主要由哪些專業人員負責提供？",
-            options: ["職業治療師及物理治療師", "註冊建築師及工程師", "銀行理財顧問", "小學體育老師"],
-            answer: 0
-          },
-          {
-            q: "3. 【如何】中心人員會建議長者在家居作出哪項改善以防跌倒？",
-            options: ["在浴室加裝扶手及鋪設防滑墊", "在客廳放置更多大型雜物", "減少室內燈光照明", "每天減少飲水次數"],
-            answer: 0
-          }
+          { q: "1. 【何人】這項免費評估計劃的服務對象是哪一類人士？", options: ["年滿六十歲或以上的香港居民", "所有在職年輕人", "小學及中學生", "海外來港旅客"], answer: 0 },
+          { q: "2. 【何人】評估服務主要由哪些專業人員負責提供？", options: ["職業治療師及物理治療師", "註冊建築師及工程師", "銀行理財顧問", "小學體育老師"], answer: 0 },
+          { q: "3. 【如何】中心人員會建議長者在家居作出哪項改善以防跌倒？", options: ["在浴室加裝扶手及鋪設防滑墊", "在客廳放置更多大型雜物", "減少室內燈光照明", "每天減少飲水次數"], answer: 0 }
         ]
       },
       {
@@ -208,21 +79,9 @@
         title: "港鐵宣布週末及公眾假期加開多條路線班次方便市民出行",
         content: "因應週末及假期市民外出消閒及前往各區商場的人流增加，港鐵公司宣布由本週六起，將加強荃灣線、觀塘線及港島線在上午十時至晚上八時期間的列車服務，平均每三分鐘一班車。此外，港鐵亦提醒使用長者八達通及「樂悠咭」的乘客，在入閘時可留意閘機螢幕顯示的車費優惠提示，如有需要可隨時向車站客務中心職員查詢。",
         questions: [
-          {
-            q: "1. 【何時】港鐵將於什麼時段加強多條路線的列車服務？",
-            options: ["週末及公眾假期的上午十時至晚上八時", "平日凌晨一時至五時", "只在星期一早上七時", "僅限農曆新年期間"],
-            answer: 0
-          },
-          {
-            q: "2. 【何事】加密班次後，列車平均每隔多久開出一班？",
-            options: ["每三分鐘一班", "每十五分鐘一班", "每半小時一班", "每一小時一班"],
-            answer: 0
-          },
-          {
-            q: "3. 【何人】使用哪種車票的長者乘客可留意閘機的優惠提示？",
-            options: ["長者八達通及樂悠咭", "機場快線旅遊票", "全月通學生票", "單程訪港遊客票"],
-            answer: 0
-          }
+          { q: "1. 【何時】港鐵將於什麼時段加強多條路線的列車服務？", options: ["週末及公眾假期的上午十時至晚上八時", "平日凌晨一時至五時", "只在星期一早上七時", "僅限農曆新年期間"], answer: 0 },
+          { q: "2. 【何事】加密班次後，列車平均每隔多久開出一班？", options: ["每三分鐘一班", "每十五分鐘一班", "每半小時一班", "每一小時一班"], answer: 0 },
+          { q: "3. 【何人】使用哪種車票的長者乘客可留意閘機的優惠提示？", options: ["長者八達通及樂悠咭", "機場快線旅遊票", "全月通學生票", "單程訪港遊客票"], answer: 0 }
         ]
       },
       {
@@ -230,21 +89,9 @@
         title: "天文台提醒市民未來數日早晚清涼及乾燥須注意保暖",
         content: "受東北季候風影響，香港天文台預測未來數日廣東沿岸天氣普遍晴朗，但早晚天氣清涼，市區最低氣溫約攝氏十六度，新界北部地區再低兩三度，日間則相當乾燥。衞生防護中心呼籲市民，特別是長者及患有心臟或呼吸系統長期病患的人士，應注意添加衣物保暖，並多飲溫水以保持身體水分充足，使用暖爐時亦應保持室內空氣流通。",
         questions: [
-          {
-            q: "1. 【為何】未來數日香港早晚天氣轉涼是受到什麼天氣系統影響？",
-            options: ["東北季候風", "強烈熱帶風暴", "西南季候風", "梅雨季節氣流"],
-            answer: 0
-          },
-          {
-            q: "2. 【何地】哪個地區的氣溫會比市區再低兩至三度？",
-            options: ["新界北部地區", "港島南區海旁", "九龍尖沙咀碼頭", "大嶼山機場跑道"],
-            answer: 0
-          },
-          {
-            q: "3. 【如何】衞生防護中心建議長者在乾燥天氣下應如何護理身體？",
-            options: ["注意添加衣物保暖及多飲溫水", "整天緊閉所有窗戶不透風", "減少穿衣以鍛鍊耐寒能力", "只飲用冰凍飲料"],
-            answer: 0
-          }
+          { q: "1. 【為何】未來數日香港早晚天氣轉涼是受到什麼天氣系統影響？", options: ["東北季候風", "強烈熱帶風暴", "西南季候風", "梅雨季節氣流"], answer: 0 },
+          { q: "2. 【何地】哪個地區的氣溫會比市區再低兩至三度？", options: ["新界北部地區", "港島南區海旁", "九龍尖沙咀碼頭", "大嶼山機場跑道"], answer: 0 },
+          { q: "3. 【如何】衞生防護中心建議長者在乾燥天氣下應如何護理身體？", options: ["注意添加衣物保暖及多飲溫水", "整天緊閉所有窗戶不透風", "減少穿衣以鍛鍊耐寒能力", "只飲用冰凍飲料"], answer: 0 }
         ]
       },
       {
@@ -252,21 +99,9 @@
         title: "康文署轄下多個公園舉辦秋季花卉展覽免費開放市民參觀",
         content: "康樂及文化事務署由即日起至本月底，在九龍公園及維多利亞公園舉辦秋季主題花卉展覽，展出超過三萬株不同品種的菊花、向日葵及秋海棠，現場並設有大型園藝花壇供市民拍照留念。展覽每日上午九時至下午六時免費入場，主辦單位於週末更安排了園藝導賞團，教導市民如何在家中陽台種植耐旱盆栽。",
         questions: [
-          {
-            q: "1. 【何地】今次秋季主題花卉展覽在哪些公園舉行？",
-            options: ["九龍公園及維多利亞公園", "香港海洋公園及迪士尼樂園", "大埔海濱公園及濕地公園", "屯門公園及青衣公園"],
-            answer: 0
-          },
-          {
-            q: "2. 【何時】展覽每日的開放時間是什麼時候？",
-            options: ["上午九時至下午六時", "晚上八時至凌晨十二時", "上午六時至上午十時", "二十四小時全天開放"],
-            answer: 0
-          },
-          {
-            q: "3. 【何事】週末期間主辦單位在現場額外安排了什麼活動？",
-            options: ["園藝導賞團教導種植盆栽", "免費派發海鮮食材", "舉辦游泳錦標賽", "舉行古董汽車拍賣會"],
-            answer: 0
-          }
+          { q: "1. 【何地】今次秋季主題花卉展覽在哪些公園舉行？", options: ["九龍公園及維多利亞公園", "香港海洋公園及迪士尼樂園", "大埔海濱公園及濕地公園", "屯門公園及青衣公園"], answer: 0 },
+          { q: "2. 【何時】展覽每日的開放時間是什麼時候？", options: ["上午九時至下午六時", "晚上八時至凌晨十二時", "上午六時至上午十時", "二十四小時全天開放"], answer: 0 },
+          { q: "3. 【何事】週末期間主辦單位在現場額外安排了什麼活動？", options: ["園藝導賞團教導種植盆栽", "免費派發海鮮食材", "舉辦游泳錦標賽", "舉行古董汽車拍賣會"], answer: 0 }
         ]
       },
       {
@@ -274,62 +109,96 @@
         title: "政府推出長者數碼支援站協助使用智慧生活流動應用程式",
         content: "為協助不熟悉智能手機操作的長者融入數碼生活，數字政策辦公室在全港多個社區會堂及圖書館設立「長者數碼支援站」。支援站由受訓義工駐場，一對一教導長者使用「智方便」、預約公立醫院門診、查閱天氣資訊以及識別常見的電話與短訊詐騙手法，服務費用全免且無需預先登記。",
         questions: [
-          {
-            q: "1. 【何地】「長者數碼支援站」主要設立在哪些地點？",
-            options: ["全港多個社區會堂及圖書館", "大型超級市場收銀處", "銀行保險箱大堂", "港鐵列車車廂內"],
-            answer: 0
-          },
-          {
-            q: "2. 【何事】駐場義工會教導長者使用哪項政府流動應用程式？",
-            options: ["智方便", "外賣速遞軟件", "股票期貨交易程式", "電腦遊戲設計工具"],
-            answer: 0
-          },
-          {
-            q: "3. 【如何】長者前往支援站尋求協助需要辦理什麼手續？",
-            options: ["費用全免且無需預先登記", "必須先繳交五百元按金", "需要由醫生簽發轉介信", "必須提前三個月上網抽籤"],
-            answer: 0
-          }
+          { q: "1. 【何地】「長者數碼支援站」主要設立在哪些地點？", options: ["全港多個社區會堂及圖書館", "大型超級市場收銀處", "銀行保險箱大堂", "港鐵列車車廂內"], answer: 0 },
+          { q: "2. 【何事】駐場義工會教導長者使用哪項政府流動應用程式？", options: ["智方便", "外賣速遞軟件", "股票期貨交易程式", "電腦遊戲設計工具"], answer: 0 },
+          { q: "3. 【如何】長者前往支援站尋求協助需要辦理什麼手續？", options: ["費用全免且無需預先登記", "必須先繳交五百元按金", "需要由醫生簽發轉介信", "必須提前三個月上網抽籤"], answer: 0 }
         ]
       }
     ];
 
-    let currentIndex = 0;
-    let score = 0;
-    let answeredCount = 0;
-
-    // 根據「今日日期」自動計算每天對應的新聞索引（保證每天打開都自動更新為不同新聞）
-    function getDailyNewsIndex() {
-      const now = new Date();
-      const daysSinceEpoch = Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
-      return daysSinceEpoch % NEWS_DATABASE.length;
-    }
-
-    function formatTodayDate() {
-      const now = new Date();
-      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-      return '📅 ' + now.toLocaleDateString('zh-HK', options);
-    }
+    var currentIndex = Math.floor(Date.now() / 86400000) % NEWS_DATABASE.length;
+    var score = 0;
 
     function renderNews(index) {
       stopSpeak();
-      const item = NEWS_DATABASE[index];
+      var item = NEWS_DATABASE[index];
       score = 0;
-      answeredCount = 0;
 
-      document.getElementById('news-category').textContent = item.category;
-      document.getElementById('news-title').textContent = item.title;
-      document.getElementById('news-content').textContent = item.content;
-      document.getElementById('score-display').textContent = `得分：0 / ${item.questions.length}`;
+      document.getElementById("news-category").textContent = item.category;
+      document.getElementById("news-title").textContent = item.title;
+      document.getElementById("news-content").textContent = item.content;
+      document.getElementById("score-display").textContent = "得分：0 / " + item.questions.length;
 
-      const quizContainer = document.getElementById('quiz-container');
-      quizContainer.innerHTML = '';
+      var quizContainer = document.getElementById("quiz-container");
+      quizContainer.innerHTML = "";
 
-      item.questions.forEach((qObj, qIdx) => {
-        const qBlock = document.createElement('div');
-        qBlock.className = 'question-block';
+      item.questions.forEach(function(qObj) {
+        var qBlock = document.createElement("div");
+        qBlock.className = "question-block";
 
-        const qTitle = document.createElement('div');
-        qTitle.className = 'q-title';
+        var qTitle = document.createElement("div");
+        qTitle.className = "q-title";
         qTitle.textContent = qObj.q;
         qBlock.appendChild(qTitle);
 
+        var feedbackEl = document.createElement("div");
+        feedbackEl.className = "feedback";
+
+        qObj.options.forEach(function(optText, optIdx) {
+          var btn = document.createElement("button");
+          btn.className = "option-btn";
+          btn.textContent = optText;
+
+          btn.onclick = function() {
+            var allBtns = qBlock.querySelectorAll(".option-btn");
+            for (var i = 0; i < allBtns.length; i++) { allBtns[i].disabled = true; }
+
+            if (optIdx === qObj.answer) {
+              btn.classList.add("correct");
+              feedbackEl.textContent = "✅ 答對了！";
+              feedbackEl.style.color = "#065f46";
+              score++;
+            } else {
+              btn.classList.add("wrong");
+              allBtns[qObj.answer].classList.add("correct");
+              feedbackEl.textContent = "❌ 答錯了，正確答案是：" + qObj.options[qObj.answer];
+              feedbackEl.style.color = "#991b1b";
+            }
+            document.getElementById("score-display").textContent = "得分：" + score + " / " + item.questions.length;
+          };
+
+          qBlock.appendChild(btn);
+        });
+
+        qBlock.appendChild(feedbackEl);
+        quizContainer.appendChild(qBlock);
+      });
+    }
+
+    function nextNews() {
+      currentIndex = (currentIndex + 1) % NEWS_DATABASE.length;
+      renderNews(currentIndex);
+    }
+
+    function speakNews() {
+      if (!("speechSynthesis" in window)) { alert("此瀏覽器不支援語音朗讀"); return; }
+      stopSpeak();
+      var text = document.getElementById("news-title").textContent + "。" + document.getElementById("news-content").textContent;
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = "zh-HK";
+      u.rate = 0.9;
+      window.speechSynthesis.speak(u);
+    }
+
+    function stopSpeak() {
+      if ("speechSynthesis" in window) { window.speechSynthesis.cancel(); }
+    }
+
+    // 直接初始化顯示日期與新聞（不依賴 DOMContentLoaded）
+    var d = new Date();
+    document.getElementById("today-date").textContent = "📅 " + d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日";
+    renderNews(currentIndex);
+  </script>
+
+</body>
+</html>
