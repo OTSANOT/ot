@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilateral Knee Stepper — 1-Digit Arithmetic Trainer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg-page: #080d19;
+      --bg-card: #101827;
+      --bg-subcard: #162033;
+      --border-subtle: #22304a;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-blue: #0ea5e9;
+      --accent-blue-hover: #0284c7;
+      --btn-muted: #293548;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 540px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    header h1 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s ease, background-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #btnStart {
+      background-color: var(--accent-blue);
+      color: #04121d;
+    }
+
+    #btnStart:hover:not(:disabled) {
+      background-color: var(--accent-blue-hover);
+      color: #ffffff;
+    }
+
+    #btnPause, #btnReset {
+      background-color: var(--btn-muted);
+      color: var(--text-main);
+    }
+
+    #btnPause:hover:not(:disabled), #btnReset:hover:not(:disabled) {
+      background-color: #36455e;
+    }
+
+    .timer-control {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 6px 10px;
+    }
+
+    .timer-control label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .timer-control select {
+      background-color: var(--bg-subcard);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 4px 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .timer-display {
+      font-variant-numeric: tabular-nums;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--accent-blue);
+      min-width: 52px;
+      text-align: right;
+    }
+
+    .timer-display.warning {
+      color: var(--amber);
+    }
+
+    .timer-display.ended {
+      color: var(--red);
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background-color: #050811;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+
+    video {
+      display: none;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .zone-badge-overlay {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(8, 13, 25, 0.78);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .problem-row {
+      display: grid;
+      grid-template-columns: 1.45fr 1fr 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .problem-box {
+      background-color: var(--bg-subcard);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .problem-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .problem-equation {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--accent-blue);
+      letter-spacing: 0.02em;
+    }
+
+    .answer-pad {
+      background-color: var(--bg-subcard);
+      border: 2px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+    }
+
+    .answer-pad.active-zone {
+      border-color: var(--accent-blue);
+      background-color: #182b47;
+    }
+
+    .answer-pad.flash-correct {
+      border-color: var(--green);
+      background-color: rgba(34, 197, 94, 0.22);
+    }
+
+    .answer-pad.flash-wrong {
+      border-color: var(--red);
+      background-color: rgba(239, 68, 68, 0.22);
+    }
+
+    .pad-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-main);
+      text-transform: uppercase;
+    }
+
+    .pad-value {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    .instructions {
+      font-size: 0.85rem;
+      line-height: 1.45;
+      color: var(--text-muted);
+    }
+
+    .instructions strong {
+      color: var(--text-main);
+    }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      background-color: var(--bg-subcard);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-banner {
+      background-color: var(--bg-subcard);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .trial-log {
+      background-color: var(--bg-subcard);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 10px 12px;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .trial-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .trial-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .tag-ok {
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .tag-err {
+      color: var(--red);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>Bilateral Knee Stepper — 1-Digit Arithmetic Trainer</h1>
+    </header>
+
+    <div class="controls-bar">
+      <button id="btnStart">Start Stepping</button>
+      <button id="btnPause" disabled>Pause</button>
+      <button id="btnReset">Reset</button>
+
+      <div class="timer-control" title="Select session duration (1 to 10 minutes)">
+        <label for="durationSelect">Timer</label>
+        <select id="durationSelect">
+          <option value="1">1m</option>
+          <option value="2">2m</option>
+          <option value="3" selected>3m</option>
+          <option value="4">4m</option>
+          <option value="5">5m</option>
+          <option value="6">6m</option>
+          <option value="7">7m</option>
+          <option value="8">8m</option>
+          <option value="9">9m</option>
+          <option value="10">10m</option>
+        </select>
+        <span id="timerDisplay" class="timer-display">03:00</span>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="video-wrapper">
+        <video id="inputVideo" playsinline></video>
+        <canvas id="outputCanvas" width="640" height="480"></canvas>
+        <div id="zoneBadge" class="zone-badge-overlay">Wide Center Zone (26% – 74%)</div>
+      </div>
+
+      <div class="problem-row">
+        <div class="problem-box">
+          <div class="problem-label">Solve (1-Digit +, -, &times;, &divide;)</div>
+          <div id="equationText" class="problem-equation">7 + 4 = ?</div>
+        </div>
+
+        <div id="padLeft" class="answer-pad">
+          <div class="pad-title">LEFT:</div>
+          <div id="leftVal" class="pad-value">11</div>
+        </div>
+
+        <div id="padRight" class="answer-pad">
+          <div class="pad-title">RIGHT:</div>
+          <div id="rightVal" class="pad-value">9</div>
+        </div>
+      </div>
+
+      <p class="instructions">
+        Stand back so your <strong>hips and both knees</strong> are visible.
+        <strong>Step/shift left</strong> into the outer LEFT pad (&lt;26%) or
+        <strong>step/shift right</strong> into the outer RIGHT pad (&gt;74%),
+        then return to the wide center zone for the next problem.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Performance &amp; Knee Telemetry</h2>
+
+      <div class="telemetry-grid">
+        <div class="stat-box">
+          <div class="stat-label">ACCURACY</div>
+          <div id="statAccuracy" class="stat-value">0%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">COMPLETED STEPS</div>
+          <div id="statSteps" class="stat-value">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">AVG STEP LATENCY</div>
+          <div id="statLatency" class="stat-value">0 ms</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">LEFT / RIGHT KNEE</div>
+          <div id="statLR" class="stat-value">0 / 0</div>
+        </div>
+      </div>
+
+      <div id="statusBanner" class="status-banner">
+        Open via localhost or HTTPS, allow camera permission, and click "Start Stepping".
+      </div>
+
+      <div id="trialLog" class="trial-log">
+        <div>Arithmetic step trials will appear here...</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // --- Zone Thresholds (Wider Center Zone: 0.26 to 0.74) ---
+    const LEFT_TRIGGER_X = 0.26;
+    const RIGHT_TRIGGER_X = 0.74;
+    const CENTER_MIN_X = 0.32;
+    const CENTER_MAX_X = 0.68;
+
+    // --- DOM Elements ---
+    const videoEl = document.getElementById("inputVideo");
+    const canvasEl = document.getElementById("outputCanvas");
+    const ctx = canvasEl.getContext("2d");
+
+    const btnStart = document.getElementById("btnStart");
+    const btnPause = document.getElementById("btnPause");
+    const btnReset = document.getElementById("btnReset");
+    const durationSelect = document.getElementById("durationSelect");
+    const timerDisplay = document.getElementById("timerDisplay");
+    const zoneBadge = document.getElementById("zoneBadge");
+
+    const equationText = document.getElementById("equationText");
+    const padLeft = document.getElementById("padLeft");
+    const padRight = document.getElementById("padRight");
+    const leftValEl = document.getElementById("leftVal");
+    const rightValEl = document.getElementById("rightVal");
+
+    const statAccuracy = document.getElementById("statAccuracy");
+    const statSteps = document.getElementById("statSteps");
+    const statLatency = document.getElementById("statLatency");
+    const statLR = document.getElementById("statLR");
+    const statusBanner = document.getElementById("statusBanner");
+    const trialLog = document.getElementById("trialLog");
+
+    // --- Web Audio API Sound Effects ---
+    let audioCtx = null;
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    function playCorrectSound() {
+      ensureAudioContext();
+      const now = audioCtx.currentTime;
+      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, now + i * 0.07);
+
+        gain.gain.setValueAtTime(0.001, now + i * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.22, now + i * 0.07 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.24);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + i * 0.07);
+        osc.stop(now + i * 0.07 + 0.26);
+      });
+    }
+
+    function playWrongSound() {
+      ensureAudioContext();
+      const now = audioCtx.currentTime;
+      const freqs = [195, 145];
+      freqs.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(freq, now + i * 0.13);
+
+        gain.gain.setValueAtTime(0.001, now + i * 0.13);
+        gain.gain.exponentialRampToValueAtTime(0.18, now + i * 0.13 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.13 + 0.22);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + i * 0.13);
+        osc.stop(now + i * 0.13 + 0.24);
+      });
+    }
+
+    function playSessionEndSound() {
+      ensureAudioContext();
+      const now = audioCtx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
+        gain.gain.setValueAtTime(0.2, now + i * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + i * 0.1);
+        osc.stop(now + i * 0.1 + 0.38);
+      });
+    }
+
+    // --- State Variables ---
+    let isRunning = false;
+    let isPaused = false;
+    let camera = null;
+    let pose = null;
+
+    let remainingSeconds = parseInt(durationSelect.value, 10) * 60;
+    let timerInterval = null;
+
+    let currentProblem = null;
+    let problemStartTime = 0;
+    let awaitingCenterReset = false;
+
+    let totalSteps = 0;
+    let correctSteps = 0;
+    let leftSteps = 0;
+    let rightSteps = 0;
+    let totalLatencyMs = 0;
+    let trialHistory = [];
+
+    // --- Timer Helpers ---
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function updateTimerUI() {
+      timerDisplay.textContent = formatTime(remainingSeconds);
+      timerDisplay.classList.remove("warning", "ended");
+      if (remainingSeconds === 0) {
+        timerDisplay.classList.add("ended");
+      } else if (remainingSeconds <= 15) {
+        timerDisplay.classList.add("warning");
+      }
+    }
+
+    function startCountdown() {
+      stopCountdown();
+      timerInterval = setInterval(() => {
+        if (!isRunning || isPaused) return;
+        if (remainingSeconds > 0) {
+          remainingSeconds--;
+          updateTimerUI();
+        }
+        if (remainingSeconds <= 0) {
+          stopCountdown();
+          finishSession();
+        }
+      }, 1000);
+    }
+
+    function stopCountdown() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function finishSession() {
+      isPaused = true;
+      btnPause.disabled = true;
+      btnStart.disabled = false;
+      btnStart.textContent = "Start New Session";
+      playSessionEndSound();
+      const acc = totalSteps > 0 ? Math.round((correctSteps / totalSteps) * 100) : 0;
+      statusBanner.textContent = `Time's up! Session complete: ${correctSteps}/${totalSteps} correct (${acc}% accuracy).`;
+    }
+
+    durationSelect.addEventListener("change", () => {
+      if (!isRunning || isPaused) {
+        remainingSeconds = parseInt(durationSelect.value, 10) * 60;
+        updateTimerUI();
+      }
+    });
+
+    // --- Arithmetic Generator ---
+    function generateProblem() {
+      const ops = ["+", "-", "×", "÷"];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let a, b, ans;
+
+      if (op === "+") {
+        a = Math.floor(Math.random() * 9) + 1;
+        b = Math.floor(Math.random() * 9) + 1;
+        ans = a + b;
+      } else if (op === "-") {
+        a = Math.floor(Math.random() * 9) + 1;
+        b = Math.floor(Math.random() * a) + 1;
+        ans = a - b;
+      } else if (op === "×") {
+        a = Math.floor(Math.random() * 9) + 1;
+        b = Math.floor(Math.random() * 9) + 1;
+        ans = a * b;
+      } else {
+        b = Math.floor(Math.random() * 8) + 2;
+        ans = Math.floor(Math.random() * 9) + 1;
+        a = b * ans;
+      }
+
+      // Generate plausible distractor
+      let offset = (Math.floor(Math.random() * 3) + 1) * (Math.random() < 0.5 ? -1 : 1);
+      let distractor = ans + offset;
+      if (distractor < 0 || distractor === ans) {
+        distractor = ans + 2;
+      }
+
+      const correctSide = Math.random() < 0.5 ? "LEFT" : "RIGHT";
+      const leftOption = correctSide === "LEFT" ? ans : distractor;
+      const rightOption = correctSide === "RIGHT" ? ans : distractor;
+
+      currentProblem = {
+        equation: `${a} ${op} ${b} = ?`,
+        answer: ans,
+        correctSide,
+        leftOption,
+        rightOption
+      };
+
+      equationText.textContent = currentProblem.equation;
+      leftValEl.textContent = leftOption;
+      rightValEl.textContent = rightOption;
+      problemStartTime = performance.now();
+    }
+
+    // --- Telemetry & Feedback ---
+    function updateTelemetryUI() {
+      const acc = totalSteps > 0 ? Math.round((correctSteps / totalSteps) * 100) : 0;
+      const avgLat = totalSteps > 0 ? Math.round(totalLatencyMs / totalSteps) : 0;
+
+      statAccuracy.textContent = `${acc}%`;
+      statSteps.textContent = `${totalSteps}`;
+      statLatency.textContent = `${avgLat} ms`;
+      statLR.textContent = `${leftSteps} / ${rightSteps}`;
+    }
+
+    function flashPad(side, isCorrect) {
+      const pad = side === "LEFT" ? padLeft : padRight;
+      const cls = isCorrect ? "flash-correct" : "flash-wrong";
+      pad.classList.add(cls);
+      setTimeout(() => pad.classList.remove(cls), 450);
+    }
+
+    function recordTrial(chosenSide) {
+      const latency = Math.max(0, Math.round(performance.now() - problemStartTime));
+      const isCorrect = chosenSide === currentProblem.correctSide;
+
+      totalSteps++;
+      if (isCorrect) {
+        correctSteps++;
+        playCorrectSound();
+      } else {
+        playWrongSound();
+      }
+
+      if (chosenSide === "LEFT") leftSteps++;
+      else rightSteps++;
+
+      totalLatencyMs += latency;
+      flashPad(chosenSide, isCorrect);
+      updateTelemetryUI();
+
+      const chosenValue = chosenSide === "LEFT" ? currentProblem.leftOption : currentProblem.rightOption;
+      trialHistory.unshift({
+        eq: currentProblem.equation.replace("?", currentProblem.answer),
+        side: chosenSide,
+        chosenValue,
+        isCorrect,
+        latency
+      });
+
+      renderTrialLog();
+      awaitingCenterReset = true;
+      statusBanner.textContent = isCorrect
+        ? `Correct (${chosenSide})! Return to the wide center zone for the next equation.`
+        : `Wrong (${chosenSide} = ${chosenValue}, answer was ${currentProblem.answer}). Return to center.`;
+    }
+
+    function renderTrialLog() {
+      if (trialHistory.length === 0) {
+        trialLog.innerHTML = "<div>Arithmetic step trials will appear here...</div>";
+        return;
+      }
+      trialLog.innerHTML = trialHistory
+        .slice(0, 25)
+        .map(
+          (t) => `
+          <div class="trial-item">
+            <span><strong>${t.eq}</strong> &rarr; ${t.side} (${t.chosenValue})</span>
+            <span class="${t.isCorrect ? "tag-ok" : "tag-err"}">
+              ${t.isCorrect ? "✓" : "✗"} ${t.latency} ms
+            </span>
+          </div>`
+        )
+        .join("");
+    }
+
+    // --- MediaPipe Pose Processing ---
+    function onPoseResults(results) {
+      const w = canvasEl.width;
+      const h = canvasEl.height;
+
+      ctx.save();
+      ctx.clearRect(0, 0, w, h);
+
+      // Mirror video horizontally so stepping left matches screen LEFT
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+      if (results.image) {
+        ctx.drawImage(results.image, 0, 0, w, h);
+      }
+      ctx.restore();
+
+      // Draw Zone Overlays (Wider Center Zone: 26% to 74%)
+      const leftBoundaryPx = w * LEFT_TRIGGER_X;
+      const rightBoundaryPx = w * RIGHT_TRIGGER_X;
+
+      ctx.fillStyle = "rgba(14, 165, 233, 0.12)";
+      ctx.fillRect(0, 0, leftBoundaryPx, h);
+      ctx.fillRect(rightBoundaryPx, 0, w - rightBoundaryPx, h);
+
+      ctx.strokeStyle = "rgba(14, 165, 233, 0.65)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.moveTo(leftBoundaryPx, 0);
+      ctx.lineTo(leftBoundaryPx, h);
+      ctx.moveTo(rightBoundaryPx, 0);
+      ctx.lineTo(rightBoundaryPx, h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Zone labels on canvas
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillStyle = "rgba(241, 245, 249, 0.85)";
+      ctx.fillText("LEFT PAD", 14, h - 16);
+      ctx.fillText("CENTER ZONE", w / 2 - 48, h - 16);
+      ctx.fillText("RIGHT PAD", w - 95, h - 16);
+
+      if (!results.poseLandmarks) {
+        padLeft.classList.remove("active-zone");
+        padRight.classList.remove("active-zone");
+        return;
+      }
+
+      // Landmarks: 23=left_hip, 24=right_hip, 25=left_knee, 26=right_knee
+      const lm = results.poseLandmarks;
+      const indices = [23, 24, 25, 26];
+      const visiblePoints = indices
+        .map((idx) => lm[idx])
+        .filter((p) => p && (p.visibility === undefined || p.visibility > 0.45));
+
+      // Draw tracked hip & knee points (mirrored X = 1 - p.x)
+      visiblePoints.forEach((p) => {
+        const px = (1 - p.x) * w;
+        const py = p.y * h;
+        ctx.beginPath();
+        ctx.arc(px, py, 7, 0, 2 * Math.PI);
+        ctx.fillStyle = "#0ea5e9";
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+      });
+
+      // Draw hip-to-knee skeleton lines
+      const drawSegment = (a, b) => {
+        if (!a || !b) return;
+        if ((a.visibility ?? 1) < 0.45 || (b.visibility ?? 1) < 0.45) return;
+        ctx.beginPath();
+        ctx.moveTo((1 - a.x) * w, a.y * h);
+        ctx.lineTo((1 - b.x) * w, b.y * h);
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      };
+      drawSegment(lm[23], lm[24]);
+      drawSegment(lm[23], lm[25]);
+      drawSegment(lm[24], lm[26]);
+
+      if (visiblePoints.length < 2) {
+        zoneBadge.textContent = "Step back: hips & knees needed";
+        return;
+      }
+
+      // Compute mirrored horizontal center of hips + knees
+      const avgMirroredX =
+        visiblePoints.reduce((sum, p) => sum + (1 - p.x), 0) / visiblePoints.length;
+
+      // Draw center-of-mass indicator line
+      const comPx = avgMirroredX * w;
+      ctx.beginPath();
+      ctx.moveTo(comPx, 0);
+      ctx.lineTo(comPx, h);
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Update zone highlight
+      if (avgMirroredX < LEFT_TRIGGER_X) {
+        padLeft.classList.add("active-zone");
+        padRight.classList.remove("active-zone");
+        zoneBadge.textContent = `Zone: LEFT (${Math.round(avgMirroredX * 100)}%)`;
+      } else if (avgMirroredX > RIGHT_TRIGGER_X) {
+        padRight.classList.add("active-zone");
+        padLeft.classList.remove("active-zone");
+        zoneBadge.textContent = `Zone: RIGHT (${Math.round(avgMirroredX * 100)}%)`;
+      } else {
+        padLeft.classList.remove("active-zone");
+        padRight.classList.remove("active-zone");
+        zoneBadge.textContent = `Zone: CENTER (${Math.round(avgMirroredX * 100)}%)`;
+      }
+
+      if (!isRunning || isPaused || remainingSeconds <= 0) return;
+
+      // Selection & Center-Return State Machine
+      if (awaitingCenterReset) {
+        if (avgMirroredX >= CENTER_MIN_X && avgMirroredX <= CENTER_MAX_X) {
+          awaitingCenterReset = false;
+          generateProblem();
+          statusBanner.textContent = "Ready! Step LEFT or RIGHT to select your answer.";
+        }
+      } else {
+        if (avgMirroredX < LEFT_TRIGGER_X) {
+          recordTrial("LEFT");
+        } else if (avgMirroredX > RIGHT_TRIGGER_X) {
+          recordTrial("RIGHT");
+        }
+      }
+    }
+
+    // --- Initialization & Controls ---
+    async function initPoseAndCamera() {
+      statusBanner.textContent = "Initializing camera and MediaPipe Pose...";
+      pose = new Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+      });
+
+      pose.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        enableSegmentation: false,
+        minDetectionConfidence: 0.55,
+        minTrackingConfidence: 0.55
+      });
+
+      pose.onResults(onPoseResults);
+
+      camera = new Camera(videoEl, {
+        onFrame: async () => {
+          if (pose) {
+            await pose.send({ image: videoEl });
+          }
+        },
+        width: 640,
+        height: 480
+      });
+
+      await camera.start();
+    }
+
+    btnStart.addEventListener("click", async () => {
+      ensureAudioContext();
+
+      if (remainingSeconds <= 0) {
+        remainingSeconds = parseInt(durationSelect.value, 10) * 60;
+        updateTimerUI();
+      }
+
+      if (!isRunning) {
+        btnStart.disabled = true;
+        try {
+          await initPoseAndCamera();
+          isRunning = true;
+          isPaused = false;
+          durationSelect.disabled = true;
+          btnPause.disabled = false;
+          btnStart.textContent = "Running";
+          generateProblem();
+          startCountdown();
+          statusBanner.textContent = "Camera active! Step LEFT or RIGHT to answer.";
+        } catch (err) {
+          btnStart.disabled = false;
+          statusBanner.textContent = `Camera error: ${err.message}. Ensure HTTPS or localhost and grant camera permission.`;
+        }
+      } else if (isPaused) {
+        isPaused = false;
+        btnPause.disabled = false;
+        btnStart.disabled = true;
+        btnStart.textContent = "Running";
+        problemStartTime = performance.now();
+        startCountdown();
+        statusBanner.textContent = "Resumed! Step LEFT or RIGHT to answer.";
+      }
+    });
+
+    btnPause.addEventListener("click", () => {
+      if (!isRunning || isPaused) return;
+      isPaused = true;
+      stopCountdown();
+      btnPause.disabled = true;
+      btnStart.disabled = false;
+      btnStart.textContent = "Resume";
+      statusBanner.textContent = "Session paused. Click Resume to continue.";
+    });
+
+    btnReset.addEventListener("click", () => {
+      stopCountdown();
+      isPaused = isRunning;
+      durationSelect.disabled = false;
+      remainingSeconds = parseInt(durationSelect.value, 10) * 60;
+      updateTimerUI();
+
+      totalSteps = 0;
+      correctSteps = 0;
+      leftSteps = 0;
+      rightSteps = 0;
+      totalLatencyMs = 0;
+      trialHistory = [];
+      awaitingCenterReset = false;
+
+      updateTelemetryUI();
+      renderTrialLog();
+      generateProblem();
+
+      if (isRunning) {
+        btnStart.disabled = false;
+        btnStart.textContent = "Start Stepping";
+        btnPause.disabled = true;
+        statusBanner.textContent = "Telemetry and timer reset. Click Start Stepping to begin.";
+      } else {
+        statusBanner.textContent = 'Open via localhost or HTTPS, allow camera permission, and click "Start Stepping".';
+      }
+    });
+
+    // Initialize default view
+    updateTimerUI();
+  </script>
+</body>
+</html>
