@@ -405,34 +405,75 @@
                 winPoly.volume.value = -6;
 
                 buzzSynth = new Tone.Synth({
-                    oscillator: { type: 'triangle' },
-                    envelope: { attack: 0.01, decay: 0.22, sustain: 0, release: 0.08 }
+                    oscillator: { type: 'sawtooth' },
+                    envelope: { attack: 0.01, decay: 0.18, sustain: 0.05, release: 0.1 }
                 }).toDestination();
-                buzzSynth.volume.value = -10;
+                buzzSynth.volume.value = -8;
                 audioReady = true;
             } catch (err) {
                 console.warn('音效初始化略過', err);
             }
         }
 
+        // 語音合成朗讀「擲界！」(預載語音清單並支援粵語 zh-HK / yue / 降級方案)
+        let cachedVoices = [];
+        if ('speechSynthesis' in window) {
+            cachedVoices = window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => {
+                cachedVoices = window.speechSynthesis.getVoices();
+            };
+        }
+
+        function speakZhakGaai() {
+            if (!gameState.soundOn || !('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance('擲界！');
+                const voices = cachedVoices.length ? cachedVoices : window.speechSynthesis.getVoices();
+                const hkVoice = voices.find(v => /zh[-_]HK|yue/i.test(v.lang))
+                             || voices.find(v => /zh[-_]TW|zh[-_]CN|zh/i.test(v.lang));
+                if (hkVoice) {
+                    utter.voice = hkVoice;
+                    utter.lang = hkVoice.lang;
+                } else {
+                    utter.lang = 'zh-HK';
+                }
+                utter.rate = 1.1;
+                utter.pitch = 1.05;
+                utter.volume = 1.0;
+                window.speechSynthesis.speak(utter);
+            } catch (e) {
+                console.warn('語音播放略過', e);
+            }
+        }
+
         function triggerSound(type) {
             if (!gameState.soundOn) return;
             setupAudio();
-            if (!audioReady) return;
 
-            const now = Tone.now();
-            if (type === 'toss') {
-                metalSynth.triggerAttackRelease('D6', '32n', now);
-            } else if (type === 'clink') {
-                metalSynth.triggerAttackRelease('A6', '64n', now);
-            } else if (type === 'win') {
-                winPoly.triggerAttackRelease(['C5', 'E5', 'G5', 'C6'], '16n', now);
-            } else if (type === 'jackpot') {
-                winPoly.triggerAttackRelease(['C5', 'E5', 'G5', 'B5', 'D6', 'G6'], '8n', now);
-            } else if (type === 'lose') {
-                buzzSynth.triggerAttackRelease('G2', '8n', now);
-            } else if (type === 'timesup') {
-                winPoly.triggerAttackRelease(['A4', 'F4', 'D4'], '4n', now);
+            if (audioReady) {
+                const now = Tone.now();
+                if (type === 'toss') {
+                    metalSynth.triggerAttackRelease('D6', '32n', now);
+                } else if (type === 'clink') {
+                    metalSynth.triggerAttackRelease('A6', '64n', now);
+                } else if (type === 'win') {
+                    winPoly.triggerAttackRelease(['C5', 'E5', 'G5', 'C6'], '16n', now);
+                } else if (type === 'jackpot') {
+                    winPoly.triggerAttackRelease(['C5', 'E5', 'G5', 'B5', 'D6', 'G6'], '8n', now);
+                } else if (type === 'line_foul') {
+                    // 經典街機雙音「嘟-嘟」壓線犯規警報聲
+                    buzzSynth.triggerAttackRelease('E3', '16n', now);
+                    buzzSynth.triggerAttackRelease('A2', '8n', now + 0.11);
+                } else if (type === 'lose') {
+                    buzzSynth.triggerAttackRelease('G2', '8n', now);
+                } else if (type === 'timesup') {
+                    winPoly.triggerAttackRelease(['A4', 'F4', 'D4'], '4n', now);
+                }
+            }
+
+            if (type === 'line_foul') {
+                speakZhakGaai();
             }
         }
 
@@ -679,12 +720,14 @@
                         const g = pixels[i + 1];
                         const b = pixels[i + 2];
 
+                        // 黑線判定 (TOUCHING THE BLACK LINE LOSES)
                         if (r < 70 && g < 70 && b < 70) {
-                            return { win: false, title: '壓中黑線！擲界 ❌', style: 'bg-slate-950 text-red-400 border-red-500', tickets: 0 };
+                            return { win: false, isLineFoul: true, title: '壓中黑線！擲界 ❌', style: 'bg-slate-950 text-red-400 border-red-500', tickets: 0 };
                         }
 
+                        // 白色底板判定
                         if (r > 235 && g > 235 && b > 235) {
-                            return { win: false, title: '落在白底！無獎 ❌', style: 'bg-slate-800 text-slate-300 border-slate-400', tickets: 0 };
+                            return { win: false, isLineFoul: false, title: '落在白底！無獎 ❌', style: 'bg-slate-800 text-slate-300 border-slate-400', tickets: 0 };
                         }
 
                         let band = '';
@@ -696,7 +739,7 @@
 
                         if (band) {
                             if (colorHit && colorHit !== band) {
-                                return { win: false, title: '跨色壓界！擲界 ❌', style: 'bg-slate-950 text-red-400 border-red-500', tickets: 0 };
+                                return { win: false, isLineFoul: true, title: '跨色壓界！擲界 ❌', style: 'bg-slate-950 text-red-400 border-red-500', tickets: 0 };
                             }
                             colorHit = band;
                         }
@@ -922,6 +965,8 @@
                             refreshHUD();
                             createConfetti(fc.x, fc.y);
                             triggerSound(result.tickets >= 80 ? 'jackpot' : 'win');
+                        } else if (result.isLineFoul) {
+                            triggerSound('line_foul');
                         } else {
                             triggerSound('lose');
                         }
@@ -1147,6 +1192,10 @@
 
         canvas.addEventListener('pointerdown', (e) => {
             setupAudio();
+            // 在首次點擊時解鎖瀏覽器語音合成權限
+            if ('speechSynthesis' in window && cachedVoices.length === 0) {
+                cachedVoices = window.speechSynthesis.getVoices();
+            }
             const pos = getCanvasCoords(e);
             gameState.isAiming = true;
             gameState.aimX = pos.x;
