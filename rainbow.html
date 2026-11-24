@@ -123,24 +123,24 @@
             </div>
         </div>
 
-        <!-- 四色獎品等級對照表 -->
+        <!-- 四色獎品等級對照表 (點擊可查看大圖) -->
         <div class="grid grid-cols-4 gap-1.5 text-center text-xs font-black">
-            <div class="bg-red-600 border-2 border-red-300/70 py-1 px-1 rounded-xl shadow">
-                <div class="text-[9px] tracking-widest text-red-100">SMALL (紅)</div>
+            <button type="button" data-prize="SMALL" class="prize-card-btn bg-red-600 hover:bg-red-500 border-2 border-red-300/70 py-1 px-1 rounded-xl shadow transition transform hover:scale-[1.03] active:scale-95 cursor-pointer">
+                <div class="text-[9px] tracking-widest text-red-100">SMALL (紅) 🔍</div>
                 <div class="text-[11px] sm:text-sm">🦐 蝦條 +10</div>
-            </div>
-            <div class="bg-green-600 border-2 border-green-300/70 py-1 px-1 rounded-xl shadow">
-                <div class="text-[9px] tracking-widest text-green-100">MEDIUM (綠)</div>
+            </button>
+            <button type="button" data-prize="MEDIUM" class="prize-card-btn bg-green-600 hover:bg-green-500 border-2 border-green-300/70 py-1 px-1 rounded-xl shadow transition transform hover:scale-[1.03] active:scale-95 cursor-pointer">
+                <div class="text-[9px] tracking-widest text-green-100">MEDIUM (綠) 🔍</div>
                 <div class="text-[11px] sm:text-sm">🎁 盲盒 +30</div>
-            </div>
-            <div class="bg-yellow-400 border-2 border-yellow-100 text-slate-900 py-1 px-1 rounded-xl shadow">
-                <div class="text-[9px] tracking-widest text-amber-900">LARGE (黃)</div>
+            </button>
+            <button type="button" data-prize="LARGE" class="prize-card-btn bg-yellow-400 hover:bg-yellow-300 border-2 border-yellow-100 text-slate-900 py-1 px-1 rounded-xl shadow transition transform hover:scale-[1.03] active:scale-95 cursor-pointer">
+                <div class="text-[9px] tracking-widest text-amber-900">LARGE (黃) 🔍</div>
                 <div class="text-[11px] sm:text-sm">🏎️ 跑車 +80</div>
-            </div>
-            <div class="bg-purple-600 border-2 border-purple-300/80 py-1 px-1 rounded-xl shadow">
-                <div class="text-[9px] tracking-widest text-purple-200">CHOICE (紫)</div>
+            </button>
+            <button type="button" data-prize="CHOICE" class="prize-card-btn bg-purple-600 hover:bg-purple-500 border-2 border-purple-300/80 py-1 px-1 rounded-xl shadow transition transform hover:scale-[1.03] active:scale-95 cursor-pointer">
+                <div class="text-[9px] tracking-widest text-purple-200">CHOICE (紫) 🔍</div>
                 <div class="text-[11px] sm:text-sm">🧸 公仔 +200</div>
-            </div>
+            </button>
         </div>
     </header>
 
@@ -307,12 +307,41 @@
         </div>
     </div>
 
+    <!-- 獎品高清大圖展示彈窗 -->
+    <div id="prize-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+        <div id="prize-modal-frame" class="bg-gradient-to-b from-red-600 to-red-900 p-1.5 rounded-3xl max-w-md w-full shadow-2xl animate-pop border-2 border-yellow-300">
+            <div class="bg-slate-900 rounded-[20px] p-5 flex flex-col items-center text-center relative overflow-hidden">
+                <!-- 頂部等級標籤 -->
+                <div id="prize-badge" class="px-4 py-1 rounded-full text-xs font-black tracking-widest uppercase mb-3 shadow">
+                    SMALL PRIZE · 紅色獎品
+                </div>
+
+                <!-- 獎品高清展示相框 -->
+                <div id="prize-photo-box" class="w-full aspect-square max-h-[270px] rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-black border-2 border-white/15 flex items-center justify-center p-4 mb-4 shadow-inner relative">
+                    <!-- 動態插入高清 SVG 獎品大圖 -->
+                </div>
+
+                <!-- 獎品名稱與獎券數值 -->
+                <h3 id="prize-title" class="text-2xl font-black text-white mb-1">經典原味蝦條大禮包</h3>
+                <div id="prize-tickets" class="text-lg font-black text-emerald-400 mb-2">價值：+10 張獎券</div>
+                <p id="prize-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-5 px-2">
+                    將金幣完整投入紅色外環區域且不觸碰黑線，即可贏得香脆美味的懷舊蝦條零食！
+                </p>
+
+                <button id="close-prize-btn" class="w-full bg-yellow-400 hover:bg-yellow-300 active:scale-98 text-slate-950 font-black text-base py-3 rounded-xl shadow-lg transition">
+                    關閉大圖預覽
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         /**
          * 歡樂掟彩虹 (Rainbow of Happiness)
          * 修正重點：
          * 1. 縮小代幣半徑比例 (coinRadius = minDim * 0.0175) 並加寬彩虹色帶，確保每一層顏色都能完整容納代幣不壓線。
          * 2. 新增 1 至 15 分鐘自由設定倒數計時器與時間到結算面板。
+         * 3. 新增點擊頂部四色獎品卡片彈出高清獎品大圖預覽視窗。
          */
         const canvas = document.getElementById('rainbowCanvas');
         const ctx = canvas.getContext('2d');
@@ -1176,6 +1205,218 @@
         document.getElementById('close-rules-btn').addEventListener('click', () => {
             rulesModal.classList.add('hidden');
             rulesModal.classList.remove('flex');
+        });
+
+        // 四色獎品高清大圖資料庫
+        const PRIZE_CATALOG = {
+            SMALL: {
+                badge: 'SMALL PRIZE · 紅色外圈獎品',
+                badgeClass: 'bg-red-600 text-white border border-red-300',
+                frameClass: 'bg-gradient-to-b from-red-500 to-red-900 p-1.5 rounded-3xl max-w-md w-full shadow-2xl animate-pop border-2 border-red-300',
+                title: '經典香脆蝦條豪華家庭裝',
+                tickets: '🎁 中獎獎勵：+10 獎券 TICKETS',
+                desc: '金幣完整落在【紅色】色帶內且不壓黑線即可獲得！香脆可口，經典街機必換小食。',
+                svg: `
+                    <svg viewBox="0 0 260 260" class="w-full h-full drop-shadow-2xl">
+                        <defs>
+                            <radialGradient id="glowRed" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.45"/>
+                                <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+                            </radialGradient>
+                            <linearGradient id="bagGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#ef4444"/>
+                                <stop offset="50%" stop-color="#dc2626"/>
+                                <stop offset="100%" stop-color="#991b1b"/>
+                            </linearGradient>
+                        </defs>
+                        <circle cx="130" cy="130" r="115" fill="url(#glowRed)"/>
+                        <!-- 零食包裝袋 -->
+                        <g transform="rotate(-6 130 130)">
+                            <rect x="62" y="34" width="136" height="192" rx="14" fill="url(#bagGrad)" stroke="#fef08a" stroke-width="3"/>
+                            <!-- 鋸齒封口 -->
+                            <path d="M62 46 L198 46 M62 214 L198 214" stroke="#fca5a5" stroke-width="3" stroke-dasharray="6 4"/>
+                            <!-- 黃色招牌圓徽 -->
+                            <ellipse cx="130" cy="108" rx="52" ry="34" fill="#facc15" stroke="#ffffff" stroke-width="3"/>
+                            <text x="130" y="106" font-size="22" font-weight="900" fill="#991b1b" text-anchor="middle">香脆蝦條</text>
+                            <text x="130" y="125" font-size="11" font-weight="900" fill="#713f12" text-anchor="middle">PRAWN CRACKERS</text>
+                            <!-- 蝦子與蝦條插畫 -->
+                            <path d="M88 168 Q105 152 124 166" stroke="#fde047" stroke-width="9" stroke-linecap="round" fill="none"/>
+                            <path d="M132 174 Q152 156 172 170" stroke="#fde047" stroke-width="9" stroke-linecap="round" fill="none"/>
+                            <path d="M106 190 Q130 176 154 190" stroke="#fef08a" stroke-width="9" stroke-linecap="round" fill="none"/>
+                            <!-- 反光高光 -->
+                            <path d="M76 54 L94 54 L82 204 L72 204 Z" fill="rgba(255,255,255,0.22)"/>
+                        </g>
+                    </svg>`
+            },
+            MEDIUM: {
+                badge: 'MEDIUM PRIZE · 綠色中環獎品',
+                badgeClass: 'bg-green-600 text-white border border-green-300',
+                frameClass: 'bg-gradient-to-b from-green-500 to-emerald-950 p-1.5 rounded-3xl max-w-md w-full shadow-2xl animate-pop border-2 border-emerald-300',
+                title: '潮玩驚喜精品盲盒 (限定系列)',
+                tickets: '🎁 中獎獎勵：+30 獎券 TICKETS',
+                desc: '金幣完整落在【綠色】色帶內且不壓黑線即可獲得！內含隨機隱藏版可愛公仔與精緻配件。',
+                svg: `
+                    <svg viewBox="0 0 260 260" class="w-full h-full drop-shadow-2xl">
+                        <defs>
+                            <radialGradient id="glowGreen" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#22c55e" stop-opacity="0.45"/>
+                                <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+                            </radialGradient>
+                            <linearGradient id="boxFront" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#34d399"/>
+                                <stop offset="100%" stop-color="#059669"/>
+                            </linearGradient>
+                        </defs>
+                        <circle cx="130" cy="130" r="115" fill="url(#glowGreen)"/>
+                        <!-- 盲盒立方體 -->
+                        <polygon points="130,36 208,74 130,112 52,74" fill="#6ee7b7" stroke="#ecfdf5" stroke-width="2.5"/>
+                        <polygon points="52,74 130,112 130,214 52,176" fill="url(#boxFront)" stroke="#ecfdf5" stroke-width="2.5"/>
+                        <polygon points="208,74 130,112 130,214 208,176" fill="#047857" stroke="#ecfdf5" stroke-width="2.5"/>
+                        <!-- 緞帶與問號徽章 -->
+                        <polygon points="118,42 142,42 142,208 118,208" fill="#facc15" opacity="0.9"/>
+                        <circle cx="92" cy="144" r="24" fill="#fef08a" stroke="#ffffff" stroke-width="2.5"/>
+                        <text x="92" y="153" font-size="28" font-weight="900" fill="#065f46" text-anchor="middle">?</text>
+                        <!-- 閃亮星星 -->
+                        <text x="172" y="148" font-size="26" fill="#fde047" text-anchor="middle">✨</text>
+                        <text x="130" y="80" font-size="14" font-weight="900" fill="#064e3b" text-anchor="middle">MYSTERY BOX</text>
+                    </svg>`
+            },
+            LARGE: {
+                badge: 'LARGE PRIZE · 黃色內環大獎',
+                badgeClass: 'bg-yellow-400 text-slate-950 border border-white',
+                frameClass: 'bg-gradient-to-b from-yellow-400 to-amber-800 p-1.5 rounded-3xl max-w-md w-full shadow-2xl animate-pop border-2 border-yellow-200',
+                title: '1:18 合金超跑模型車 (珍藏版)',
+                tickets: '🎁 中獎獎勵：+80 獎券 TICKETS',
+                desc: '金幣完整落在【黃色】色帶內且不壓黑線即可獲得！全金屬烤漆車身，車門可開啟，極具收藏價值。',
+                svg: `
+                    <svg viewBox="0 0 260 260" class="w-full h-full drop-shadow-2xl">
+                        <defs>
+                            <radialGradient id="glowYellow" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#facc15" stop-opacity="0.5"/>
+                                <stop offset="100%" stop-color="#facc15" stop-opacity="0"/>
+                            </radialGradient>
+                            <linearGradient id="carBody" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#fef08a"/>
+                                <stop offset="45%" stop-color="#eab308"/>
+                                <stop offset="100%" stop-color="#b45309"/>
+                            </linearGradient>
+                        </defs>
+                        <circle cx="130" cy="135" r="115" fill="url(#glowYellow)"/>
+                        <!-- 地面投影 -->
+                        <ellipse cx="130" cy="182" rx="104" ry="14" fill="rgba(0,0,0,0.55)"/>
+                        <!-- 跑車流線車身 -->
+                        <path d="M26 154 Q30 132 68 126 L104 96 Q135 88 172 98 L206 126 Q234 132 236 154 L232 166 L28 166 Z" fill="url(#carBody)" stroke="#ffffff" stroke-width="2.5"/>
+                        <!-- 駕駛艙車窗 -->
+                        <path d="M98 124 L114 102 Q138 96 164 104 L182 124 Z" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+                        <!-- 尾翼 -->
+                        <path d="M24 126 L44 126 L38 112 L18 112 Z" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+                        <!-- 車頭燈 -->
+                        <ellipse cx="224" cy="142" rx="8" ry="4" fill="#fef9c3"/>
+                        <!-- 前後輪胎與金色輪圈 -->
+                        <circle cx="72" cy="166" r="24" fill="#0f172a" stroke="#64748b" stroke-width="3"/>
+                        <circle cx="72" cy="166" r="12" fill="#facc15" stroke="#713f12" stroke-width="2"/>
+                        <circle cx="192" cy="166" r="24" fill="#0f172a" stroke="#64748b" stroke-width="3"/>
+                        <circle cx="192" cy="166" r="12" fill="#facc15" stroke="#713f12" stroke-width="2"/>
+                        <!-- 賽車條紋 -->
+                        <path d="M96 146 L166 146" stroke="#dc2626" stroke-width="5" stroke-linecap="round"/>
+                    </svg>`
+            },
+            CHOICE: {
+                badge: 'CHOICE GRAND PRIZE · 紫色圓心終極大獎',
+                badgeClass: 'bg-purple-600 text-yellow-300 border border-yellow-200',
+                frameClass: 'bg-gradient-to-b from-purple-500 via-fuchsia-700 to-indigo-950 p-1.5 rounded-3xl max-w-md w-full shadow-2xl animate-pop border-2 border-yellow-300',
+                title: '皇冠限定巨型毛絨泰迪熊公仔',
+                tickets: '👑 終極大獎：+200 獎券 TICKETS',
+                desc: '神乎其技！將金幣精準投入最中央的【紫色/藍色圓心】且完全不壓黑線，即可抱走全場最高榮譽限定大公仔！',
+                svg: `
+                    <svg viewBox="0 0 260 260" class="w-full h-full drop-shadow-2xl">
+                        <defs>
+                            <radialGradient id="glowPurple" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#c084fc" stop-opacity="0.55"/>
+                                <stop offset="100%" stop-color="#9333ea" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="bearFur" cx="40%" cy="35%" r="65%">
+                                <stop offset="0%" stop-color="#fde68a"/>
+                                <stop offset="60%" stop-color="#d97706"/>
+                                <stop offset="100%" stop-color="#78350f"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="130" cy="130" r="118" fill="url(#glowPurple)"/>
+                        <!-- 耳朵 -->
+                        <circle cx="84" cy="68" r="22" fill="url(#bearFur)" stroke="#fef3c7" stroke-width="2"/>
+                        <circle cx="84" cy="68" r="11" fill="#fbcfe8"/>
+                        <circle cx="176" cy="68" r="22" fill="url(#bearFur)" stroke="#fef3c7" stroke-width="2"/>
+                        <circle cx="176" cy="68" r="11" fill="#fbcfe8"/>
+                        <!-- 身體與四肢 -->
+                        <ellipse cx="130" cy="176" rx="52" ry="56" fill="url(#bearFur)" stroke="#fef3c7" stroke-width="2"/>
+                        <ellipse cx="130" cy="180" rx="30" ry="34" fill="#fef3c7"/>
+                        <ellipse cx="72" cy="166" rx="18" ry="28" transform="rotate(25 72 166)" fill="url(#bearFur)"/>
+                        <ellipse cx="188" cy="166" rx="18" ry="28" transform="rotate(-25 188 166)" fill="url(#bearFur)"/>
+                        <circle cx="92" cy="222" r="20" fill="url(#bearFur)" stroke="#fef3c7" stroke-width="2"/>
+                        <circle cx="168" cy="222" r="20" fill="url(#bearFur)" stroke="#fef3c7" stroke-width="2"/>
+                        <!-- 頭部 -->
+                        <circle cx="130" cy="102" r="46" fill="url(#bearFur)" stroke="#fef3c7" stroke-width="2"/>
+                        <!-- 皇冠 -->
+                        <polygon points="106,56 114,34 130,48 146,34 154,56" fill="#facc15" stroke="#ffffff" stroke-width="2"/>
+                        <!-- 臉部表情 -->
+                        <ellipse cx="130" cy="114" rx="18" ry="14" fill="#fef3c7"/>
+                        <circle cx="114" cy="96" r="5" fill="#1e293b"/>
+                        <circle cx="146" cy="96" r="5" fill="#1e293b"/>
+                        <circle cx="115" cy="94" r="1.8" fill="#ffffff"/>
+                        <circle cx="147" cy="94" r="1.8" fill="#ffffff"/>
+                        <ellipse cx="130" cy="109" rx="6" ry="4" fill="#451a03"/>
+                        <path d="M123 118 Q130 124 137 118" stroke="#451a03" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                        <!-- 紫色領結 -->
+                        <polygon points="130,144 108,134 108,154" fill="#9333ea" stroke="#facc15" stroke-width="1.5"/>
+                        <polygon points="130,144 152,134 152,154" fill="#9333ea" stroke="#facc15" stroke-width="1.5"/>
+                        <circle cx="130" cy="144" r="6" fill="#facc15"/>
+                    </svg>`
+            }
+        };
+
+        const prizeModal = document.getElementById('prize-modal');
+        const prizeModalFrame = document.getElementById('prize-modal-frame');
+        const prizeBadge = document.getElementById('prize-badge');
+        const prizePhotoBox = document.getElementById('prize-photo-box');
+        const prizeTitle = document.getElementById('prize-title');
+        const prizeTickets = document.getElementById('prize-tickets');
+        const prizeDesc = document.getElementById('prize-desc');
+
+        function openPrizeModal(tierKey) {
+            const item = PRIZE_CATALOG[tierKey];
+            if (!item) return;
+
+            setupAudio();
+            triggerSound('clink');
+
+            prizeModalFrame.className = item.frameClass;
+            prizeBadge.className = `px-4 py-1 rounded-full text-xs font-black tracking-widest uppercase mb-3 shadow ${item.badgeClass}`;
+            prizeBadge.textContent = item.badge;
+            prizePhotoBox.innerHTML = item.svg;
+            prizeTitle.textContent = item.title;
+            prizeTickets.textContent = item.tickets;
+            prizeDesc.textContent = item.desc;
+
+            prizeModal.classList.remove('hidden');
+            prizeModal.classList.add('flex');
+        }
+
+        document.querySelectorAll('.prize-card-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                openPrizeModal(btn.dataset.prize);
+            });
+        });
+
+        document.getElementById('close-prize-btn').addEventListener('click', () => {
+            prizeModal.classList.add('hidden');
+            prizeModal.classList.remove('flex');
+        });
+
+        prizeModal.addEventListener('click', (e) => {
+            if (e.target === prizeModal) {
+                prizeModal.classList.add('hidden');
+                prizeModal.classList.remove('flex');
+            }
         });
 
         window.onload = function () {
