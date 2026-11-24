@@ -3,55 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>香港即時新聞認知閱讀練習</title>
+  <title>香港即時新聞</title>
   <style>
-    *{box-sizing:border-box} body{font-family:"PingFang HK","Microsoft JhengHei",sans-serif;max-width:760px;margin:20px auto;padding:0 16px 40px;line-height:1.75;background:#f4f7fa;color:#1f2937} header{background:#0056b3;color:#fff;padding:18px 20px;border-radius:12px;margin-bottom:20px} header h1{margin:0 0 6px;font-size:22px} .date-bar{display:flex;justify-content:space-between;gap:12px;font-size:14px} .toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap} button{background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:15px} button:hover{background:#004085} button.secondary{background:#2b7a78} button.outline{background:#fff;color:#0056b3;border:1.5px solid #0056b3} button:disabled{opacity:.6}.card{background:#fff;padding:22px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px}.tag{display:inline-block;background:#e0edff;color:#0056b3;font-size:13px;font-weight:bold;padding:3px 10px;border-radius:20px;margin-bottom:10px}.news-title{margin:0 0 12px;font-size:21px;color:#111827}.news-body{font-size:17px;color:#374151;margin:0}.source-link{display:inline-block;margin-top:12px;color:#0056b3;font-weight:bold}.status{font-size:13px;color:#64748b;margin-top:8px}.quiz-header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e5e7eb;padding-bottom:10px;margin-bottom:16px}.quiz-header h2{margin:0;font-size:19px;color:#0056b3}.score-badge{background:#fef3c7;color:#92400e;font-weight:bold;padding:4px 12px;border-radius:20px;font-size:15px}.question-block{margin-bottom:20px;padding-bottom:16px;border-bottom:1px dashed #d1d5db}.question-block:last-child{border:0}.q-title{font-weight:bold;font-size:16px;margin-bottom:10px}.option-btn{display:block;width:100%;text-align:left;background:#f9fafb;color:#1f2937;border:1.5px solid #d1d5db;padding:10px 14px;margin-bottom:8px;border-radius:8px;font-size:15px}.option-btn.correct{background:#d1fae5;border-color:#10b981;color:#065f46;font-weight:bold}.option-btn.wrong{background:#fee2e2;border-color:#ef4444;color:#991b1b}.feedback{font-size:14px;margin-top:6px;font-weight:bold}
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Microsoft JhengHei", sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
+      margin: 0;
+      padding: 20px;
+    }
+    .news-widget {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: #b91c1c;
+      color: #ffffff;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    .status {
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+    .tabs {
+      display: flex;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #4b5563;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      color: #b91c1c;
+      border-bottom: 3px solid #b91c1c;
+      background: #ffffff;
+    }
+    .news-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .news-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .news-item:last-child {
+      border-bottom: none;
+    }
+    .news-item a {
+      text-decoration: none;
+      color: #111827;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+    .news-item a:hover {
+      color: #b91c1c;
+      text-decoration: underline;
+    }
+    .news-time {
+      font-size: 0.8rem;
+      color: #6b7280;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .message {
+      padding: 24px;
+      text-align: center;
+      color: #6b7280;
+    }
   </style>
 </head>
 <body>
-<header>
-  <h1>📰 香港即時新聞認知閱讀練習</h1>
-  <div class="date-bar"><span id="today-date"></span><span>香港政府新聞處即時新聞</span></div>
-</header>
-<div class="toolbar">
-  <button class="secondary" onclick="speakNews()">🔊 朗讀新聞</button>
-  <button class="outline" onclick="stopSpeak()">⏹ 停止朗讀</button>
-  <button id="next-btn" onclick="nextNews()">🔄 下一篇新聞</button>
-  <button class="outline" id="refresh-btn" onclick="loadNews()">↻ 更新新聞</button>
+
+<div class="news-widget">
+  <div class="header">
+    <h2>香港即時新聞</h2>
+    <span class="status" id="last-updated">更新中...</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-feed="local">本地</button>
+    <button class="tab-btn" data-feed="finance">財經</button>
+    <button class="tab-btn" data-feed="world">國際</button>
+    <button class="tab-btn" data-feed="google">綜合頭條</button>
+  </div>
+
+  <ul class="news-list" id="news-list">
+    <li class="message">載入新聞中...</li>
+  </ul>
 </div>
-<div class="card">
-  <span class="tag" id="news-category">正在載入</span>
-  <h2 class="news-title" id="news-title">正在取得最新香港新聞……</h2>
-  <p class="news-body" id="news-content">請稍候。</p>
-  <a class="source-link" id="source-link" href="https://www.news.gov.hk/" target="_blank" rel="noopener">查看新聞來源</a>
-  <div class="status" id="update-status"></div>
-</div>
-<div class="card">
-  <div class="quiz-header"><h2>🧠 理解力練習（共 3 題）</h2><span class="score-badge" id="score-display">得分：0 / 3</span></div>
-  <div id="quiz-container"></div>
-</div>
+
 <script>
-var RSS_PRIMARY="https://www.news.gov.hk/en/common/html/topstories.rss.xml";
-var RSS_FALLBACK="https://www.news.gov.hk/en/common/html/ticker.rss.xml";
-var newsItems=[],currentIndex=0,score=0;
+  const FEEDS = {
+    local: 'https://rthk.hk/rthk/news/rss/c_expressnews_clocal.xml',
+    finance: 'https://rthk.hk/rthk/news/rss/c_expressnews_cfinance.xml',
+    world: 'https://rthk.hk/rthk/news/rss/c_expressnews_cinternational.xml',
+    google: 'https://news.google.com/rss?hl=zh-HK&gl=HK&ceid=HK:zh-Hant'
+  };
 
-function stripHtml(html){var d=document.createElement("div");d.innerHTML=html||"";return(d.textContent||d.innerText||"").replace(/\s+/g," ").trim()}
-function formatDate(value){var d=new Date(value);return isNaN(d)?(value||""):d.toLocaleString("zh-HK",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"})}
-function category(title,text){var s=(title+" "+text).toLowerCase();if(/health|medical|hospital|doctor|疫情|醫療|醫院|衞生/.test(s))return"醫療衞生";if(/transport|traffic|mtr|bus|road|airport|交通|港鐵|巴士|機場/.test(s))return"交通運輸";if(/weather|typhoon|rain|temperature|天氣|颱風|熱帶/.test(s))return"天氣環境";if(/police|crime|court|law|警方|治安|法院|法律/.test(s))return"公共安全";if(/school|education|student|教育|學校|學生/.test(s))return"教育";if(/economy|finance|trade|budget|經濟|財政|商業/.test(s))return"經濟商業";if(/culture|museum|sport|park|文化|康樂|博物館/.test(s))return"文化康樂";return"香港新聞"}
-function parseRSS(text){var doc=new DOMParser().parseFromString(text,"application/xml");if(doc.querySelector("parsererror"))throw Error("無效的 RSS XML");return Array.from(doc.querySelectorAll("item")).map(function(item){var title=stripHtml(item.querySelector("title")?.textContent||"");var descEl=item.querySelector("description")||item.querySelector("encoded");var desc=stripHtml(descEl?.textContent||"");if(desc.length>480)desc=desc.slice(0,480).replace(/[。,，；,. ]+$/,"")+"…";if(!desc)desc="香港政府新聞處發佈的最新消息。請閱讀原文查看完整內容。";var dateEl=item.querySelector("pubDate")||item.querySelector("date");return{title:title,description:desc,link:(item.querySelector("link")?.textContent||"https://www.news.gov.hk/").trim(),date:dateEl?formatDate(dateEl.textContent):"",category:category(title,desc)}}).filter(function(x){return x.title})}
+  let currentFeed = 'local';
+  const newsList = document.getElementById('news-list');
+  const statusEl = document.getElementById('last-updated');
 
-async function fetchFeed(url){var direct=url+(url.includes("?")?"&":"?")+"_="+Date.now();try{var r=await fetch(direct,{cache:"no-store"});if(r.ok)return r.text()}catch(e){}var r=await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(direct));if(!r.ok)throw Error("RSS proxy returned "+r.status);return r.text()}
-async function fetchJSON(url){var r=await fetch("https://api.rss2json.com/v1/api.json?count=20&rss_url="+encodeURIComponent(url));if(!r.ok)throw Error("RSS JSON returned "+r.status);var f=await r.json();if(f.status!=="ok")throw Error(f.message||"RSS failed");return f.items.map(function(i){var title=stripHtml(i.title||"");var desc=stripHtml(i.description||i.content||"");if(desc.length>480)desc=desc.slice(0,480)+"…";if(!desc)desc="香港政府新聞處發佈的最新消息。請閱讀原文查看完整內容。";return{title:title,description:desc,link:i.link||"https://www.news.gov.hk/",date:i.pubDate?formatDate(i.pubDate):"",category:category(title,desc)}}).filter(function(x){return x.title})}
+  function formatHKTime(dateStr) {
+    const date = new Date(dateStr);
+    if (isNaN(date)) return '';
+    return date.toLocaleTimeString('zh-HK', {
+      timeZone: 'Asia/Hong_Kong',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  }
 
-async function loadNews(){var refresh=document.getElementById("refresh-btn");var next=document.getElementById("next-btn");refresh.disabled=true;next.disabled=true;document.getElementById("update-status").textContent="正在取得最新新聞……";try{var items=[];try{items=parseRSS(await fetchFeed(RSS_PRIMARY))}catch(e){try{items=parseRSS(await fetchFeed(RSS_FALLBACK))}catch(e2){items=await fetchJSON(RSS_PRIMARY)}}if(!items.length)throw Error("沒有取得新聞項目");newsItems=items;currentIndex=0;renderNews();document.getElementById("update-status").textContent="已更新：「香港政府新聞處」｜共 "+items.length+" 篇｜"+new Date().toLocaleString("zh-HK")}catch(e){document.getElementById("news-category").textContent="暫時無法連線";document.getElementById("news-title").textContent="未能取得最新新聞";document.getElementById("news-content").textContent="請稍後重試，或直接前往香港政府新聞處閱讀最新消息。";document.getElementById("source-link").href="https://www.news.gov.hk/";document.getElementById("update-status").textContent="載入失敗："+e.message;document.getElementById("quiz-container").innerHTML=""}finally{refresh.disabled=false;next.disabled=false}}
+  async function loadNews(feedKey = currentFeed) {
+    currentFeed = feedKey;
+    const rssUrl = encodeURIComponent(FEEDS[feedKey]);
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`;
 
-function shuffle(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t}return b}
-function renderNews(){var item=newsItems[currentIndex];if(!item)return;score=0;document.getElementById("news-category").textContent=item.category;document.getElementById("news-title").textContent=item.title;document.getElementById("news-content").textContent=item.description+(item.date?" （"+item.date+"）":"");document.getElementById("source-link").href=item.link;document.getElementById("source-link").textContent="閱讀香港政府新聞處原文";document.getElementById("score-display").textContent="得分：0 / 3";var shortTitle=item.title.length>18?item.title.slice(0,18)+"……":item.title;var questions=[["1. 【何事】這則新聞的標題主要講述什麼？",shortTitle,"與此無關的娛樂新聞","一則個人日記內容"],["2. 【何地】這則新聞屬於哪個地區的重要資訊？","香港","另一個國家","未知星球"],["3. 【哪裏】要閱讀完整的政府新聞，應到哪裏？","香港政府新聞處原文","陌生私人電郵連結","隨機圖片網站"]];var container=document.getElementById("quiz-container");container.innerHTML="";questions.forEach(function(q,qi){var block=document.createElement("div");block.className="question-block";var title=document.createElement("div");title.className="q-title";title.textContent=q[0];block.appendChild(title);shuffle(q.slice(1)).forEach(function(answer){var btn=document.createElement("button");btn.className="option-btn";btn.textContent=answer;btn.onclick=function(){answerQuestion(btn,block,answer===q[1],qi,q)};block.appendChild(btn)});var feedback=document.createElement("div");feedback.className="feedback";block.appendChild(feedback);container.appendChild(block)})}
-function answerQuestion(btn,block,correct,qi,q){if(block.dataset.answered)return;block.dataset.answered="true";block.querySelectorAll("button").forEach(function(b){b.disabled=true;if(b.textContent===q[1])b.classList.add("correct")});var feedback=block.querySelector(".feedback");if(correct){btn.classList.add("correct");feedback.textContent="答對了！";feedback.style.color="#065f46";score++}else{btn.classList.add("wrong");feedback.textContent="再想一想：請參考新聞標題及原文。";feedback.style.color="#991b1b"}document.getElementById("score-display").textContent="得分："+score+" / 3"}
-function nextNews(){if(!newsItems.length)return;stopSpeak();currentIndex=(currentIndex+1)%newsItems.length;renderNews()}
-function speakNews(){if(!("speechSynthesis"in window)){alert("此瀏覽器不支援朗讀功能。");return}stopSpeak();var item=newsItems[currentIndex];if(!item)return;var u=new SpeechSynthesisUtterance(item.title+"。"+item.description);u.lang="zh-HK";speechSynthesis.speak(u)}
-function stopSpeak(){if("speechSynthesis"in window)speechSynthesis.cancel()}
-document.addEventListener("DOMContentLoaded",function(){document.getElementById("today-date").textContent=new Date().toLocaleDateString("zh-HK",{year:"numeric",month:"long",day:"numeric",weekday:"long"});loadNews()});
+    try {
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+
+      if (data.status !== 'ok' || !data.items) {
+        throw new Error('Feed error');
+      }
+
+      newsList.innerHTML = '';
+      data.items.slice(0, 10).forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'news-item';
+
+        const link = document.createElement('a');
+        link.href = item.link;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = item.title;
+
+        const time = document.createElement('span');
+        time.className = 'news-time';
+        time.textContent = formatHKTime(item.pubDate);
+
+        li.appendChild(link);
+        li.appendChild(time);
+        newsList.appendChild(li);
+      });
+
+      const now = new Date().toLocaleTimeString('zh-HK', {
+        timeZone: 'Asia/Hong_Kong',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      statusEl.textContent = `最後更新 ${now}`;
+    } catch (err) {
+      newsList.innerHTML = '<li class="message">暫時未能載入新聞，請稍後再試。</li>';
+      statusEl.textContent = '更新失敗';
+    }
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      newsList.innerHTML = '<li class="message">載入中...</li>';
+      loadNews(btn.dataset.feed);
+    });
+  });
+
+  loadNews();
+  setInterval(() => loadNews(), 5 * 60 * 1000);
 </script>
+
 </body>
 </html>
