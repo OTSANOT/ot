@@ -14,19 +14,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch Google News HK RSS
+      - name: Fetch HK News via Proxy in GitHub Action
         run: |
-          curl -f -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
-          "https://google.com" -o news.xml
+          python3 -c "
+          import urllib.request, urllib.parse, json
 
-      - name: Verify and Commit news.xml
+          targets = [
+              'https://google.com',
+              'https://rthk.hk',
+              'https://news.gov.hk'
+          ]
+
+          success = False
+          for t in targets:
+              try:
+                  proxy_url = 'https://allorigins.win' + urllib.parse.quote(t, safe='')
+                  req = urllib.request.Request(proxy_url, headers={'User-Agent': 'Mozilla/5.0'})
+                  with urllib.request.urlopen(req, timeout=20) as resp:
+                      xml_data = resp.read().decode('utf-8', errors='ignore')
+                      if '<item>' in xml_data:
+                          with open('news.xml', 'w', encoding='utf-8') as f:
+                              f.write(xml_data)
+                          print('Successfully fetched from:', t)
+                          success = True
+                          break
+              except Exception as e:
+                  print('Failed:', t, e)
+
+          if not success:
+              raise SystemExit('All sources failed')
+          "
+
+      - name: Commit news.xml
         run: |
-          if grep -q "<item>" news.xml; then
-            git config --local user.email "github-actions[bot]@://github.com"
-            git config --local user.name "github-actions[bot]"
-            git add news.xml
-            git diff --quiet && git diff --staged --quiet || (git commit -m "Update HK news from Google News" && git push)
-          else
-            echo "No items found in RSS"
-            exit 1
-          fi
+          git config --local user.email "github-actions[bot]@://github.com"
+          git config --local user.name "github-actions[bot]"
+          git add news.xml
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update HK news" && git push)
