@@ -14,43 +14,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch HK News RSS via Python
+      - name: Fetch Google News HK RSS
         run: |
-          python3 -c "
-          import urllib.request, ssl
+          curl -f -s -L -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+          "https://google.com" -o news.xml
 
-          ctx = ssl.create_default_context()
-          ctx.check_hostname = False
-          ctx.verify_mode = ssl.CERT_NONE
-
-          urls = [
-              'https://rthk.hk',
-              'https://news.gov.hk',
-              'https://yahoo.com'
-          ]
-
-          headers = {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-              'Accept': 'application/rss+xml, application/xml, text/xml, */*'
-          }
-
-          for url in urls:
-              try:
-                  req = urllib.request.Request(url, headers=headers)
-                  with urllib.request.urlopen(req, context=ctx, timeout=15) as resp:
-                      content = resp.read().decode('utf-8', errors='ignore')
-                      if '<item>' in content or '<item ' in content:
-                          with open('news.xml', 'w', encoding='utf-8') as f:
-                              f.write(content)
-                          print('SUCCESS:', url)
-                          break
-              except Exception as e:
-                  print('FAILED:', url, e)
-          "
-
-      - name: Commit news.xml
+      - name: Verify and Commit news.xml
         run: |
-          git config --local user.email "github-actions[bot]@://github.com"
-          git config --local user.name "github-actions[bot]"
-          git add news.xml
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update HK news" && git push)
+          if grep -q "<item>" news.xml; then
+            git config --local user.email "github-actions[bot]@://github.com"
+            git config --local user.name "github-actions[bot]"
+            git add news.xml
+            git diff --quiet && git diff --staged --quiet || (git commit -m "Update HK news from Google News" && git push)
+          else
+            echo "No items found in RSS"
+            exit 1
+          fi
