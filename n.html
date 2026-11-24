@@ -43,69 +43,67 @@
     .news-card a { text-decoration: none; color: #0056b3; }
     .news-card a:hover { text-decoration: underline; }
     .news-meta { font-size: 13px; color: #666; margin-bottom: 8px; }
-    .news-desc { font-size: 15px; color: #333; margin: 0; }
     #status { color: #555; font-style: italic; }
+    .error-detail { color: #b00020; font-size: 13px; }
   </style>
 </head>
 <body>
 
   <header>
     <h1>📰 香港即時新聞</h1>
-    <button onclick="loadNews()">🔄 重新整理</button>
+    <button onclick="loadNews()">🔄 立即更新</button>
   </header>
 
-  <p id="status">正在載入最新新聞...</p>
+  <p id="status">正在載入最新香港新聞...</p>
   <div id="news-container"></div>
 
   <script>
+    // 使用 GDELT 全球即時新聞開放 API（原生支援 CORS，專抓香港繁體中文最新報導）
+    const GDELT_HK_API = 'https://gdeltproject.org';
+
     async function loadNews() {
       const statusEl = document.getElementById('status');
       const containerEl = document.getElementById('news-container');
       
-      statusEl.textContent = '正在讀取最新香港新聞...';
+      statusEl.textContent = '正在連線抓取香港最新新聞...';
       containerEl.innerHTML = '';
 
       try {
-        // 直接讀取同資料夾下的 news.xml，保證 100% 不會出現 CORS 或 Failed to fetch
-        const response = await fetch(`./news.xml?t=${Date.now()}`);
-        if (!response.ok) {
-          throw new Error(`找不到 news.xml (HTTP ${response.status})，請先於 GitHub Actions 執行一次工作流程`);
+        const response = await fetch(GDELT_HK_API);
+        if (!response.ok) throw new Error(`HTTP 狀態碼 ${response.status}`);
+        
+        const data = await response.json();
+        const articles = data.articles || [];
+
+        if (articles.length === 0) {
+          throw new Error('暫無最新新聞回傳');
         }
 
-        const xmlText = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-        const items = xmlDoc.querySelectorAll('item');
+        statusEl.textContent = `最後更新時間：${new Date().toLocaleTimeString('zh-HK')}（共 ${articles.length} 則香港即時報導）`;
 
-        if (!items || items.length === 0) {
-          throw new Error('news.xml 內暫無新聞資料');
-        }
-
-        statusEl.textContent = `載入成功（共 ${items.length} 則新聞，顯示最新 8 則）`;
-
-        Array.from(items).slice(0, 8).forEach(item => {
-          const title = item.querySelector('title')?.textContent || '無標題';
-          const link = item.querySelector('link')?.textContent || '#';
-          const pubDate = item.querySelector('pubDate')?.textContent || '';
-          const rawDesc = item.querySelector('description')?.textContent || '';
-          const cleanDesc = rawDesc.replace(/<[^>]*>?/gm, '').trim();
+        articles.forEach(art => {
+          // 格式化 GDELT 時間戳記 (YYYYMMDDTHHMMSSZ)
+          let timeStr = art.seendate || '';
+          if (timeStr.length >= 13) {
+            timeStr = `${timeStr.slice(0,4)}-${timeStr.slice(4,6)}-${timeStr.slice(6,8)} ${timeStr.slice(9,11)}:${timeStr.slice(11,13)}`;
+          }
 
           const card = document.createElement('div');
           card.className = 'news-card';
           card.innerHTML = `
-            <h3><a href="${link}" target="_blank" rel="noopener">${title}</a></h3>
-            <div class="news-meta">發佈時間：${pubDate}</div>
-            <p class="news-desc">${cleanDesc}</p>
+            <h3><a href="${art.url}" target="_blank" rel="noopener">${art.title}</a></h3>
+            <div class="news-meta">來源：${art.domain} ｜ 時間：${timeStr}</div>
           `;
           containerEl.appendChild(card);
         });
 
       } catch (error) {
-        statusEl.textContent = `載入失敗：${error.message}`;
+        statusEl.innerHTML = `載入新聞失敗。<br><span class="error-detail">錯誤原因：${error.message}</span>`;
       }
     }
 
     window.addEventListener('DOMContentLoaded', loadNews);
+    setInterval(loadNews, 900000);
   </script>
 
 </body>
