@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>香港即時新聞自動更新 (RSS)</title>
+  <title>香港即時新聞自動更新 (XML 直讀版)</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -45,6 +45,7 @@
     .news-meta { font-size: 13px; color: #666; margin-bottom: 8px; }
     .news-desc { font-size: 15px; color: #333; margin: 0; }
     #status { color: #555; font-style: italic; }
+    .error-detail { color: #b00020; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -58,55 +59,81 @@
   <div id="news-container"></div>
 
   <script>
-    // RTHK 本地新聞 RSS 網址 (亦可更換為其他公開 RSS)
+    // 注意：RTHK 官方 RSS 網址為 rthk9.rthk.hk
     const RTHK_RSS_URL = 'https://rthk.hk';
-    
-    // 透過 rss2json 轉換為 JSON 格式以解決瀏覽器 CORS 限制
-    const API_ENDPOINT = `https://rss2json.com{encodeURIComponent(RTHK_RSS_URL)}`;
+
+    // 設定兩個免費 CORS 代理伺服器作自動備援
+    const PROXIES = [
+      (url) => `https://allorigins.win{encodeURIComponent(url)}`,
+      (url) => `https://corsproxy.io{encodeURIComponent(url)}`
+    ];
+
+    async function fetchWithFallback(targetUrl) {
+      let lastError;
+      for (const makeProxyUrl of PROXIES) {
+        try {
+          const response = await fetch(makeProxyUrl(targetUrl));
+          if (!response.ok) throw new Error(`HTTP 錯誤碼: ${response.status}`);
+          const text = await response.text();
+          if (text.includes('<rss') || text.includes('<item>')) {
+            return text;
+          }
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error('所有代理伺服器均無法連線');
+    }
 
     async function loadNews() {
       const statusEl = document.getElementById('status');
       const containerEl = document.getElementById('news-container');
       
-      statusEl.textContent = '正在更新最新新聞...';
+      statusEl.innerHTML = '正在從香港電台讀取最新新聞...';
       containerEl.innerHTML = '';
 
       try {
-        const response = await fetch(API_ENDPOINT);
-        const data = await response.json();
+        // 加上時間戳記防止瀏覽器讀取舊快取
+        const freshUrl = `${RTHK_RSS_URL}?t=${Date.now()}`;
+        const xmlText = await fetchWithFallback(freshUrl);
 
-        if (data.status !== 'ok') {
-          throw new Error('無法讀取 RSS 來源');
+        // 使用瀏覽器內建 DOMParser 直接解析 XML
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        const items = xmlDoc.querySelectorAll('item');
+
+        if (!items || items.length === 0) {
+          throw new Error('XML 內容中找不到新聞項目');
         }
 
-        statusEl.textContent = `最後更新時間：${new Date().toLocaleTimeString('zh-HK')}`;
+        statusEl.textContent = `最後更新時間：${new Date().toLocaleTimeString('zh-HK')}（共 ${items.length} 則，顯示最新 8 則）`;
 
-        // 顯示最新 8 則新聞
-        data.items.slice(0, 8).forEach(item => {
+        Array.from(items).slice(0, 8).forEach(item => {
+          const title = item.querySelector('title')?.textContent || '無標題';
+          const link = item.querySelector('link')?.textContent || '#';
+          const pubDate = item.querySelector('pubDate')?.textContent || '';
+          const rawDesc = item.querySelector('description')?.textContent || '';
+          
+          // 清理摘要中的 HTML 標籤與多餘空白
+          const cleanDesc = rawDesc.replace(/<[^>]*>?/gm, '').trim();
+
           const card = document.createElement('div');
           card.className = 'news-card';
-
-          // 清理摘要中的多餘 HTML 標籤
-          const cleanDesc = item.description.replace(/<[^>]*>?/gm, '');
-
           card.innerHTML = `
-            <h3><a href="${item.link}" target="_blank" rel="noopener">${item.title}</a></h3>
-            <div class="news-meta">發佈時間：${item.pubDate}</div>
+            <h3><a href="${link}" target="_blank" rel="noopener">${title}</a></h3>
+            <div class="news-meta">發佈時間：${pubDate}</div>
             <p class="news-desc">${cleanDesc}</p>
           `;
           containerEl.appendChild(card);
         });
 
       } catch (error) {
-        statusEl.textContent = '載入新聞失敗，請稍後再試。';
+        statusEl.innerHTML = `載入新聞失敗。<br><span class="error-detail">錯誤原因：${error.message}</span>`;
         console.error('RSS Fetch Error:', error);
       }
     }
 
-    // 網頁開啟時自動載入新聞
     window.addEventListener('DOMContentLoaded', loadNews);
-    
-    // 每 15 分鐘 (900,000 毫秒) 自動在背景重新整理一次
     setInterval(loadNews, 900000);
   </script>
 
