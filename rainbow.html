@@ -79,69 +79,81 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-between text-white py-2.5 px-2 sm:px-4">
+<body class="min-h-screen flex flex-col items-center justify-between text-white py-2 px-2 sm:px-4">
 
-    <!-- 頂部計分與獎品燈箱 -->
-    <header class="w-full max-w-3xl flex flex-col gap-2">
-        <div class="arcade-header px-4 py-2 rounded-2xl flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-full bg-yellow-400 border-2 border-amber-700 flex items-center justify-center text-amber-900 font-black text-lg shadow-inner">
+    <!-- 頂部計分、計時器與獎品燈箱 -->
+    <header class="w-full max-w-3xl flex flex-col gap-1.5">
+        <div class="arcade-header px-3 sm:px-4 py-2 rounded-2xl flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-yellow-400 border-2 border-amber-700 flex items-center justify-center text-amber-900 font-black text-base sm:text-lg shadow-inner shrink-0">
                     🪙
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-xl font-black tracking-wider text-yellow-300 drop-shadow">
+                    <h1 class="text-sm sm:text-lg font-black tracking-wider text-yellow-300 drop-shadow leading-tight">
                         RAINBOW OF HAPPINESS
                     </h1>
-                    <p class="text-[11px] text-yellow-100/90 font-medium">TOUCHING THE BLACK LINE LOSES</p>
+                    <p class="text-[10px] text-yellow-100/90 font-medium hidden sm:block">TOUCHING THE BLACK LINE LOSES</p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 sm:gap-5">
-                <div class="bg-black/40 px-3 py-1 rounded-xl border border-yellow-400/40 text-center">
-                    <div class="text-[10px] text-yellow-200">代幣 TOKEN</div>
-                    <div id="hud-coins" class="text-lg sm:text-2xl font-black text-yellow-300 leading-tight">20</div>
+            <!-- 數據與倒數計時顯示區 -->
+            <div class="flex items-center gap-1.5 sm:gap-3 ml-auto">
+                <!-- 計時器方塊 (點擊可設定 1-15 分鐘) -->
+                <button id="open-timer-btn" title="點擊設定 1-15 分鐘計時" class="bg-black/50 hover:bg-black/70 px-2.5 py-1 rounded-xl border border-sky-400/60 text-center transition active:scale-95">
+                    <div class="text-[9px] sm:text-[10px] text-sky-300 flex items-center justify-center gap-0.5">
+                        <span>⏱️ 剩餘時間</span>
+                        <span class="underline">設定</span>
+                    </div>
+                    <div id="hud-timer" class="text-base sm:text-xl font-black text-sky-300 font-mono leading-tight">05:00</div>
+                </button>
+
+                <div class="bg-black/40 px-2.5 py-1 rounded-xl border border-yellow-400/40 text-center">
+                    <div class="text-[9px] sm:text-[10px] text-yellow-200">代幣 TOKEN</div>
+                    <div id="hud-coins" class="text-base sm:text-xl font-black text-yellow-300 leading-tight">20</div>
                 </div>
-                <div class="bg-black/40 px-3 py-1 rounded-xl border border-emerald-400/40 text-center">
-                    <div class="text-[10px] text-emerald-200">獎券 TICKETS</div>
-                    <div id="hud-tickets" class="text-lg sm:text-2xl font-black text-emerald-400 leading-tight">0</div>
+
+                <div class="bg-black/40 px-2.5 py-1 rounded-xl border border-emerald-400/40 text-center">
+                    <div class="text-[9px] sm:text-[10px] text-emerald-200">獎券 TICKETS</div>
+                    <div id="hud-tickets" class="text-base sm:text-xl font-black text-emerald-400 leading-tight">0</div>
                 </div>
-                <button id="open-rules-btn" class="bg-yellow-400 hover:bg-yellow-300 text-red-900 font-black text-xs px-3 py-2 rounded-xl shadow transition active:scale-95">
-                    玩法說明
+
+                <button id="open-rules-btn" class="bg-yellow-400 hover:bg-yellow-300 text-red-900 font-black text-xs px-2.5 py-2 rounded-xl shadow transition active:scale-95">
+                    玩法
                 </button>
             </div>
         </div>
 
-        <!-- 四色獎品等級對照表 (對應圖中 SMALL / MEDIUM / LARGE / CHOICE) -->
+        <!-- 四色獎品等級對照表 -->
         <div class="grid grid-cols-4 gap-1.5 text-center text-xs font-black">
             <div class="bg-red-600 border-2 border-red-300/70 py-1 px-1 rounded-xl shadow">
                 <div class="text-[9px] tracking-widest text-red-100">SMALL (紅)</div>
-                <div class="text-xs sm:text-sm">🦐 蝦條零食 +10</div>
+                <div class="text-[11px] sm:text-sm">🦐 蝦條 +10</div>
             </div>
             <div class="bg-green-600 border-2 border-green-300/70 py-1 px-1 rounded-xl shadow">
                 <div class="text-[9px] tracking-widest text-green-100">MEDIUM (綠)</div>
-                <div class="text-xs sm:text-sm">🎁 精品盲盒 +30</div>
+                <div class="text-[11px] sm:text-sm">🎁 盲盒 +30</div>
             </div>
             <div class="bg-yellow-400 border-2 border-yellow-100 text-slate-900 py-1 px-1 rounded-xl shadow">
                 <div class="text-[9px] tracking-widest text-amber-900">LARGE (黃)</div>
-                <div class="text-xs sm:text-sm">🏎️ 合金跑車 +80</div>
+                <div class="text-[11px] sm:text-sm">🏎️ 跑車 +80</div>
             </div>
             <div class="bg-purple-600 border-2 border-purple-300/80 py-1 px-1 rounded-xl shadow">
                 <div class="text-[9px] tracking-widest text-purple-200">CHOICE (紫)</div>
-                <div class="text-xs sm:text-sm">🧸 限定公仔 +200</div>
+                <div class="text-[11px] sm:text-sm">🧸 公仔 +200</div>
             </div>
         </div>
     </header>
 
     <!-- 遊戲主檯面 -->
-    <main class="w-full max-w-3xl flex-1 flex flex-col justify-center my-2">
-        <div class="arcade-table-frame w-full aspect-[4/3] sm:aspect-[16/11] max-h-[64vh]">
+    <main class="w-full max-w-3xl flex-1 flex flex-col justify-center my-1.5">
+        <div class="arcade-table-frame w-full aspect-[4/3] sm:aspect-[16/11] max-h-[63vh]">
             <canvas id="rainbowCanvas"></canvas>
             <!-- 模擬膠墊光澤反光 -->
             <div class="gloss-overlay absolute inset-2.5"></div>
 
             <!-- 頂部裁判結果公告 -->
             <div id="judge-banner" class="pointer-events-none absolute top-4 inset-x-0 flex justify-center opacity-0 transition-opacity duration-200 z-10">
-                <div id="judge-text" class="px-5 py-2 rounded-full font-black text-base sm:text-xl shadow-2xl border-2">
+                <div id="judge-text" class="px-5 py-2 rounded-full font-black text-sm sm:text-xl shadow-2xl border-2">
                     判定中
                 </div>
             </div>
@@ -149,86 +161,139 @@
             <!-- 操作指引 -->
             <div id="hint-pill" class="pointer-events-none absolute bottom-4 inset-x-0 flex justify-center z-10">
                 <div class="bg-slate-950/85 text-yellow-300 text-xs sm:text-sm font-bold px-4 py-1.5 rounded-full border border-yellow-400/50 shadow-lg">
-                    🎯 點擊或拖曳瞄準彩虹格放開，即可投擲金幣！
+                    🎯 點擊或拖曳瞄準彩虹格放開，投出第一枚金幣即開始倒數！
                 </div>
             </div>
         </div>
     </main>
 
     <!-- 底部操作列 -->
-    <footer class="w-full max-w-3xl flex items-center justify-between gap-2 bg-slate-900/90 px-4 py-2.5 rounded-2xl border border-slate-700/80 shadow-xl">
-        <div class="flex items-center gap-2">
-            <button id="sweep-btn" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs sm:text-sm font-bold px-3 py-2.5 rounded-xl border border-slate-600 transition">
-                🧹 職員掃幣
+    <footer class="w-full max-w-3xl flex items-center justify-between gap-2 bg-slate-900/90 px-3 sm:px-4 py-2 rounded-2xl border border-slate-700/80 shadow-xl">
+        <div class="flex items-center gap-1.5 sm:gap-2">
+            <button id="sweep-btn" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs sm:text-sm font-bold px-2.5 sm:px-3 py-2 rounded-xl border border-slate-600 transition">
+                🧹 掃幣
             </button>
-            <button id="mute-btn" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs sm:text-sm font-bold px-3 py-2.5 rounded-xl border border-slate-600 transition">
+            <button id="mute-btn" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs sm:text-sm font-bold px-2.5 sm:px-3 py-2 rounded-xl border border-slate-600 transition">
                 🔊 音效開
             </button>
-            <button id="zoom-toggle-btn" class="hidden sm:inline-flex bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 text-xs sm:text-sm font-bold px-3 py-2.5 rounded-xl border border-amber-500/40 transition">
+            <button id="zoom-toggle-btn" class="hidden sm:inline-flex bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-300 text-xs sm:text-sm font-bold px-3 py-2 rounded-xl border border-amber-500/40 transition">
                 🔍 壓界特寫: 開
             </button>
         </div>
 
-        <button id="add-coin-btn" class="token-btn text-amber-950 font-black text-sm sm:text-base px-5 py-2.5 rounded-full flex items-center gap-1.5">
+        <button id="add-coin-btn" class="token-btn text-amber-950 font-black text-xs sm:text-base px-4 sm:px-5 py-2 rounded-full flex items-center gap-1.5">
             <span>🪙</span>
             <span>免費入幣 (+10)</span>
         </button>
     </footer>
 
-    <!-- 100% 還原圖片中的「玩法說明」公告牌 -->
+    <!-- 計時器設定彈窗 (1 - 15 分鐘) -->
+    <div id="timer-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-sky-400 rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-pop text-center">
+            <div class="text-3xl mb-1">⏱️</div>
+            <h2 class="text-xl font-black text-sky-300 mb-1">設定遊戲倒數計時</h2>
+            <p class="text-xs text-slate-400 mb-4">選擇每局挑戰時間（1 至 15 分鐘）</p>
+
+            <!-- 快捷分鐘按鈕 -->
+            <div class="grid grid-cols-5 gap-2 mb-4">
+                <button type="button" data-mins="1" class="preset-min-btn bg-slate-800 hover:bg-sky-600 text-white font-black py-2 rounded-xl border border-slate-600 text-sm transition">1分</button>
+                <button type="button" data-mins="3" class="preset-min-btn bg-slate-800 hover:bg-sky-600 text-white font-black py-2 rounded-xl border border-slate-600 text-sm transition">3分</button>
+                <button type="button" data-mins="5" class="preset-min-btn bg-sky-600 text-white font-black py-2 rounded-xl border border-sky-300 text-sm transition">5分</button>
+                <button type="button" data-mins="10" class="preset-min-btn bg-slate-800 hover:bg-sky-600 text-white font-black py-2 rounded-xl border border-slate-600 text-sm transition">10分</button>
+                <button type="button" data-mins="15" class="preset-min-btn bg-slate-800 hover:bg-sky-600 text-white font-black py-2 rounded-xl border border-slate-600 text-sm transition">15分</button>
+            </div>
+
+            <!-- 滑桿微調 (1 - 15 分鐘) -->
+            <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 mb-5">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs text-slate-400 font-bold">自訂分鐘數</span>
+                    <span id="timer-slider-val" class="text-2xl font-black text-yellow-300">5 分鐘</span>
+                </div>
+                <input id="timer-slider" type="range" min="1" max="15" value="5" class="w-full accent-sky-400 cursor-pointer h-2 bg-slate-700 rounded-lg">
+                <div class="flex justify-between text-[10px] text-slate-500 mt-1 font-bold">
+                    <span>1 分鐘</span>
+                    <span>8 分鐘</span>
+                    <span>15 分鐘</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="cancel-timer-btn" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-xl transition">
+                    取消
+                </button>
+                <button id="apply-timer-btn" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 font-black py-3 rounded-xl shadow-lg transition">
+                    套用並重設
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 時間到結算彈窗 -->
+    <div id="timesup-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-gradient-to-b from-red-700 to-slate-900 border-2 border-yellow-400 rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-pop text-center">
+            <div class="text-4xl mb-2">⏰</div>
+            <h2 class="text-2xl font-black text-yellow-300 mb-1">時間到！TIME'S UP</h2>
+            <p class="text-xs text-yellow-100/80 mb-5">本局挑戰結束，來看看你的戰績吧！</p>
+
+            <div class="grid grid-cols-2 gap-3 mb-5">
+                <div class="bg-black/40 p-3 rounded-2xl border border-emerald-400/40">
+                    <div class="text-xs text-emerald-200 mb-1">本局贏得獎券</div>
+                    <div id="summary-tickets" class="text-2xl font-black text-emerald-400">0</div>
+                </div>
+                <div class="bg-black/40 p-3 rounded-2xl border border-yellow-400/40">
+                    <div class="text-xs text-yellow-200 mb-1">剩餘代幣</div>
+                    <div id="summary-coins" class="text-2xl font-black text-yellow-300">20</div>
+                </div>
+            </div>
+
+            <button id="restart-session-btn" class="w-full bg-yellow-400 hover:bg-yellow-300 text-red-950 font-black text-base py-3.5 rounded-xl shadow-lg transition active:scale-98">
+                🔄 再玩一局 (重設時間與檯面)
+            </button>
+        </div>
+    </div>
+
+    <!-- 「玩法說明」公告牌 -->
     <div id="rules-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
         <div class="bg-red-600 p-2.5 rounded-3xl max-w-md w-full shadow-2xl animate-pop border-2 border-red-400">
             <div class="bg-[#f4f4f5] text-slate-900 rounded-2xl p-5 flex flex-col items-center shadow-inner">
-                <!-- 黃底黑字標題 -->
                 <div class="bg-[#eab308] text-slate-900 font-black text-2xl tracking-widest px-10 py-1.5 rounded-md mb-3 shadow-sm">
                     玩法說明
                 </div>
 
-                <!-- 規則原文 -->
                 <div class="text-sm sm:text-base font-bold leading-relaxed text-slate-800 space-y-1.5 mb-3 px-1">
                     <p>顧客每次只可投擲一枚金幣，當所投擲之金幣擲中相關顏色內而不壓界，即可獲贈相關顏色之獎品一份。</p>
                     <p>所有金幣中獎與否，一律以本店職員作最後裁決，顧客不得異議。</p>
                 </div>
 
-                <!-- 紅字副標題 -->
                 <div class="text-red-600 font-black text-xl tracking-wider mb-2">
                     擲界與中獎之分別
                 </div>
 
-                <!-- 還原說明牌底部圖解 -->
                 <svg viewBox="0 0 340 165" class="w-full max-w-[320px] mb-4">
-                    <!-- 彩虹層級 -->
                     <path d="M 35 150 A 135 135 0 0 1 305 150 Z" fill="#ef4444" stroke="#111" stroke-width="5"/>
                     <path d="M 72 150 A 98 98 0 0 1 268 150 Z" fill="#22c55e" stroke="#111" stroke-width="5"/>
                     <path d="M 108 150 A 62 62 0 0 1 232 150 Z" fill="#eab308" stroke="#111" stroke-width="5"/>
                     <path d="M 142 150 A 28 28 0 0 1 198 150 Z" fill="#9333ea" stroke="#111" stroke-width="5"/>
 
-                    <!-- 圖解文字 -->
                     <text x="170" y="32" font-size="9" font-weight="900" fill="#111" text-anchor="middle">RAINBOW OF HAPPINESS</text>
                     <text x="170" y="47" font-size="9" font-weight="900" fill="#111" text-anchor="middle">SMALL</text>
                     <text x="170" y="65" font-size="8" font-weight="900" fill="#111" text-anchor="middle">TOUCHING THE BLACK LINE LOSES</text>
                     <text x="170" y="82" font-size="9" font-weight="900" fill="#111" text-anchor="middle">MEDIUM</text>
                     <text x="170" y="116" font-size="9" font-weight="900" fill="#111" text-anchor="middle">LARGE</text>
 
-                    <!-- 左上擲界金幣 -->
-                    <circle cx="96" cy="84" r="12" fill="#eab308" stroke="#713f12" stroke-width="2"/>
-                    <circle cx="96" cy="84" r="8" fill="none" stroke="#713f12" stroke-width="1"/>
+                    <circle cx="96" cy="84" r="9" fill="#eab308" stroke="#713f12" stroke-width="2"/>
                     <g transform="translate(12, 48) rotate(22)">
                         <rect x="0" y="0" width="54" height="24" rx="4" fill="#fca5a5" stroke="#991b1b" stroke-width="1.5"/>
                         <text x="27" y="16" font-size="12" font-weight="900" fill="#111" text-anchor="middle">擲界</text>
                     </g>
 
-                    <!-- 下方擲界金幣 -->
-                    <circle cx="178" cy="142" r="12" fill="#eab308" stroke="#713f12" stroke-width="2"/>
-                    <circle cx="178" cy="142" r="8" fill="none" stroke="#713f12" stroke-width="1"/>
+                    <circle cx="178" cy="142" r="9" fill="#eab308" stroke="#713f12" stroke-width="2"/>
                     <g transform="translate(88, 134) rotate(-10)">
                         <rect x="0" y="0" width="58" height="24" rx="4" fill="#67e8f9" stroke="#0e7490" stroke-width="1.5"/>
                         <text x="29" y="16" font-size="12" font-weight="900" fill="#111" text-anchor="middle">擲界</text>
                     </g>
 
-                    <!-- 右側中獎金幣 -->
-                    <circle cx="242" cy="116" r="12" fill="#eab308" stroke="#713f12" stroke-width="2"/>
-                    <circle cx="242" cy="116" r="8" fill="none" stroke="#713f12" stroke-width="1"/>
+                    <circle cx="242" cy="116" r="9" fill="#eab308" stroke="#713f12" stroke-width="2"/>
                     <g transform="translate(268, 92) rotate(-32)">
                         <rect x="0" y="0" width="56" height="24" rx="4" fill="#fde047" stroke="#854d0e" stroke-width="1.5"/>
                         <text x="28" y="16" font-size="12" font-weight="900" fill="#111" text-anchor="middle">中獎</text>
@@ -244,19 +309,17 @@
 
     <script>
         /**
-         * 歡樂掟彩虹 (Rainbow of Happiness) 寫實重寫版
-         * 1. 還原照片中的拼接波浪地墊結構：外圈連續波浪半圓、中層交錯S型弧線、中央斜切雙圓心及小半圓陣列。
-         * 2. 離屏雙緩衝高精準像素判定：任何一像素觸及黑線或白底即判「擲界」。
-         * 3. 落地後提供放大鏡特寫檢視（Zoom Lens），讓玩家清楚看到金幣是否壓到黑線！
+         * 歡樂掟彩虹 (Rainbow of Happiness)
+         * 修正重點：
+         * 1. 縮小代幣半徑比例 (coinRadius = minDim * 0.0175) 並加寬彩虹色帶，確保每一層顏色都能完整容納代幣不壓線。
+         * 2. 新增 1 至 15 分鐘自由設定倒數計時器與時間到結算面板。
          */
         const canvas = document.getElementById('rainbowCanvas');
         const ctx = canvas.getContext('2d');
 
-        // 離屏底圖畫布 (靜態地墊緩存，大幅提升流暢度)
         const boardCacheCanvas = document.createElement('canvas');
         const boardCacheCtx = boardCacheCanvas.getContext('2d');
 
-        // 離屏判定畫布 (純色無抗鋸齒干擾，供精確碰撞運算)
         const hitCanvas = document.createElement('canvas');
         const hitCtx = hitCanvas.getContext('2d', { willReadFrequently: true });
 
@@ -270,13 +333,17 @@
             aimY: 0,
             landedCoins: [],
             flyingCoin: null,
-            lastLandingSpot: null, // 記錄最後一枚落點供放大鏡顯示
+            lastLandingSpot: null,
             zoomTimer: 0,
             particles: [],
-            coinRadius: 13
+            coinRadius: 7.5,
+            // 計時器狀態 (1 - 15 分鐘)
+            durationMinutes: 5,
+            remainingSeconds: 5 * 60,
+            timerRunning: false,
+            isTimeUp: false
         };
 
-        // 配色定義
         const PALETTE = {
             RED: '#EF4444',
             GREEN: '#22C55E',
@@ -287,7 +354,7 @@
             WHITE: '#F8FAFC'
         };
 
-        // Tone.js 音效初始化
+        // Tone.js 音效系統
         let audioReady = false;
         let metalSynth, winPoly, buzzSynth;
 
@@ -315,7 +382,7 @@
                 buzzSynth.volume.value = -10;
                 audioReady = true;
             } catch (err) {
-                console.warn('音效略過', err);
+                console.warn('音效初始化略過', err);
             }
         }
 
@@ -335,11 +402,13 @@
                 winPoly.triggerAttackRelease(['C5', 'E5', 'G5', 'B5', 'D6', 'G6'], '8n', now);
             } else if (type === 'lose') {
                 buzzSynth.triggerAttackRelease('G2', '8n', now);
+            } else if (type === 'timesup') {
+                winPoly.triggerAttackRelease(['A4', 'F4', 'D4'], '4n', now);
             }
         }
 
         /**
-         * 繪製沿著圓弧彎曲的英文標籤 (SMALL / MEDIUM / LARGE)
+         * 繪製沿著圓弧彎曲的英文標籤
          */
         function drawCurvedText(targetCtx, text, cx, cy, radius, midAngle, fontSize) {
             targetCtx.save();
@@ -348,10 +417,9 @@
             targetCtx.textAlign = 'center';
             targetCtx.textBaseline = 'middle';
 
-            const totalAngle = (text.length * fontSize * 0.68) / radius;
+            const totalAngle = (text.length * fontSize * 0.65) / radius;
             let currentAngle = midAngle - totalAngle / 2;
 
-            // 若文字在下半圓，反轉方向使字體正向易讀
             const isBottom = Math.sin(midAngle) > 0.25;
             if (isBottom) {
                 currentAngle = midAngle + totalAngle / 2;
@@ -359,7 +427,7 @@
 
             for (let i = 0; i < text.length; i++) {
                 const char = text[i];
-                const charAngle = (fontSize * 0.68) / radius;
+                const charAngle = (fontSize * 0.65) / radius;
                 const theta = isBottom ? currentAngle - charAngle / 2 : currentAngle + charAngle / 2;
 
                 targetCtx.save();
@@ -375,7 +443,7 @@
 
         /**
          * 繪製單組彩虹扇形 / 半圓 / 全圓
-         * @param {boolean} isHitMap 是否繪製於判定畫布 (判定畫布不畫細小文字避免誤判黑線)
+         * 調整各環半徑比例，使每一色環寬度均遠大於代幣直徑
          */
         function drawRainbowUnit(targetCtx, cx, cy, outerR, startAngle, endAngle, lineW, isHitMap, options = {}) {
             const {
@@ -386,10 +454,10 @@
 
             const rings = includePurple
                 ? [
-                    { r: outerR * 1.00, color: PALETTE.RED, label: 'SMALL', textR: outerR * 0.88 },
-                    { r: outerR * 0.74, color: PALETTE.GREEN, label: 'MEDIUM', textR: outerR * 0.62 },
-                    { r: outerR * 0.49, color: PALETTE.YELLOW, label: 'LARGE', textR: outerR * 0.37 },
-                    { r: outerR * 0.25, color: centerBlue ? PALETTE.BLUE_CENTER : PALETTE.PURPLE, label: '', textR: 0 }
+                    { r: outerR * 1.00, color: PALETTE.RED, label: 'SMALL', textR: outerR * 0.885 },
+                    { r: outerR * 0.77, color: PALETTE.GREEN, label: 'MEDIUM', textR: outerR * 0.655 },
+                    { r: outerR * 0.54, color: PALETTE.YELLOW, label: 'LARGE', textR: outerR * 0.42 },
+                    { r: outerR * 0.30, color: centerBlue ? PALETTE.BLUE_CENTER : PALETTE.PURPLE, label: '', textR: 0 }
                   ]
                 : [
                     { r: outerR * 1.00, color: PALETTE.RED, label: 'SMALL', textR: outerR * 0.86 },
@@ -414,27 +482,25 @@
                 targetCtx.strokeStyle = PALETTE.BLACK;
                 targetCtx.stroke();
 
-                // 僅在可見畫布上繪製弧形英文標籤
-                if (!isHitMap && ring.label && outerR > 42) {
-                    const fontSize = Math.max(6, Math.round(outerR * 0.085));
+                if (!isHitMap && ring.label && outerR > 54) {
+                    const fontSize = Math.max(6, Math.round(outerR * 0.075));
                     drawCurvedText(targetCtx, ring.label, cx, cy, ring.textR, labelAngle, fontSize);
                 }
             });
         }
 
         /**
-         * 繪製斜切全圓 (還原照片中央四個帶白色斜通道的彩虹圓)
+         * 繪製斜切全圓 (中央五環大獎區)
          */
         function drawSlicedRainbowCircle(targetCtx, cx, cy, outerR, slashAngle, lineW, isHitMap, centerBlue = false) {
-            // 先畫完整彩虹圓
             drawRainbowUnit(targetCtx, cx, cy, outerR, 0, Math.PI * 2, lineW, isHitMap, {
                 includePurple: true,
                 centerBlue,
                 labelAngle: slashAngle + Math.PI / 2
             });
 
-            // 繪製貫穿圓心的白色斜切帶 + 兩側黑線邊界
-            const bandHalfW = outerR * 0.11;
+            // 白色斜切帶
+            const bandHalfW = outerR * 0.065;
             targetCtx.save();
             targetCtx.translate(cx, cy);
             targetCtx.rotate(slashAngle);
@@ -442,7 +508,6 @@
             targetCtx.fillStyle = isHitMap ? '#FFFFFF' : PALETTE.WHITE;
             targetCtx.fillRect(-outerR - lineW, -bandHalfW, (outerR + lineW) * 2, bandHalfW * 2);
 
-            // 斜切帶兩側黑線
             targetCtx.strokeStyle = PALETTE.BLACK;
             targetCtx.lineWidth = lineW;
             targetCtx.beginPath();
@@ -456,7 +521,7 @@
         }
 
         /**
-         * 繪製整張「歡樂掟彩虹」拼接膠墊檯面
+         * 繪製整張「歡樂掟彩虹」拼接膠墊檯面 (大幅加寬彩虹色帶)
          */
         function renderFullBoard(targetCtx, w, h, isHitMap) {
             targetCtx.clearRect(0, 0, w, h);
@@ -464,100 +529,70 @@
             targetCtx.fillRect(0, 0, w, h);
 
             const minDim = Math.min(w, h);
-            const lineW = Math.max(2.6, minDim * 0.0085); // 精準黑線寬度
+            // 細緻黑線寬度，最大化色帶可中獎面積
+            const lineW = Math.max(1.8, minDim * 0.0045);
 
-            // 1. 最外圍四邊半圓波浪陣列 (還原照片上下左右四邊)
-            const topCols = 5;
+            // 1. 最外圍四邊半圓波浪陣列 (減少數量並大幅加大每個半圓半徑)
+            const topCols = 4;
             const stepX = w / topCols;
-            const edgeR = stepX * 0.45;
+            const edgeR = stepX * 0.49;
             for (let i = 0; i < topCols; i++) {
                 const cx = stepX * (i + 0.5);
                 drawRainbowUnit(targetCtx, cx, 0, edgeR, 0, Math.PI, lineW, isHitMap, { labelAngle: Math.PI * 0.5 });
                 drawRainbowUnit(targetCtx, cx, h, edgeR, Math.PI, Math.PI * 2, lineW, isHitMap, { labelAngle: -Math.PI * 0.5 });
             }
 
-            const sideRows = 3;
+            const sideRows = 2;
             const stepY = h / sideRows;
-            const sideR = stepY * 0.43;
+            const sideR = stepY * 0.48;
             for (let j = 0; j < sideRows; j++) {
                 const cy = stepY * (j + 0.5);
                 drawRainbowUnit(targetCtx, 0, cy, sideR, -Math.PI / 2, Math.PI / 2, lineW, isHitMap, { labelAngle: 0 });
                 drawRainbowUnit(targetCtx, w, cy, sideR, Math.PI / 2, Math.PI * 1.5, lineW, isHitMap, { labelAngle: Math.PI });
             }
 
-            // 2. 內框拼接交錯 S 型波浪彩虹帶 (還原照片中層左右上下交錯半圓)
-            const innerLeft = w * 0.17;
-            const innerRight = w * 0.83;
-            const innerTop = h * 0.17;
-            const innerBottom = h * 0.83;
-            const midR = minDim * 0.135;
-
-            // 上下內排交錯半圓
-            [0.30, 0.50, 0.70].forEach((ratioX, idx) => {
-                const x = w * ratioX;
-                drawRainbowUnit(targetCtx, x, innerTop, midR, idx % 2 === 0 ? 0 : Math.PI, idx % 2 === 0 ? Math.PI : Math.PI * 2, lineW, isHitMap);
-                drawRainbowUnit(targetCtx, x, innerBottom, midR, idx % 2 === 0 ? Math.PI : 0, idx % 2 === 0 ? Math.PI * 2 : Math.PI, lineW, isHitMap);
-            });
-
-            // 左右內排交錯半圓
-            [0.34, 0.66].forEach((ratioY, idx) => {
-                const y = h * ratioY;
-                drawRainbowUnit(targetCtx, innerLeft, y, midR * 0.95, idx % 2 === 0 ? -Math.PI / 2 : Math.PI / 2, idx % 2 === 0 ? Math.PI / 2 : Math.PI * 1.5, lineW, isHitMap);
-                drawRainbowUnit(targetCtx, innerRight, y, midR * 0.95, idx % 2 === 0 ? Math.PI / 2 : -Math.PI / 2, idx % 2 === 0 ? Math.PI * 1.5 : Math.PI / 2, lineW, isHitMap);
-            });
-
-            // 3. 中央核心大獎區：五組斜切彩虹圓 (還原照片中間五環結構)
+            // 2. 中央核心大獎區：五組超大斜切彩虹圓 (佔據整個中央檯面，色環超寬)
             const cx = w * 0.5;
             const cy = h * 0.5;
-            const coreR = minDim * 0.145;
+            const coreR = minDim * 0.215;
 
-            // 正中央藍紫心斜切圓
-            drawSlicedRainbowCircle(targetCtx, cx, cy, coreR * 1.05, -0.35, lineW, isHitMap, true);
+            const offsetX = w * 0.215;
+            const offsetY = h * 0.205;
+            drawSlicedRainbowCircle(targetCtx, cx - offsetX, cy - offsetY, coreR * 0.96, -0.35, lineW, isHitMap, false);
+            drawSlicedRainbowCircle(targetCtx, cx + offsetX, cy - offsetY, coreR * 0.96, 0.35, lineW, isHitMap, false);
+            drawSlicedRainbowCircle(targetCtx, cx - offsetX, cy + offsetY, coreR * 0.96, 0.35, lineW, isHitMap, false);
+            drawSlicedRainbowCircle(targetCtx, cx + offsetX, cy + offsetY, coreR * 0.96, -0.35, lineW, isHitMap, false);
 
-            // 四角斜切彩虹圓
-            const offsetX = w * 0.17;
-            const offsetY = h * 0.165;
-            drawSlicedRainbowCircle(targetCtx, cx - offsetX, cy - offsetY, coreR * 0.92, -0.35, lineW, isHitMap, false);
-            drawSlicedRainbowCircle(targetCtx, cx + offsetX, cy - offsetY, coreR * 0.92, 0.35, lineW, isHitMap, false);
-            drawSlicedRainbowCircle(targetCtx, cx - offsetX, cy + offsetY, coreR * 0.92, 0.35, lineW, isHitMap, false);
-            drawSlicedRainbowCircle(targetCtx, cx + offsetX, cy + offsetY, coreR * 0.92, -0.35, lineW, isHitMap, false);
+            // 正中央藍紫心超大斜切圓
+            drawSlicedRainbowCircle(targetCtx, cx, cy, coreR * 1.08, -0.35, lineW, isHitMap, true);
 
-            // 4. 中央點綴小半圓 (黃紫小半圓，還原照片細節)
-            const miniR = minDim * 0.045;
+            // 3. 中央點綴加寬小半圓
+            const miniR = minDim * 0.068;
             function drawMiniHalf(mx, my, sA, eA) {
                 targetCtx.beginPath();
                 targetCtx.arc(mx, my, miniR, sA, eA);
                 targetCtx.closePath();
                 targetCtx.fillStyle = PALETTE.YELLOW;
                 targetCtx.fill();
-                targetCtx.lineWidth = lineW * 0.85;
+                targetCtx.lineWidth = lineW * 0.9;
                 targetCtx.strokeStyle = PALETTE.BLACK;
                 targetCtx.stroke();
 
                 targetCtx.beginPath();
-                targetCtx.arc(mx, my, miniR * 0.5, sA, eA);
+                targetCtx.arc(mx, my, miniR * 0.54, sA, eA);
                 targetCtx.closePath();
                 targetCtx.fillStyle = PALETTE.PURPLE;
                 targetCtx.fill();
                 targetCtx.stroke();
             }
 
-            drawMiniHalf(cx, cy - offsetY * 1.05, 0, Math.PI);
-            drawMiniHalf(cx, cy + offsetY * 1.05, Math.PI, Math.PI * 2);
-            drawMiniHalf(cx - offsetX * 1.05, cy, -Math.PI / 2, Math.PI / 2);
-            drawMiniHalf(cx + offsetX * 1.05, cy, Math.PI / 2, Math.PI * 1.5);
-
-            // 拼接膠墊的拼接縫隙陰影 (僅顯示於視覺層)
-            if (!isHitMap) {
-                targetCtx.save();
-                targetCtx.strokeStyle = 'rgba(15, 23, 42, 0.22)';
-                targetCtx.lineWidth = 1.5;
-                targetCtx.strokeRect(innerLeft, innerTop, innerRight - innerLeft, innerBottom - innerTop);
-                targetCtx.restore();
-            }
+            drawMiniHalf(cx, cy - offsetY * 1.12, 0, Math.PI);
+            drawMiniHalf(cx, cy + offsetY * 1.12, Math.PI, Math.PI * 2);
+            drawMiniHalf(cx - offsetX * 1.12, cy, -Math.PI / 2, Math.PI / 2);
+            drawMiniHalf(cx + offsetX * 1.12, cy, Math.PI / 2, Math.PI * 1.5);
         }
 
-        // 尺寸自適應與離屏緩存更新
+        // 尺寸自適應與代幣比例修正
         function handleResize() {
             const container = canvas.parentElement;
             const rect = container.getBoundingClientRect();
@@ -572,16 +607,15 @@
             hitCanvas.width = Math.round(rect.width);
             hitCanvas.height = Math.round(rect.height);
 
-            // 真實代幣比例
-            gameState.coinRadius = Math.max(9.5, Math.min(rect.width, rect.height) * 0.032);
+            // 進一步微調代幣半徑 (0.0155)，搭配加寬色帶確保每一圈都輕鬆容納代幣
+            const minDim = Math.min(rect.width, rect.height);
+            gameState.coinRadius = Math.max(5, minDim * 0.0155);
 
-            // 預先渲染高清底圖到緩存畫布
             boardCacheCtx.save();
             boardCacheCtx.scale(dpr, dpr);
             renderFullBoard(boardCacheCtx, rect.width, rect.height, false);
             boardCacheCtx.restore();
 
-            // 渲染 1:1 判定畫布
             renderFullBoard(hitCtx, hitCanvas.width, hitCanvas.height, true);
         }
 
@@ -589,7 +623,6 @@
 
         /**
          * 像素級「不壓黑線」精準裁判系統
-         * 掃描金幣圓形覆蓋的所有像素，若觸及黑線、白底或跨色即判「擲界」。
          */
         function judgeCoinPosition(x, y, radius) {
             const w = hitCanvas.width;
@@ -605,7 +638,7 @@
             const pixels = hitCtx.getImageData(startX, startY, boxSize, boxSize).data;
 
             let colorHit = null;
-            const effectiveR = radius - 0.6; // 保留 0.6px 合理邊緣公差
+            const effectiveR = Math.max(2, radius - 0.5);
 
             for (let py = 0; py < boxSize; py++) {
                 for (let px = 0; px < boxSize; px++) {
@@ -617,12 +650,10 @@
                         const g = pixels[i + 1];
                         const b = pixels[i + 2];
 
-                        // 黑線判定 (TOUCHING THE BLACK LINE LOSES)
                         if (r < 70 && g < 70 && b < 70) {
                             return { win: false, title: '壓中黑線！擲界 ❌', style: 'bg-slate-950 text-red-400 border-red-500', tickets: 0 };
                         }
 
-                        // 白色底板判定
                         if (r > 235 && g > 235 && b > 235) {
                             return { win: false, title: '落在白底！無獎 ❌', style: 'bg-slate-800 text-slate-300 border-slate-400', tickets: 0 };
                         }
@@ -659,7 +690,6 @@
             }
         }
 
-        // 顯示裁判橫幅
         let bannerTimer;
         function announceJudge(res) {
             const banner = document.getElementById('judge-banner');
@@ -674,29 +704,36 @@
             }, 2400);
         }
 
-        // 中獎金色火花粒子
         function createConfetti(x, y) {
             const colors = ['#FDE047', '#EF4444', '#22C55E', '#38BDF8', '#E879F9'];
-            for (let i = 0; i < 32; i++) {
-                const angle = (Math.PI * 2 * i) / 32 + Math.random() * 0.2;
-                const spd = 2 + Math.random() * 4.5;
+            for (let i = 0; i < 28; i++) {
+                const angle = (Math.PI * 2 * i) / 28 + Math.random() * 0.2;
+                const spd = 1.8 + Math.random() * 4;
                 gameState.particles.push({
                     x, y,
                     vx: Math.cos(angle) * spd,
                     vy: Math.sin(angle) * spd,
                     life: 1,
                     color: colors[i % colors.length],
-                    r: 3 + Math.random() * 3
+                    r: 2.5 + Math.random() * 2.5
                 });
             }
         }
 
-        // 投出金幣
+        // 投出金幣 (首投自動啟動計時器)
         function tossCoin(targetX, targetY) {
+            if (gameState.isTimeUp) {
+                openTimesUpModal();
+                return;
+            }
             if (gameState.flyingCoin) return;
             if (gameState.coins <= 0) {
                 announceJudge({ title: '🪙 代幣用完！請按右下角免費入幣', style: 'bg-amber-400 text-slate-950 border-white' });
                 return;
+            }
+
+            if (!gameState.timerRunning && gameState.remainingSeconds > 0) {
+                gameState.timerRunning = true;
             }
 
             document.getElementById('hint-pill').style.display = 'none';
@@ -707,25 +744,24 @@
             const w = hitCanvas.width;
             const h = hitCanvas.height;
 
-            // 自然拋物線手勢微幅隨機偏差 (±3.5px)
-            const tx = Math.max(16, Math.min(w - 16, targetX + (Math.random() - 0.5) * 7));
-            const ty = Math.max(16, Math.min(h - 16, targetY + (Math.random() - 0.5) * 7));
+            const tx = Math.max(12, Math.min(w - 12, targetX + (Math.random() - 0.5) * 5));
+            const ty = Math.max(12, Math.min(h - 12, targetY + (Math.random() - 0.5) * 5));
 
             gameState.flyingCoin = {
                 startX: w * 0.5,
-                startY: h + 28,
+                startY: h + 24,
                 tx, ty,
                 x: w * 0.5,
-                y: h + 28,
+                y: h + 24,
                 frame: 0,
-                maxFrames: 26,
-                vx: (tx - w * 0.5) * 0.01,
-                vy: -1.3 - Math.random() * 0.7,
+                maxFrames: 24,
+                vx: (tx - w * 0.5) * 0.008,
+                vy: -1.1 - Math.random() * 0.6,
                 stage: 'fly'
             };
         }
 
-        // 繪製仿真遊戲代幣 (參考圖2中刻有字樣的黃銅代幣)
+        // 繪製精巧比例街機代幣
         function drawArcadeToken(targetCtx, x, y, r, scale = 1, isWinner = false) {
             targetCtx.save();
             targetCtx.translate(x, y);
@@ -733,8 +769,8 @@
 
             // 投影
             targetCtx.beginPath();
-            targetCtx.arc(1.5, 2.5, r, 0, Math.PI * 2);
-            targetCtx.fillStyle = 'rgba(0, 0, 0, 0.38)';
+            targetCtx.arc(1, 1.8, r, 0, Math.PI * 2);
+            targetCtx.fillStyle = 'rgba(0, 0, 0, 0.36)';
             targetCtx.fill();
 
             // 黃銅金屬漸層
@@ -748,7 +784,7 @@
             targetCtx.fillStyle = grad;
             targetCtx.fill();
 
-            targetCtx.lineWidth = 1.4;
+            targetCtx.lineWidth = 1.1;
             targetCtx.strokeStyle = isWinner ? '#FFFFFF' : '#713F12';
             targetCtx.stroke();
 
@@ -756,22 +792,17 @@
             targetCtx.beginPath();
             targetCtx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
             targetCtx.strokeStyle = 'rgba(113, 63, 18, 0.7)';
-            targetCtx.lineWidth = 1;
+            targetCtx.lineWidth = 0.8;
             targetCtx.stroke();
 
-            // 中央代幣方框字樣模擬
+            // 中央代幣標記
             targetCtx.fillStyle = 'rgba(113, 63, 18, 0.85)';
-            targetCtx.fillRect(-r * 0.42, -r * 0.18, r * 0.84, r * 0.36);
-            targetCtx.fillStyle = '#FEF08A';
-            targetCtx.font = `bold ${Math.max(5, Math.round(r * 0.32))}px sans-serif`;
-            targetCtx.textAlign = 'center';
-            targetCtx.textBaseline = 'middle';
-            targetCtx.fillText('TOKEN', 0, 0.5);
+            targetCtx.fillRect(-r * 0.42, -r * 0.16, r * 0.84, r * 0.32);
 
             targetCtx.restore();
         }
 
-        // 繪製右上角「壓界特寫放大鏡」(讓玩家看清到底有沒有壓到黑線)
+        // 繪製右上角「壓界特寫放大鏡」
         function drawZoomInspector(targetCtx, w, h) {
             if (!gameState.showZoomLens || !gameState.lastLandingSpot || gameState.zoomTimer <= 0) return;
 
@@ -779,11 +810,9 @@
             const lensR = Math.min(w, h) * 0.14;
             const lensX = w - lensR - 14;
             const lensY = lensR + 14;
-            const zoomFactor = 2.6;
+            const zoomFactor = 3.2;
 
             targetCtx.save();
-
-            // 放大鏡外框陰影
             targetCtx.beginPath();
             targetCtx.arc(lensX, lensY, lensR, 0, Math.PI * 2);
             targetCtx.fillStyle = '#FFFFFF';
@@ -792,10 +821,8 @@
             targetCtx.fill();
             targetCtx.shadowBlur = 0;
 
-            // 裁切圓形視窗
             targetCtx.clip();
 
-            // 放大繪製底圖
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
             targetCtx.save();
             targetCtx.translate(lensX, lensY);
@@ -803,7 +830,6 @@
             targetCtx.translate(-spot.x, -spot.y);
             targetCtx.drawImage(boardCacheCanvas, 0, 0, w * dpr, h * dpr, 0, 0, w, h);
 
-            // 放大繪製落點附近金幣
             gameState.landedCoins.forEach(c => {
                 if (Math.hypot(c.x - spot.x, c.y - spot.y) < lensR) {
                     drawArcadeToken(targetCtx, c.x, c.y, gameState.coinRadius, 1, c.isWinner);
@@ -811,15 +837,13 @@
             });
             targetCtx.restore();
 
-            // 放大鏡外框邊線 (中獎綠框 / 擲界紅框)
             targetCtx.beginPath();
             targetCtx.arc(lensX, lensY, lensR, 0, Math.PI * 2);
             targetCtx.lineWidth = 4;
             targetCtx.strokeStyle = spot.win ? '#22C55E' : '#EF4444';
             targetCtx.stroke();
 
-            // 底部標籤
-            targetCtx.fillStyle = spot.win ? 'rgba(22, 163, 74, 0.9)' : 'rgba(220, 38, 38, 0.9)';
+            targetCtx.fillStyle = spot.win ? 'rgba(22, 163, 74, 0.92)' : 'rgba(220, 38, 38, 0.92)';
             targetCtx.fillRect(lensX - lensR, lensY + lensR - 20, lensR * 2, 20);
             targetCtx.fillStyle = '#FFFFFF';
             targetCtx.font = 'bold 10px sans-serif';
@@ -846,10 +870,10 @@
                 } else if (fc.stage === 'slide') {
                     fc.x += fc.vx;
                     fc.y += fc.vy;
-                    fc.vx *= 0.80;
-                    fc.vy *= 0.80;
+                    fc.vx *= 0.78;
+                    fc.vy *= 0.78;
 
-                    if (Math.hypot(fc.vx, fc.vy) < 0.07) {
+                    if (Math.hypot(fc.vx, fc.vy) < 0.06) {
                         const result = judgeCoinPosition(fc.x, fc.y, gameState.coinRadius);
 
                         gameState.landedCoins.push({
@@ -857,12 +881,12 @@
                             y: fc.y,
                             isWinner: result.win
                         });
-                        if (gameState.landedCoins.length > 50) {
+                        if (gameState.landedCoins.length > 60) {
                             gameState.landedCoins.shift();
                         }
 
                         gameState.lastLandingSpot = { x: fc.x, y: fc.y, win: result.win };
-                        gameState.zoomTimer = 160; // 顯示特寫放大鏡約 2.6 秒
+                        gameState.zoomTimer = 160;
 
                         if (result.win) {
                             gameState.tickets += result.tickets;
@@ -887,7 +911,7 @@
                 const p = gameState.particles[i];
                 p.x += p.vx;
                 p.y += p.vy;
-                p.life -= 0.024;
+                p.life -= 0.025;
                 if (p.life <= 0) gameState.particles.splice(i, 1);
             }
         }
@@ -900,46 +924,42 @@
             ctx.save();
             ctx.scale(dpr, dpr);
 
-            // 1. 貼上預渲染的高清彩虹地墊
             ctx.drawImage(boardCacheCanvas, 0, 0, w * dpr, h * dpr, 0, 0, w, h);
 
-            // 2. 繪製已落地的金幣
             gameState.landedCoins.forEach(c => {
                 drawArcadeToken(ctx, c.x, c.y, gameState.coinRadius, 1, c.isWinner);
             });
 
-            // 3. 繪製瞄準預覽框 (顯示實際代幣大小方便玩家預判是否會壓黑線)
-            if (gameState.isAiming && !gameState.flyingCoin) {
+            // 瞄準準星
+            if (gameState.isAiming && !gameState.flyingCoin && !gameState.isTimeUp) {
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(gameState.aimX, gameState.aimY, gameState.coinRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(254, 240, 138, 0.35)';
+                ctx.fillStyle = 'rgba(254, 240, 138, 0.45)';
                 ctx.fill();
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 1.6;
                 ctx.strokeStyle = '#FFFFFF';
-                ctx.setLineDash([3, 3]);
+                ctx.setLineDash([2.5, 2.5]);
                 ctx.stroke();
 
                 ctx.beginPath();
-                ctx.arc(gameState.aimX, gameState.aimY, gameState.coinRadius + 4, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.lineWidth = 1.2;
+                ctx.arc(gameState.aimX, gameState.aimY, gameState.coinRadius + 3.5, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.lineWidth = 1;
                 ctx.stroke();
                 ctx.restore();
             }
 
-            // 4. 繪製空中拋物線金幣
             const fc = gameState.flyingCoin;
             if (fc) {
                 let scale = 1;
                 if (fc.stage === 'fly') {
                     const t = fc.frame / fc.maxFrames;
-                    scale = 1 + Math.sin(t * Math.PI) * 0.85;
+                    scale = 1 + Math.sin(t * Math.PI) * 0.9;
                 }
                 drawArcadeToken(ctx, fc.x, fc.y, gameState.coinRadius, scale, false);
             }
 
-            // 5. 繪製慶祝彩帶粒子
             gameState.particles.forEach(p => {
                 ctx.save();
                 ctx.globalAlpha = p.life;
@@ -950,7 +970,6 @@
                 ctx.restore();
             });
 
-            // 6. 繪製壓界特寫放大鏡
             drawZoomInspector(ctx, w, h);
 
             ctx.restore();
@@ -962,9 +981,26 @@
             requestAnimationFrame(mainLoop);
         }
 
+        function formatTime(totalSec) {
+            const mins = Math.floor(totalSec / 60);
+            const secs = totalSec % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
         function refreshHUD() {
             document.getElementById('hud-coins').textContent = gameState.coins;
             document.getElementById('hud-tickets').textContent = gameState.tickets;
+
+            const timerEl = document.getElementById('hud-timer');
+            timerEl.textContent = formatTime(gameState.remainingSeconds);
+
+            // 最後 30 秒變紅閃爍提醒
+            if (gameState.remainingSeconds <= 30 && gameState.remainingSeconds > 0) {
+                timerEl.className = 'text-base sm:text-xl font-black text-red-400 animate-pulse font-mono leading-tight';
+            } else {
+                timerEl.className = 'text-base sm:text-xl font-black text-sky-300 font-mono leading-tight';
+            }
+
             const addBtn = document.getElementById('add-coin-btn');
             if (gameState.coins === 0) {
                 addBtn.classList.add('animate-bounce');
@@ -973,6 +1009,103 @@
             }
         }
 
+        // 每秒倒數計時器邏輯
+        setInterval(() => {
+            if (!gameState.timerRunning || gameState.isTimeUp) return;
+
+            if (gameState.remainingSeconds > 0) {
+                gameState.remainingSeconds--;
+                refreshHUD();
+
+                if (gameState.remainingSeconds === 0) {
+                    gameState.timerRunning = false;
+                    gameState.isTimeUp = true;
+                    triggerSound('timesup');
+                    openTimesUpModal();
+                }
+            }
+        }, 1000);
+
+        function openTimesUpModal() {
+            document.getElementById('summary-tickets').textContent = gameState.tickets;
+            document.getElementById('summary-coins').textContent = gameState.coins;
+            const modal = document.getElementById('timesup-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function resetSession(minutes) {
+            gameState.durationMinutes = minutes;
+            gameState.remainingSeconds = minutes * 60;
+            gameState.timerRunning = false;
+            gameState.isTimeUp = false;
+            gameState.landedCoins = [];
+            gameState.lastLandingSpot = null;
+            gameState.flyingCoin = null;
+            if (gameState.coins <= 0) {
+                gameState.coins = 20;
+            }
+            document.getElementById('hint-pill').style.display = 'flex';
+            refreshHUD();
+        }
+
+        // 計時器設定彈窗互動
+        const timerModal = document.getElementById('timer-modal');
+        const timerSlider = document.getElementById('timer-slider');
+        const timerSliderVal = document.getElementById('timer-slider-val');
+        const presetBtns = document.querySelectorAll('.preset-min-btn');
+
+        function syncTimerPickerUI(mins) {
+            timerSlider.value = mins;
+            timerSliderVal.textContent = `${mins} 分鐘`;
+            presetBtns.forEach(btn => {
+                const btnMins = Number(btn.dataset.mins);
+                if (btnMins === mins) {
+                    btn.className = 'preset-min-btn bg-sky-600 text-white font-black py-2 rounded-xl border border-sky-300 text-sm transition';
+                } else {
+                    btn.className = 'preset-min-btn bg-slate-800 hover:bg-sky-600 text-white font-black py-2 rounded-xl border border-slate-600 text-sm transition';
+                }
+            });
+        }
+
+        document.getElementById('open-timer-btn').addEventListener('click', () => {
+            syncTimerPickerUI(gameState.durationMinutes);
+            timerModal.classList.remove('hidden');
+            timerModal.classList.add('flex');
+        });
+
+        timerSlider.addEventListener('input', (e) => {
+            syncTimerPickerUI(Number(e.target.value));
+        });
+
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                syncTimerPickerUI(Number(btn.dataset.mins));
+            });
+        });
+
+        document.getElementById('cancel-timer-btn').addEventListener('click', () => {
+            timerModal.classList.add('hidden');
+            timerModal.classList.remove('flex');
+        });
+
+        document.getElementById('apply-timer-btn').addEventListener('click', () => {
+            const chosenMins = Math.min(15, Math.max(1, Number(timerSlider.value)));
+            resetSession(chosenMins);
+            timerModal.classList.add('hidden');
+            timerModal.classList.remove('flex');
+            announceJudge({ title: `⏱️ 已設定 ${chosenMins} 分鐘計時！投幣即開始`, style: 'bg-sky-500 text-slate-950 border-white' });
+        });
+
+        document.getElementById('restart-session-btn').addEventListener('click', () => {
+            document.getElementById('timesup-modal').classList.add('hidden');
+            document.getElementById('timesup-modal').classList.remove('flex');
+            gameState.tickets = 0;
+            gameState.coins = 20;
+            resetSession(gameState.durationMinutes);
+        });
+
+        // 畫布指標互動
         function getCanvasCoords(evt) {
             const rect = canvas.getBoundingClientRect();
             const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
@@ -1010,7 +1143,7 @@
             gameState.isAiming = false;
         });
 
-        // 按鈕互動
+        // 其他控制按鈕
         document.getElementById('add-coin-btn').addEventListener('click', () => {
             setupAudio();
             gameState.coins += 10;
@@ -1035,7 +1168,6 @@
             e.target.textContent = gameState.showZoomLens ? '🔍 壓界特寫: 開' : '🔍 壓界特寫: 關';
         });
 
-        // 玩法說明彈窗
         const rulesModal = document.getElementById('rules-modal');
         document.getElementById('open-rules-btn').addEventListener('click', () => {
             rulesModal.classList.remove('hidden');
