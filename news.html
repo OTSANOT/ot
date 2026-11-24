@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>香港每日新聞認知訓練</title>
+  <title>香港每日認知閱讀練習</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; max-width: 760px; margin: 20px auto; padding: 0 16px 40px; line-height: 1.75; background: #f4f7fa; color: #1f2937; }
     header { background: #0056b3; color: #fff; padding: 18px 20px; border-radius: 12px; margin-bottom: 20px; }
     header h1 { margin: 0 0 6px 0; font-size: 22px; }
-    .date-bar { display: flex; justify-content: space-between; font-size: 14px; }
-    .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+    .date-bar { display: flex; justify-content: space-between; font-size: 14px; flex-wrap: wrap; gap: 8px; }
+    .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
     button { background: #0056b3; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 15px; }
     button:hover { background: #004085; }
     button.secondary { background: #2b7a78; }
     button.outline { background: #fff; color: #0056b3; border: 1.5px solid #0056b3; }
+    .counter-text { font-size: 14px; color: #4b5563; margin-left: auto; font-weight: bold; }
     .card { background: #fff; padding: 22px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 20px; }
     .tag { display: inline-block; background: #e0edff; color: #0056b3; font-size: 13px; font-weight: bold; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; }
     .news-title { margin: 0 0 12px 0; font-size: 21px; color: #111827; }
@@ -35,21 +36,22 @@
 <body>
 
   <header>
-    <h1>📰 香港每日新聞認知訓練</h1>
+    <h1>📰 香港每日認知閱讀練習</h1>
     <div class="date-bar">
-      <span id="today-date">今日新聞</span>
-      <span>每日自動更新主題</span>
+      <span id="today-date">今日日期</span>
+      <span>每日認知閱讀練習（共 50 篇精選題庫）</span>
     </div>
   </header>
 
   <div class="toolbar">
-    <button class="secondary" onclick="speakNews()">🔊 朗讀新聞</button>
+    <button class="secondary" onclick="speakNews()">🔊 朗讀短文</button>
     <button class="outline" onclick="stopSpeak()">⏹ 停止朗讀</button>
-    <button onclick="nextNews()">🔄 切換另一則新聞</button>
+    <button onclick="nextNews()">🔄 切換下一篇練習</button>
+    <span class="counter-text" id="article-counter">第 1 / 50 篇</span>
   </div>
 
   <div class="card">
-    <span class="tag" id="news-category">本地民生</span>
+    <span class="tag" id="news-category">社區與健康</span>
     <h2 class="news-title" id="news-title"></h2>
     <p class="news-body" id="news-content"></p>
   </div>
@@ -113,92 +115,51 @@
           { q: "2. 【何事】駐場義工會教導長者使用哪項政府流動應用程式？", options: ["智方便", "外賣速遞軟件", "股票期貨交易程式", "電腦遊戲設計工具"], answer: 0 },
           { q: "3. 【如何】長者前往支援站尋求協助需要辦理什麼手續？", options: ["費用全免且無需預先登記", "必須先繳交五百元按金", "需要由醫生簽發轉介信", "必須提前三個月上網抽籤"], answer: 0 }
         ]
-      }
-    ];
-
-    var currentIndex = Math.floor(Date.now() / 86400000) % NEWS_DATABASE.length;
-    var score = 0;
-
-    function renderNews(index) {
-      stopSpeak();
-      var item = NEWS_DATABASE[index];
-      score = 0;
-
-      document.getElementById("news-category").textContent = item.category;
-      document.getElementById("news-title").textContent = item.title;
-      document.getElementById("news-content").textContent = item.content;
-      document.getElementById("score-display").textContent = "得分：0 / " + item.questions.length;
-
-      var quizContainer = document.getElementById("quiz-container");
-      quizContainer.innerHTML = "";
-
-      item.questions.forEach(function(qObj) {
-        var qBlock = document.createElement("div");
-        qBlock.className = "question-block";
-
-        var qTitle = document.createElement("div");
-        qTitle.className = "q-title";
-        qTitle.textContent = qObj.q;
-        qBlock.appendChild(qTitle);
-
-        var feedbackEl = document.createElement("div");
-        feedbackEl.className = "feedback";
-
-        qObj.options.forEach(function(optText, optIdx) {
-          var btn = document.createElement("button");
-          btn.className = "option-btn";
-          btn.textContent = optText;
-
-          btn.onclick = function() {
-            var allBtns = qBlock.querySelectorAll(".option-btn");
-            for (var i = 0; i < allBtns.length; i++) { allBtns[i].disabled = true; }
-
-            if (optIdx === qObj.answer) {
-              btn.classList.add("correct");
-              feedbackEl.textContent = "✅ 答對了！";
-              feedbackEl.style.color = "#065f46";
-              score++;
-            } else {
-              btn.classList.add("wrong");
-              allBtns[qObj.answer].classList.add("correct");
-              feedbackEl.textContent = "❌ 答錯了，正確答案是：" + qObj.options[qObj.answer];
-              feedbackEl.style.color = "#991b1b";
-            }
-            document.getElementById("score-display").textContent = "得分：" + score + " / " + item.questions.length;
-          };
-
-          qBlock.appendChild(btn);
-        });
-
-        qBlock.appendChild(feedbackEl);
-        quizContainer.appendChild(qBlock);
-      });
-    }
-
-    function nextNews() {
-      currentIndex = (currentIndex + 1) % NEWS_DATABASE.length;
-      renderNews(currentIndex);
-    }
-
-    function speakNews() {
-      if (!("speechSynthesis" in window)) { alert("此瀏覽器不支援語音朗讀"); return; }
-      stopSpeak();
-      var text = document.getElementById("news-title").textContent + "。" + document.getElementById("news-content").textContent;
-      var u = new SpeechSynthesisUtterance(text);
-      u.lang = "zh-HK";
-      u.rate = 0.9;
-      window.speechSynthesis.speak(u);
-    }
-
-    function stopSpeak() {
-      if ("speechSynthesis" in window) { window.speechSynthesis.cancel(); }
-    }
-
-    // 直接初始化顯示日期與新聞（不依賴 DOMContentLoaded）
-    var d = new Date();
-    document.getElementById("today-date").textContent = "📅 " + d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日";
-    renderNews(currentIndex);
-  </script>
-
-</body>
-</html>
+      },
+      {
+        category: "飲食與營養",
+        title: "衞生署推廣少鹽少糖健康飲食鼓勵長者多吃高纖維蔬果",
+        content: "衞生署營養師團隊近日在各區社區中心舉辦健康飲食講座，提醒市民日常烹調時應減少使用豉油、蠔油及雞粉等高鈉調味料，改以薑、蔥、蒜及香草增添食物風味。營養師同時建議長者每天進食至少兩份水果及三份蔬菜，並選擇糙米或紅米代替部分白米，有助穩定血糖及預防便秘。",
+        questions: [
+          { q: "1. 【如何】營養師建議烹調時可用什麼天然食材代替高鈉調味料？", options: ["薑、蔥、蒜及香草", "大量食鹽及味精", "濃縮雞汁及豆瓣醬", "白砂糖及牛油"], answer: 0 },
+          { q: "2. 【何事】營養師建議長者每天進食多少份水果與蔬菜？", options: ["至少兩份水果及三份蔬菜", "每天只吃一份水果", "每週吃一次蔬菜", "每天十份水果不吃正餐"], answer: 0 },
+          { q: "3. 【為何】用糙米或紅米代替部分白米對長者有什麼好處？", options: ["有助穩定血糖及預防便秘", "能令視力立刻恢復正常", "可以完全取代藥物治療", "能令體重迅速增加"], answer: 0 }
+        ]
+      },
+      {
+        category: "醫療服務",
+        title: "醫管局擴展藥物送遞服務覆蓋更多專科門診覆診病人",
+        content: "醫院管理局宣布進一步擴展「藥物送遞服務」，讓經「HA Go」流動應用程式遙距診症或到專科門診覆診的病人，可選擇將處方藥物直接送遞至家中或指定社區取藥點，無需在醫院藥劑部長時間輪候。每張處方劃一收取標準運輸費，並提供藥劑師電話用藥指導服務，確保病人正確服藥。",
+        questions: [
+          { q: "1. 【何事】病人可透過哪個官方流動應用程式使用遙距診症與送藥服務？", options: ["HA Go", "八達通 App", "香港天文台 App", "康文署訂場通"], answer: 0 },
+          { q: "2. 【何地】處方藥物除了送遞至病人家中外，還可送到哪裡？", options: ["指定社區取藥點", "任何港鐵站月台", "超級市場收銀櫃檯", "郵政局郵箱內"], answer: 0 },
+          { q: "3. 【如何】該服務如何確保病人在家中能正確服用藥物？", options: ["提供藥劑師電話用藥指導服務", "由送貨員口頭解釋藥理", "完全不提供任何說明", "要求病人自行上網搜尋"], answer: 0 }
+        ]
+      },
+      {
+        category: "防騙資訊",
+        title: "警方提醒市民提防假冒客服來電切勿透露銀行帳戶密碼",
+        content: "警方反詐騙協調中心指出，近期騙徒常假冒電訊公司、網購平台或銀行職員致電市民，訛稱事主開通了收費會員服務，誘騙事主點擊短訊連結或交出網上理財密碼以取消扣費。警方提醒市民，如收到自稱機構職員的來電要求轉帳或提供密碼，應立即掛線並致電「防騙易」熱線一八二二二核實。",
+        questions: [
+          { q: "1. 【何事】近期騙徒常假冒哪些機構職員致電市民行騙？", options: ["電訊公司、網購平台或銀行職員", "公園園藝管理員", "圖書館借還書部職員", "巴士站站長"], answer: 0 },
+          { q: "2. 【如何】騙徒在電話中通常用什麼藉口誘騙事主？", options: ["訛稱事主開通了收費會員服務", "通知事主中了六合彩頭獎", "邀請事主參加免費旅行團", "提醒事主圖書已過期"], answer: 0 },
+          { q: "3. 【何事】市民遇上懷疑詐騙來電時可致電哪個熱線核實？", options: ["防騙易熱線 18222", "天文台天氣查詢熱線", "港鐵失物認領處", "電影院訂票熱線"], answer: 0 }
+        ]
+      },
+      {
+        category: "公共圖書館",
+        title: "香港中央圖書館舉辦長者閱讀推廣週設大字版書籍專區",
+        content: "香港公共圖書館由本週一起在銅鑼灣香港中央圖書館舉辦「樂齡閱讀推廣週」，地下展覽館特設大字版書籍及有聲書專區，涵蓋歷史故事、養生保健及香港懷舊掌故等題材。圖書館職員亦會在現場協助長者辦理電子借書證，並示範如何在平板電腦上放大電子書字體，讓閱讀更輕鬆舒適。",
+        questions: [
+          { q: "1. 【何地】「樂齡閱讀推廣週」在位於哪一區的香港中央圖書館舉行？", options: ["銅鑼灣", "荃灣", "將軍澳", "元朗"], answer: 0 },
+          { q: "2. 【何事】現場展覽館特別為長者設立了哪兩類書籍專區？", options: ["大字版書籍及有聲書專區", "外文醫學期刊專區", "兒童漫畫及填色冊專區", "大學工程教科書專區"], answer: 0 },
+          { q: "3. 【如何】圖書館職員在現場會協助長者進行什麼操作？", options: ["辦理電子借書證及示範放大電子書字體", "免費維修損壞的電視機", "代辦護照續期手續", "教授外語寫作技巧"], answer: 0 }
+        ]
+      },
+      {
+        category: "眼科保健",
+        title: "眼科醫生呼籲長者定期驗眼及早發現白內障與青光眼",
+        content: "隨著年齡增長，長者患上白內障、青光眼及黃斑點病變的機會逐步上升。眼科專科醫生建議六十歲以上人士每年進行一次全面綜合眼科視光檢查，切勿以為視力模糊只是普通老花而延誤診治。醫生亦提醒市民在戶外陽光猛烈時應佩戴具防紫外線功能的太陽眼鏡，並避免在光線昏暗的環境下長時間使用手機。",
+        questions: [
+          { q: "1. 【何時】眼科醫生建議六十歲以上人士每隔多久進行一次全面驗眼？", options: ["每年一次", "每十年一次", "每月一次", "只有眼睛劇痛時才檢查"], answer: 0 },
+          { q: "2. 【為何】為何長者不應將視力模糊單純視為普通老花？", options: ["可能患上白內障、青光眼或黃斑點病變", "因為老花會在一星期內自動痊癒", "因為戴太陽眼鏡就能治好所有眼疾", "因為多吃甜食便能改善視力"], answer: 0 },
