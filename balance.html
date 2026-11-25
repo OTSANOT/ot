@@ -23,9 +23,10 @@
     .avatar { position:absolute; z-index:3; bottom:20px; left:50%; width:52px; height:88px; margin-left:-26px; display:flex; flex-direction:column; align-items:center; transition:left .08s linear; }
     .head { width:30px; height:30px; border:2px solid #fff; border-radius:50%; background:var(--blue); }
     .torso { width:44px; height:50px; margin-top:3px; display:flex; align-items:center; justify-content:center; border-radius:12px 12px 4px 4px; background:#0284c7; font-size:18px; }
-    .controls { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
-    button { min-height:44px; padding:12px 18px; border:none; border-radius:10px; cursor:pointer; font-size:14px; font-weight:bold; }
-    button:disabled { cursor:not-allowed; opacity:.55; }
+    .controls { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:10px; }
+    button, select { min-height:44px; padding:12px 18px; border:none; border-radius:10px; cursor:pointer; font-size:14px; font-weight:bold; }
+    button:disabled, select:disabled { cursor:not-allowed; opacity:.55; }
+    select { height:44px; border:1px solid var(--border); background:var(--panel); color:#fff; }
     .secondary { border:1px solid var(--border); background:var(--panel); color:#cbd5e1; }
     .primary { background:var(--blue); color:#0f172a; }
     #cameraStatus { min-height:18px; margin:8px 0 0; color:#94a3b8; font-size:12px; }
@@ -39,7 +40,7 @@
   <div class="hud">
     <span>Score: <strong id="score" style="color:var(--green)">0</strong></span>
     <span>Stability: <strong id="stability" style="color:var(--blue)">100%</strong></span>
-    <span>Time: <strong id="time" style="color:var(--amber)">45s</strong></span>
+    <span>Time: <strong id="time" style="color:var(--amber)">01:00</strong></span>
   </div>
 
   <div class="cabin" id="cabin">
@@ -54,6 +55,19 @@
     <button class="secondary" id="leftBtn">◀ Lean Left</button>
     <button class="primary" id="startBtn">Start Session</button>
     <button class="secondary" id="rightBtn">Lean Right ▶</button>
+    <label for="durationSelect"><strong>Timer:</strong></label>
+    <select id="durationSelect" aria-label="Session duration">
+      <option value="1" selected>1 min</option>
+      <option value="2">2 mins</option>
+      <option value="3">3 mins</option>
+      <option value="4">4 mins</option>
+      <option value="5">5 mins</option>
+      <option value="6">6 mins</option>
+      <option value="7">7 mins</option>
+      <option value="8">8 mins</option>
+      <option value="9">9 mins</option>
+      <option value="10">10 mins</option>
+    </select>
   </div>
   <div id="cameraStatus">Camera optional: you can also use the Lean buttons.</div>
 
@@ -70,10 +84,29 @@
   const stabilityEl = document.getElementById('stability');
   const timeEl = document.getElementById('time');
   const cameraStatus = document.getElementById('cameraStatus');
+  const durationSelect = document.getElementById('durationSelect');
+  const startBtn = document.getElementById('startBtn');
 
-  let active=false, score=0, stability=100, timeLeft=45;
+  let active=false, score=0, stability=100, timeLeft=60;
   let buttonLean=0, cameraLean=0, curveLean=0;
   let loopTimer=null, clockTimer=null, pose=null, camera=null;
+
+  function formatTime(seconds) {
+    const minutes=Math.floor(seconds/60);
+    const secs=seconds%60;
+    return `${String(minutes).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  }
+
+  function updateTimer() {
+    timeEl.textContent=formatTime(timeLeft);
+  }
+
+  durationSelect.addEventListener('change', () => {
+    if (!active) {
+      timeLeft=parseInt(durationSelect.value,10)*60;
+      updateTimer();
+    }
+  });
 
   function nudge(amount) {
     if (!active) return;
@@ -112,8 +145,6 @@
           return;
         }
 
-        // Video is mirrored. Convert shoulder-vs-hip displacement into the same
-        // left/right direction shown on screen (positive means screen-right).
         const shoulderMid=(leftShoulder.x+rightShoulder.x)/2;
         const hipMid=(leftHip.x+rightHip.x)/2;
         cameraLean=Math.max(-42,Math.min(42,(hipMid-shoulderMid)*220));
@@ -135,16 +166,16 @@
 
   function startGame() {
     if (active) return;
-    active=true; score=0; stability=100; timeLeft=45;
+    timeLeft=parseInt(durationSelect.value,10)*60;
+    active=true; score=0; stability=100;
     buttonLean=0; cameraLean=0; curveLean=0;
-    scoreEl.textContent='0'; stabilityEl.textContent='100%'; timeEl.textContent='45s';
+    scoreEl.textContent='0'; stabilityEl.textContent='100%'; updateTimer();
     cabin.style.transform='rotate(0deg)';
     message.textContent='🚇 Departing — Hold Midline!';
+    durationSelect.disabled=true;
 
     if (!pose) startCamera();
 
-    // A rightward train curve pushes the rider right, so the player must lean left.
-    // The opposite applies for a leftward curve.
     const curves=[
       {lean:-24,deg:-3,text:'⚠️ Curve Left — Counter it: lean right →'},
       {lean:24,deg:3,text:'⚠️ Curve Right — Counter it: lean left ←'},
@@ -156,8 +187,8 @@
     clockTimer=setInterval(()=>{
       if (!active) return;
       timeLeft--;
-      timeEl.textContent=timeLeft+'s';
-      if (timeLeft===43 || timeLeft%3===0) {
+      updateTimer();
+      if (timeLeft>0 && (timeLeft===parseInt(durationSelect.value,10)*60-2 || timeLeft%3===0)) {
         const c=curves[Math.floor(Math.random()*curves.length)];
         curveLean=c.lean;
         message.textContent=c.text;
@@ -177,8 +208,6 @@
         stability=Math.min(100,stability+.08);
         scoreEl.textContent=score;
       } else {
-        // Stability can reach zero but will not end the session early; the timer
-        // always runs the full 45 seconds unless the player stops it themselves.
         stability=Math.max(0,stability-.12);
       }
       stabilityEl.textContent=Math.round(stability)+'%';
@@ -189,10 +218,12 @@
     active=false;
     clearInterval(loopTimer); clearInterval(clockTimer);
     cabin.style.transform='rotate(0deg)';
+    durationSelect.disabled=false;
+    startBtn.textContent='Start New Session';
     message.textContent='🎉 Ride Complete! Score: '+score;
   }
 
-  document.getElementById('startBtn').addEventListener('click',startGame);
+  startBtn.addEventListener('click',startGame);
 })();
 </script>
 </body>
