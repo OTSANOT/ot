@@ -1,368 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3-2-6 Breathing Lantern</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #121826;
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      min-height: 100vh;
-      margin: 0;
-      padding: 24px 16px;
-      box-sizing: border-box;
-      text-align: center;
-    }
-
-    header {
-      max-width: 500px;
-    }
-
-    .domain {
-      font-size: 13px;
-      font-weight: bold;
-      color: #34d399;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 6px;
-    }
-
-    h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
-      color: #38bdf8;
-    }
-
-    .subtitle {
-      color: #94a3b8;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    .stage {
-      position: relative;
-      width: 270px;
-      height: 270px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 20px 0;
-    }
-
-    .aura {
-      position: absolute;
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(251, 191, 36, 0.35) 0%, rgba(56, 189, 248, 0.08) 60%, transparent 75%);
-      transform: scale(1);
-      transition: transform 0.3s ease;
-      pointer-events: none;
-    }
-
-    .lantern {
-      position: relative;
-      width: 110px;
-      height: 135px;
-      background: linear-gradient(180deg, #f59e0b 0%, #ef4444 55%, #b91c1c 100%);
-      border-radius: 50px / 60px;
-      box-shadow: 0 0 25px rgba(245, 158, 11, 0.45), inset 0 0 18px rgba(254, 243, 199, 0.5);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      transform: scale(1);
-      z-index: 2;
-    }
-
-    .lantern::before,
-    .lantern::after {
-      content: "";
-      position: absolute;
-      width: 54px;
-      height: 10px;
-      background: #1e293b;
-      border: 2px solid #fbbf24;
-      border-radius: 4px;
-    }
-
-    .lantern::before {
-      top: -8px;
-    }
-
-    .lantern::after {
-      bottom: -8px;
-    }
-
-    .rib {
-      position: absolute;
-      width: 82%;
-      height: 88%;
-      border: 1px solid rgba(254, 243, 199, 0.25);
-      border-radius: 50%;
-      pointer-events: none;
-    }
-
-    .timer-num {
-      font-size: 38px;
-      font-weight: bold;
-      color: #fef3c7;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-      z-index: 3;
-    }
-
-    .phase-box {
-      min-height: 74px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .phase-label {
-      font-size: 24px;
-      font-weight: bold;
-      color: #fbbf24;
-      margin-bottom: 4px;
-    }
-
-    .phase-hint {
-      font-size: 14px;
-      color: #cbd5e1;
-    }
-
-    .stats {
-      font-size: 14px;
-      color: #94a3b8;
-      margin-bottom: 16px;
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
-
-    button {
-      padding: 12px 22px;
-      font-size: 15px;
-      font-weight: bold;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-
-    button:active {
-      transform: scale(0.97);
-    }
-
-    .btn-primary {
-      background: #38bdf8;
-      color: #0f172a;
-    }
-
-    .btn-secondary {
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #334155;
-    }
-
-    .back-link {
-      color: #64748b;
-      text-decoration: none;
-      font-size: 13px;
-      margin-top: 8px;
-    }
-
-    .back-link:hover {
-      color: #38bdf8;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3-2-6 Breathing Lantern</title>
+<style>
+  body{font-family:Arial,sans-serif;background:#121826;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:100vh;margin:0;padding:24px 16px;box-sizing:border-box;text-align:center}
+  .domain{font-size:13px;font-weight:bold;color:#34d399;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+  h1{margin:0 0 8px;font-size:28px;color:#38bdf8}
+  .sub{color:#94a3b8;font-size:14px}
+  .stage{position:relative;width:260px;height:260px;display:flex;align-items:center;justify-content:center;margin:16px 0}
+  .aura{position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,.35) 0%,rgba(56,189,248,.08) 60%,transparent 75%);pointer-events:none}
+  .lantern{position:relative;width:110px;height:135px;background:linear-gradient(180deg,#f59e0b 0%,#ef4444 55%,#b91c1c 100%);border-radius:50px/60px;box-shadow:0 0 25px rgba(245,158,11,.45),inset 0 0 18px rgba(254,243,199,.5);display:flex;align-items:center;justify-content:center;z-index:2}
+  .lantern::before,.lantern::after{content:"";position:absolute;width:54px;height:10px;background:#1e293b;border:2px solid #fbbf24;border-radius:4px}
+  .lantern::before{top:-8px}.lantern::after{bottom:-8px}
+  .num{font-size:38px;font-weight:bold;color:#fef3c7;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .phase{font-size:24px;font-weight:bold;color:#fbbf24;margin-bottom:4px}
+  .hint{font-size:14px;color:#cbd5e1;min-height:20px}
+  .stats{font-size:14px;color:#94a3b8;margin-bottom:14px}
+  .btns{display:flex;gap:12px;justify-content:center;margin-bottom:14px}
+  button{padding:12px 22px;font-size:15px;font-weight:bold;border-radius:10px;border:none;cursor:pointer}
+  .p{background:#38bdf8;color:#0f172a}.s{background:#1e293b;color:#cbd5e1;border:1px solid #334155}
+  a{color:#64748b;text-decoration:none;font-size:13px}
+</style>
 </head>
 <body>
-
-  <header>
+  <div>
     <div class="domain">Sensory &amp; Emotional Regulation</div>
     <h1>3-2-6 Breathing Lantern</h1>
-    <div class="subtitle">Follow the lantern's glow (3s Inhale • 2s Hold • 6s Exhale) with soothing singing bowl tones.</div>
-  </header>
-
+    <div class="sub">3s Inhale &bull; 2s Hold &bull; 6s Exhale</div>
+  </div>
   <div class="stage">
     <div class="aura" id="aura"></div>
-    <div class="lantern" id="lantern">
-      <div class="rib"></div>
-      <div class="timer-num" id="countdown">3</div>
-    </div>
+    <div class="lantern" id="lantern"><div class="num" id="num">3</div></div>
   </div>
-
-  <div class="phase-box">
-    <div class="phase-label" id="phaseLabel">Ready</div>
-    <div class="phase-hint" id="phaseHint">Sit comfortably and press Start when ready</div>
-  </div>
-
   <div>
-    <div class="stats">Completed Cycles: <strong id="cycleCount" style="color:#34d399;">0</strong> / 4</div>
-    <div class="controls">
-      <button class="btn-primary" id="startBtn" onclick="toggleSession()">Start Session</button>
-      <button class="btn-secondary" id="soundBtn" onclick="toggleSound()">🔔 Bowl Audio: ON</button>
-    </div>
-    
+    <div class="phase" id="phase">Ready</div>
+    <div class="hint" id="hint">Press Start when ready</div>
   </div>
+  <div>
+    <div class="stats">Completed Cycles: <strong id="cyc" style="color:#34d399">0</strong> / 4</div>
+    <div class="btns">
+      <button class="p" id="startBtn" onclick="toggle()">Start Session</button>
+      <button class="s" id="sndBtn" onclick="toggleSnd()">🔔 Bowl: ON</button>
+    </div>
+    <a href="index.html">&larr; Back to OT Training Hub</a>
+  </div>
+<script>
+const P=[
+  {n:"Inhale",d:3,s:1.55,c:"#38bdf8",f:396,h:"Breathe in gently through your nose..."},
+  {n:"Hold",d:2,s:1.55,c:"#fbbf24",f:528,h:"Pause softly..."},
+  {n:"Exhale",d:6,s:1.0,c:"#34d399",f:264,h:"Breathe out slowly through your mouth..."}
+];
+let run=0,snd=1,pi=0,sec=3,cyc=0,iv,ctx,bgG,bgO=[];
+const L=document.getElementById("lantern"),A=document.getElementById("aura"),N=document.getElementById("num"),
+      PH=document.getElementById("phase"),H=document.getElementById("hint"),C=document.getElementById("cyc"),
+      SB=document.getElementById("startBtn"),AB=document.getElementById("sndBtn");
 
-  <script>
-    const phases = [
-      { name: "Inhale", duration: 3, scale: 1.55, color: "#38bdf8", tone: 396, hint: "Breathe in gently through your nose..." },
-      { name: "Hold",   duration: 2, scale: 1.55, color: "#fbbf24", tone: 528, hint: "Pause softly..." },
-      { name: "Exhale", duration: 6, scale: 1.0,  color: "#34d399", tone: 264, hint: "Breathe out slowly through your mouth..." }
-    ];
-
-    let isRunning = false;
-    let soundEnabled = true;
-    let phaseIndex = 0;
-    let secondsLeft = 3;
-    let cycles = 0;
-    let timerInterval = null;
-
-    // Web Audio Singing Bowl Engine
-    let audioCtx = null;
-    let bgMasterGain = null;
-    let bgNodes = [];
-
-    const lantern = document.getElementById("lantern");
-    const aura = document.getElementById("aura");
-    const countdownEl = document.getElementById("countdown");
-    const phaseLabel = document.getElementById("phaseLabel");
-    const phaseHint = document.getElementById("phaseHint");
-    const cycleCountEl = document.getElementById("cycleCount");
-    const startBtn = document.getElementById("startBtn");
-    const soundBtn = document.getElementById("soundBtn");
-
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-      }
-    }
-
-    // Continuous resonant singing bowl background hum
-    function startBackgroundBowl() {
-      if (!soundEnabled) return;
-      initAudio();
-      stopBackgroundBowl(true);
-
-      const now = audioCtx.currentTime;
-      bgMasterGain = audioCtx.createGain();
-      bgMasterGain.gain.setValueAtTime(0.0001, now);
-      bgMasterGain.gain.linearRampToValueAtTime(0.07, now + 2.5);
-      bgMasterGain.connect(audioCtx.destination);
-
-      // Harmonic frequencies for a warm singing bowl drone (174Hz root + fifth + octave + gentle beat)
-      const harmonics = [
-        { freq: 174,   vol: 0.50 },
-        { freq: 175.2, vol: 0.35 }, // Subtle binaural warmth
-        { freq: 261,   vol: 0.25 },
-        { freq: 522,   vol: 0.12 }
-      ];
-
-      // Slow LFO breathing swell on the bowl resonance
-      const lfo = audioCtx.createOscillator();
-      const lfoGain = audioCtx.createGain();
-      lfo.frequency.setValueAtTime(0.18, now);
-      lfoGain.gain.setValueAtTime(0.025, now);
-      lfo.connect(lfoGain);
-      lfoGain.connect(bgMasterGain.gain);
-      lfo.start(now);
-      bgNodes.push(lfo);
-
-      harmonics.forEach(h => {
-        const osc = audioCtx.createOscillator();
-        const oscGain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(h.freq, now);
-        oscGain.gain.setValueAtTime(h.vol, now);
-        osc.connect(oscGain);
-        oscGain.connect(bgMasterGain);
-        osc.start(now);
-        bgNodes.push(osc);
-      });
-    }
-
-    function stopBackgroundBowl(immediate = false) {
-      if (!audioCtx || !bgMasterGain) return;
-      const now = audioCtx.currentTime;
-      const fadeTime = immediate ? 0.05 : 1.2;
-
-      try {
-        bgMasterGain.gain.cancelScheduledValues(now);
-        bgMasterGain.gain.setValueAtTime(bgMasterGain.gain.value, now);
-        bgMasterGain.gain.exponentialRampToValueAtTime(0.0001, now + fadeTime);
-      } catch (e) {}
-
-      const nodesToStop = bgNodes.slice();
-      bgNodes = [];
-      bgMasterGain = null;
-
-      setTimeout(() => {
-        nodesToStop.forEach(node => {
-          try { node.stop(); node.disconnect(); } catch (e) {}
-        });
-      }, fadeTime * 1000 + 50);
-    }
-
-    // Soft singing bowl strike at each phase change
-    function playBowlStrike(baseFreq) {
-      if (!soundEnabled) return;
-      try {
-        initAudio();
-        const now = audioCtx.currentTime;
-        const partials = [
-          { mult: 1,    vol: 0.11, decay: 3.2 },
-          { mult: 2.0,  vol: 0.04, decay: 2.4 },
-          { mult: 2.75, vol: 0.02, decay: 1.6 }
-        ];
-
-        partials.forEach(p => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(baseFreq * p.mult, now);
-          gain.gain.setValueAtTime(0.001, now);
-          gain.gain.linearRampToValueAtTime(p.vol, now + 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + p.decay);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now);
-          osc.stop(now + p.decay);
-        });
-      } catch (e) {}
-    }
-
-    function toggleSound() {
-      soundEnabled = !soundEnabled;
-      soundBtn.textContent = soundEnabled ? "🔔 Bowl Audio: ON" : "🔕 Bowl Audio: OFF";
-      if (isRunning) {
-        if (soundEnabled) {
-          startBackgroundBowl();
-        } else {
-          stopBackgroundBowl();
-        }
-      }
-    }
-
-    function applyPhase(index) {
-      const p = phases[index];
-      secondsLeft = p.duration;
-      countdownEl.textContent = secondsLeft;
-      phaseLabel.textContent = p.name;
-      phaseLabel.style.color = p.color;
+function initA(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==="suspended")ctx.resume();}
+function startBg(){
+  if(!snd)return;initA();stopBg();
+  bgG=ctx.createGain();bgG.gain.setValueAtTime(.001,ctx.currentTime);bgG.gain.linearRampToValueAtTime(.06,ctx.currentTime+2);bgG.connect(ctx.destination);
+  [174,175.2,261,522].forEach((f,i)=>{
+    let o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;g.gain.value=i===0?.5:i===1?.35:i===2?.25:.12;
+    o.connect(g);g.connect(bgG);o.start();bgO.push(o);
+  });
+}
+function stopBg(){
+  if(bgG){try{bgG.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.5)}catch(e){}bgG=null;}
+  setTimeout(()=>{bgO.forEach(o=>{try{o.stop();o.disconnect()}catch(e){}});bgO=[];},600);
+}
+function chime(f){
+  if(!snd)return;initA();
+  [1,2,2.75].forEach((m,i)=>{
+    let o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f*m;
+    g.gain.setValueAtTime(.001,ctx.currentTime);g.gain.linearRampToValueAtTime(.1/(i+1),ctx.currentTime+.08);
+    g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+2.8);o.connect(g);g.connect(ctx.destination);
+    o.start();o.stop(ctx.currentTime+2.8);
+  });
+}
+function toggleSnd(){snd=!snd;AB.textContent=snd?"🔔 Bowl: ON":"🔕 Bowl: OFF";if(run)snd?startBg():stopBg();}
+function setP(i){
+  let p=P[i];sec=p.d;N.textContent=sec;PH.textContent=p.n;PH.style.color=p.c;H.textContent=p.h;
+  L.style.transition=A.style.transition=`transform ${p.d}s ease-in-out`;
+  L.style.transform=`scale(${p.s})`;A.style.transform=`scale(${p.s*1.15})`;chime(p.f);
+}
+function toggle(){
+  if(run){
+    run=0;clearInterval(iv);stopBg();SB.textContent="Start Session";SB.className="p";
+    L.style.transition=A.style.transition="transform .5s";L.style.transform=A.style.transform="scale(1)";
+    N.textContent=3;PH.textContent="Ready";PH.style.color="#fbbf24";H.textContent="Press Start when ready";
+  }else{
+    run=1;SB.textContent="Pause / Reset";SB.className="s";startBg();pi=0;setP(0);
+    iv=setInterval(()=>{if(--sec>0)N.textContent=sec;else{if(++pi>=3){pi=0;C.textContent=++cyc;}setP(pi);}},1000);
+  }
+}
+</script>
+</body>
+</html>
