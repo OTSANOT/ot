@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Double Decision — Divided Attention & UFOV Trainer</title>
+<style>
+  :root {
+    --bg-primary: #06131f;
+    --bg-secondary: #0b1f33;
+    --bg-panel: #0f2942;
+    --border-color: #1d4970;
+    --text-primary: #e6f4ff;
+    --text-secondary: #8db8d9;
+    --accent: #00e5ff;
+    --accent-glow: rgba(0, 229, 255, 0.25);
+    --danger: #ff4d6d;
+    --success: #00e676;
+    --warning: #ffca28;
+    --radar-line: rgba(0, 229, 255, 0.18);
+    --radar-fill: rgba(0, 229, 255, 0.04);
+    --font-main: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Consolas', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 860px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 20px;
+  }
+
+  .title-group h1 {
+    font-size: 1.35rem;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+  }
+
+  .title-group p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  select, button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  select:hover, button:hover {
+    border-color: var(--accent);
+  }
+
+  button.primary {
+    background: var(--accent);
+    color: #031019;
+    font-weight: 700;
+    border: none;
+    padding: 10px 22px;
+    font-size: 1rem;
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+
+  button.primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  button.danger-btn {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: transparent;
+  }
+
+  button.danger-btn:hover {
+    background: rgba(255, 77, 109, 0.15);
+  }
+
+  .card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  /* Setup Panel */
+  .setup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+    margin-bottom: 20px;
+  }
+
+  .control-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .control-box label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .control-box label span {
+    color: var(--accent);
+    font-family: var(--font-mono);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .chip-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    flex: 1;
+    text-align: center;
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .chip.active {
+    background: var(--accent);
+    color: #031019;
+    font-weight: 700;
+    border-color: var(--accent);
+  }
+
+  .diff-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .how-to {
+    background: var(--bg-panel);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+
+  .how-to strong { color: var(--text-primary); }
+
+  /* HUD */
+  .hud {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .stat-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+  }
+
+  .stat-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--accent);
+    margin-top: 2px;
+  }
+
+  /* Arena */
+  .arena-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    background: radial-gradient(circle, var(--bg-panel) 0%, var(--bg-primary) 75%);
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.6), 0 0 24px var(--accent-glow);
+  }
+
+  #radarCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+  }
+
+  .prompt-banner {
+    text-align: center;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 12px;
+    padding: 8px 14px;
+    background: var(--bg-panel);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+
+  .choice-dock {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 14px;
+    min-height: 86px;
+  }
+
+  .choice-card {
+    background: var(--bg-panel);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    min-width: 130px;
+    transition: all 0.15s ease;
+  }
+
+  .choice-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px var(--accent-glow);
+  }
+
+  .choice-card svg {
+    width: 44px;
+    height: 44px;
+  }
+
+  .choice-card span {
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  .arena-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  /* Results */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .log-table-wrap {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-top: 12px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    text-align: left;
+  }
+
+  th, td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th {
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    position: sticky;
+    top: 0;
+  }
+
+  .badge-ok { color: var(--success); font-weight: 700; }
+  .badge-err { color: var(--danger); font-weight: 700; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    .hud { grid-template-columns: repeat(3, 1fr); }
+    .choice-card { min-width: 110px; padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="title-group">
+      <h1 id="appTitle">Deep Sea Sonar — Double Decision</h1>
+      <p id="appSubtitle">Useful Field of View (UFOV) &amp; Visual Processing Speed Trainer</p>
+    </div>
+    <div class="header-controls">
+      <select id="themeSelect" aria-label="Select Visual Theme">
+        <option value="deepsea">Theme: Deep Sea Sonar</option>
+        <option value="space">Theme: Space Radar</option>
+        <option value="atc">Theme: Air Traffic Control</option>
+        <option value="forest">Theme: Forest Wildlife</option>
+      </select>
+      <button id="muteBtn" type="button" title="Toggle Audio Cues">🔊 Sound: ON</button>
+    </div>
+  </header>
+
+  <!-- SETUP SCREEN -->
+  <section id="setupScreen" class="card">
+    <div class="how-to" id="howToText">
+      <strong>How to Play:</strong> Keep your eyes locked on the <strong>central fixation dot</strong>. Two items will flash simultaneously: a <strong>central craft</strong> and a <strong>peripheral target buoy</strong> in one of 8 radar sectors (surrounded by jellyfish distractors at deeper rings). After the static mask, identify the <strong>central craft</strong> first, then click the <strong>sector</strong> where the peripheral target appeared.
+    </div>
+
+    <div class="setup-grid">
+      <!-- Timer Control -->
+      <div class="control-box">
+        <label for="durationSlider">Session Duration <span id="durationLabel">2 min</span></label>
+        <input type="range" id="durationSlider" min="1" max="10" value="2" step="1">
+        <div class="chip-row" id="durationChips">
+          <div class="chip" data-min="1">1m</div>
+          <div class="chip active" data-min="2">2m</div>
+          <div class="chip" data-min="5">5m</div>
+          <div class="chip" data-min="10">10m</div>
+        </div>
+        <div class="diff-desc">Complete as many adaptive trials as possible before the countdown finishes.</div>
+      </div>
+
+      <!-- Difficulty Control -->
+      <div class="control-box">
+        <label>Difficulty Tier <span id="diffBadge">Navigator</span></label>
+        <div class="chip-row" id="diffChips">
+          <div class="chip" data-diff="cadet">Cadet</div>
+          <div class="chip active" data-diff="navigator">Navigator</div>
+          <div class="chip" data-diff="abyssal">Abyssal</div>
+        </div>
+        <div class="diff-desc" id="diffDesc">
+          Starts at <strong>900 ms</strong> exposure (140 ms floor), moderate peripheral eccentricity, and medium distractor density.
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:center;">
+      <button id="startBtn" class="primary" type="button">Start Training Session</button>
+    </div>
+  </section>
+
+  <!-- GAME SCREEN -->
+  <section id="gameScreen" class="card hidden">
+    <div class="hud">
+      <div class="stat-box">
+        <div class="stat-label">Time Left</div>
+        <div class="stat-value" id="hudTime">02:00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Trial</div>
+        <div class="stat-value" id="hudTrial">1</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Accuracy</div>
+        <div class="stat-value" id="hudAcc">100%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Exposure</div>
+        <div class="stat-value" id="hudSpeed">900 ms</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Field Ring</div>
+        <div class="stat-value" id="hudRing">1 / 4</div>
+      </div>
+    </div>
+
+    <div class="arena-wrapper">
+      <canvas id="radarCanvas" width="520" height="520"></canvas>
+    </div>
+
+    <div class="prompt-banner" id="promptBanner">Fixate on the center dot...</div>
+
+    <div class="choice-dock" id="choiceDock"></div>
+
+    <div class="arena-footer">
+      <span id="bestSpeedFooter">Best Exposure: —</span>
+      <button id="endEarlyBtn" class="danger-btn" type="button">End Session Early</button>
+    </div>
+  </section>
+
+  <!-- RESULTS SCREEN -->
+  <section id="resultsScreen" class="card hidden">
+    <h2 style="color:var(--accent); margin-bottom:4px;">Session Complete</h2>
+    <p style="color:var(--text-secondary); font-size:0.9rem;" id="resultSummarySub">Summary of your divided attention performance</p>
+
+    <div class="results-grid">
+      <div class="stat-box">
+        <div class="stat-label">Trials Completed</div>
+        <div class="stat-value" id="resTrials">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Overall Accuracy</div>
+        <div class="stat-value" id="resAcc">0%</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Fastest Correct</div>
+        <div class="stat-value" id="resFastest">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Max Field Ring</div>
+        <div class="stat-value" id="resMaxRing">1 / 4</div>
+      </div>
+    </div>
+
+    <div class="log-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Exposure</th>
+            <th>Ring</th>
+            <th>Center ID</th>
+            <th>Sector ID</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; justify-content:center; gap:12px; margin-top:18px;">
+      <button id="playAgainBtn" class="primary" type="button">Train Again</button>
+      <button id="backSetupBtn" type="button">Change Settings</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // --- THEMES ---
+  const THEMES = {
+    deepsea: {
+      title: "Deep Sea Sonar — Double Decision",
+      subtitle: "Useful Field of View (UFOV) & Visual Processing Speed Trainer",
+      vars: {
+        "--bg-primary": "#06131f",
+        "--bg-secondary": "#0b1f33",
+        "--bg-panel": "#0f2942",
+        "--border-color": "#1d4970",
+        "--text-primary": "#e6f4ff",
+        "--text-secondary": "#8db8d9",
+        "--accent": "#00e5ff",
+        "--accent-glow": "rgba(0, 229, 255, 0.25)",
+        "--radar-line": "rgba(0, 229, 255, 0.18)"
+      },
+      centerItems: [
+        { id: "sub", name: "Submarine" },
+        { id: "bathy", name: "Bathysphere" }
+      ],
+      targetName: "Sonar Buoy",
+      distractorName: "Jellyfish",
+      howTo: `<strong>How to Play:</strong> Keep your eyes locked on the <strong>central fixation dot</strong>. Two items flash simultaneously: a <strong>central vessel</strong> (Submarine or Bathysphere) and a <strong>peripheral Sonar Buoy</strong> in one of 8 sectors amidst Jellyfish distractors. After the static mask, identify the <strong>central vessel</strong> first, then click the <strong>sector</strong> where the Sonar Buoy appeared.`
+    },
+    space: {
+      title: "Space Radar — Double Decision",
+      subtitle: "Orbital Threat Detection & Useful Field of View Trainer",
+      vars: {
+        "--bg-primary": "#090714",
+        "--bg-secondary": "#130f26",
+        "--bg-panel": "#1c1638",
+        "--border-color": "#382c6e",
+        "--text-primary": "#f2eeff",
+        "--text-secondary": "#a89bd4",
+        "--accent": "#b388ff",
+        "--accent-glow": "rgba(179, 136, 255, 0.28)",
+        "--radar-line": "rgba(179, 136, 255, 0.2)"
+      },
+      centerItems: [
+        { id: "shuttle", name: "Star Shuttle" },
+        { id: "probe", name: "Orbital Probe" }
+      ],
+      targetName: "Warp Beacon",
+      distractorName: "Asteroid",
+      howTo: `<strong>How to Play:</strong> Fixate on the <strong>central star dot</strong>. A <strong>central spacecraft</strong> (Star Shuttle or Orbital Probe) and a <strong>peripheral Warp Beacon</strong> will flash across the sensor grid amidst Asteroids. After the static mask, select the <strong>spacecraft</strong> first, then click the <strong>sector</strong> containing the Warp Beacon.`
+    },
+    atc: {
+      title: "Air Traffic Control — Double Decision",
+      subtitle: "Sector Scope Awareness & Visual Processing Speed Trainer",
+      vars: {
+        "--bg-primary": "#05140b",
+        "--bg-secondary": "#0a2414",
+        "--bg-panel": "#10361f",
+        "--border-color": "#1e5c36",
+        "--text-primary": "#e8fff0",
+        "--text-secondary": "#8cc7a3",
+        "--accent": "#00e676",
+        "--accent-glow": "rgba(0, 230, 118, 0.25)",
+        "--radar-line": "rgba(0, 230, 118, 0.2)"
+      },
+      centerItems: [
+        { id: "jet", name: "Commercial Jet" },
+        { id: "heli", name: "Rescue Chopper" }
+      ],
+      targetName: "Emergency Squawk",
+      distractorName: "Weather Cell",
+      howTo: `<strong>How to Play:</strong> Keep your gaze on the <strong>center scope dot</strong>. A <strong>central aircraft</strong> (Commercial Jet or Rescue Chopper) and a <strong>peripheral Emergency Squawk</strong> flash on the radar amidst Weather Cells. After the static mask, identify the <strong>aircraft</strong> first, then click the <strong>sector</strong> of the Emergency Squawk.`
+    },
+    forest: {
+      title: "Forest Wildlife — Double Decision",
+      subtitle: "Canopy Observation & Peripheral Awareness Trainer",
+      vars: {
+        "--bg-primary": "#141109",
+        "--bg-secondary": "#241e10",
+        "--bg-panel": "#332b18",
+        "--border-color": "#5c4d2b",
+        "--text-primary": "#fff8e7",
+        "--text-secondary": "#cfc09b",
+        "--accent": "#ffca28",
+        "--accent-glow": "rgba(255, 202, 40, 0.25)",
+        "--radar-line": "rgba(255, 202, 40, 0.18)"
+      },
+      centerItems: [
+        { id: "owl", name: "Barn Owl" },
+        { id: "fox", name: "Red Fox" }
+      ],
+      targetName: "Golden Acorn",
+      distractorName: "Pinecone",
+      howTo: `<strong>How to Play:</strong> Keep your eyes on the <strong>center trail marker</strong>. A <strong>central woodland animal</strong> (Barn Owl or Red Fox) and a <strong>peripheral Golden Acorn</strong> flash in the clearing amidst Pinecones. After the static mask, choose the <strong>animal</strong> first, then click the <strong>sector</strong> where the Golden Acorn appeared.`
+    }
+  };
+
+  // --- DIFFICULTY SETTINGS (DOUBLED EXPOSURE TIMES) ---
+  const DIFFICULTIES = {
+    cadet: {
+      label: "Cadet",
+      startMs: 1300,
+      minMs: 240,
+      maxMs: 2600,
+      stepDown: 70,
+      stepUp: 110,
+      startRing: 1,
+      distractorBase: 2,
+      desc: "Starts at <strong>1,300 ms</strong> exposure (240 ms floor), gentle adaptive steps (70 ms / 110 ms), and fewer peripheral distractors."
+    },
+    navigator: {
+      label: "Navigator",
+      startMs: 900,
+      minMs: 140,
+      maxMs: 1800,
+      stepDown: 60,
+      stepUp: 90,
+      startRing: 1,
+      distractorBase: 4,
+      desc: "Starts at <strong>900 ms</strong> exposure (140 ms floor), balanced adaptive steps (60 ms / 90 ms), and moderate distractor density."
+    },
+    abyssal: {
+      label: "Abyssal",
+      startMs: 560,
+      minMs: 80,
+      maxMs: 1200,
+      stepDown: 50,
+      stepUp: 70,
+      startRing: 2,
+      distractorBase: 6,
+      desc: "Starts at <strong>560 ms</strong> exposure (80 ms floor), wider initial field ring, rapid steps (50 ms / 70 ms), and dense distractors."
+    }
+  };
+
+  // --- AUDIO ENGINE (Web Audio API) ---
+  class SoundFX {
+    constructor() {
+      this.ctx = null;
+      this.muted = false;
+    }
+    ensure() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx.resume();
+      }
+    }
+    tone(freq, type, duration, vol = 0.12, delay = 0) {
+      if (this.muted) return;
+      this.ensure();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime + delay;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(vol, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+    fixate() { this.tone(520, "sine", 0.09, 0.08); }
+    flash() { this.tone(880, "triangle", 0.08, 0.1); }
+    click() { this.tone(640, "sine", 0.06, 0.09); }
+    success() {
+      this.tone(587.33, "sine", 0.12, 0.12, 0);
+      this.tone(880, "sine", 0.18, 0.14, 0.09);
+    }
+    fail() {
+      this.tone(240, "sawtooth", 0.16, 0.09, 0);
+      this.tone(185, "sawtooth", 0.22, 0.09, 0.11);
+    }
+    tickWarn() { this.tone(980, "sine", 0.05, 0.06); }
+    endSession() {
+      this.tone(523.25, "triangle", 0.16, 0.12, 0);
+      this.tone(659.25, "triangle", 0.16, 0.12, 0.12);
+      this.tone(783.99, "triangle", 0.28, 0.14, 0.24);
+    }
+  }
+
+  const sfx = new SoundFX();
+
+  // --- STATE ---
+  let currentThemeKey = "deepsea";
+  let currentDiffKey = "navigator";
+  let sessionMinutes = 2;
+
+  let gameState = "IDLE"; // IDLE, FIXATION, STIMULUS, MASK, ASK_CENTER, ASK_SECTOR, FEEDBACK, OVER
+  let timerInterval = null;
+  let phaseTimeout = null;
+  let secondsRemaining = 120;
+
+  let trialNum = 0;
+  let correctCount = 0;
+  let currentExposure = 900;
+  let currentRing = 1; // 1 to 4
+  let maxRingReached = 1;
+  let fastestCorrectMs = null;
+  let streak = 0;
+
+  let currentTrial = null;
+  let chosenCenterId = null;
+  let chosenSector = null;
+  let hoveredSector = -1;
+  let trialHistory = [];
+
+  // --- DOM REFS ---
+  const canvas = document.getElementById("radarCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const setupScreen = document.getElementById("setupScreen");
+  const gameScreen = document.getElementById("gameScreen");
+  const resultsScreen = document.getElementById("resultsScreen");
+
+  const themeSelect = document.getElementById("themeSelect");
+  const muteBtn = document.getElementById("muteBtn");
+  const durationSlider = document.getElementById("durationSlider");
+  const durationLabel = document.getElementById("durationLabel");
+  const durationChips = document.querySelectorAll("#durationChips .chip");
+  const diffChips = document.querySelectorAll("#diffChips .chip");
+  const diffBadge = document.getElementById("diffBadge");
+  const diffDesc = document.getElementById("diffDesc");
+
+  const hudTime = document.getElementById("hudTime");
+  const hudTrial = document.getElementById("hudTrial");
+  const hudAcc = document.getElementById("hudAcc");
+  const hudSpeed = document.getElementById("hudSpeed");
+  const hudRing = document.getElementById("hudRing");
+  const promptBanner = document.getElementById("promptBanner");
+  const choiceDock = document.getElementById("choiceDock");
+  const bestSpeedFooter = document.getElementById("bestSpeedFooter");
+
+  // --- THEME APPLICATION ---
+  function applyTheme(key) {
+    currentThemeKey = key;
+    const t = THEMES[key];
+    Object.entries(t.vars).forEach(([prop, val]) => {
+      document.documentElement.style.setProperty(prop, val);
+    });
+    document.getElementById("appTitle").textContent = t.title;
+    document.getElementById("appSubtitle").textContent = t.subtitle;
+    document.getElementById("howToText").innerHTML = t.howTo;
+    if (gameState !== "IDLE") drawRadar();
+  }
+
+  themeSelect.addEventListener("change", (e) => applyTheme(e.target.value));
+
+  muteBtn.addEventListener("click", () => {
+    sfx.muted = !sfx.muted;
+    muteBtn.textContent = sfx.muted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
+    if (!sfx.muted) sfx.click();
+  });
+
+  // --- DURATION & DIFFICULTY CONTROLS ---
+  function setDuration(mins) {
+    sessionMinutes = parseInt(mins, 10);
+    durationSlider.value = sessionMinutes;
+    durationLabel.textContent = `${sessionMinutes} min`;
+    durationChips.forEach(c => {
+      c.classList.toggle("active", parseInt(c.dataset.min, 10) === sessionMinutes);
+    });
+  }
+
+  durationSlider.addEventListener("input", (e) => setDuration(e.target.value));
+  durationChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      sfx.click();
+      setDuration(chip.dataset.min);
+    });
+  });
+
+  function setDifficulty(key) {
+    currentDiffKey = key;
+    const d = DIFFICULTIES[key];
+    diffBadge.textContent = d.label;
+    diffDesc.innerHTML = d.desc;
+    diffChips.forEach(c => {
+      c.classList.toggle("active", c.dataset.diff === key);
+    });
+  }
+
+  diffChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      sfx.click();
+      setDifficulty(chip.dataset.diff);
+    });
+  });
+
+  // --- VECTOR DRAWING HELPERS FOR CANVAS & CHOICE CARDS ---
+  function drawEntityCanvas(ctx, id, x, y, size, accentColor) {
+    ctx.save();
+    ctx.translate(x, y);
+    const s = size / 2;
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = accentColor;
+    ctx.fillStyle = accentColor;
+
+    if (id === "sub") {
+      // Submarine
+      ctx.beginPath();
+      ctx.ellipse(0, 3, s * 0.9, s * 0.42, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 229, 255, 0.25)";
+      ctx.fill();
+      ctx.stroke();
+      // Conning tower
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(-s * 0.25, -s * 0.48, s * 0.45, s * 0.35);
+      // Periscope
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.48);
+      ctx.lineTo(0, -s * 0.78);
+      ctx.lineTo(s * 0.25, -s * 0.78);
+      ctx.stroke();
+      // Propeller
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.95, -s * 0.25);
+      ctx.lineTo(-s * 0.95, s * 0.32);
+      ctx.stroke();
+    } else if (id === "bathy") {
+      // Bathysphere
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.68, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 229, 255, 0.22)";
+      ctx.fill();
+      ctx.stroke();
+      // Viewport
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.32, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      // Top hatch
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(-s * 0.25, -s * 0.85, s * 0.5, s * 0.2);
+    } else if (id === "shuttle") {
+      // Star Shuttle
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.9);
+      ctx.lineTo(s * 0.35, 0);
+      ctx.lineTo(s * 0.85, s * 0.65);
+      ctx.lineTo(0, s * 0.45);
+      ctx.lineTo(-s * 0.85, s * 0.65);
+      ctx.lineTo(-s * 0.35, 0);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(179, 136, 255, 0.28)";
+      ctx.fill();
+      ctx.stroke();
+    } else if (id === "probe") {
+      // Orbital Probe
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.42, 0, Math.PI * 2);
+      ctx.fillStyle = accentColor;
+      ctx.fill();
+      // Solar panels
+      ctx.strokeRect(-s * 0.95, -s * 0.22, s * 0.45, s * 0.44);
+      ctx.strokeRect(s * 0.5, -s * 0.22, s * 0.45, s * 0.44);
+      ctx.beginPath();
+      ctx.moveTo(0, 0.42 * s);
+      ctx.lineTo(0, 0.9 * s);
+      ctx.stroke();
+    } else if (id === "jet") {
+      // Commercial Jet
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.9);
+      ctx.lineTo(s * 0.2, -s * 0.2);
+      ctx.lineTo(s * 0.9, s * 0.25);
+      ctx.lineTo(s * 0.9, s * 0.42);
+      ctx.lineTo(s * 0.18, s * 0.2);
+      ctx.lineTo(s * 0.15, s * 0.7);
+      ctx.lineTo(s * 0.45, s * 0.88);
+      ctx.lineTo(-s * 0.45, s * 0.88);
+      ctx.lineTo(-s * 0.15, s * 0.7);
+      ctx.lineTo(-s * 0.18, s * 0.2);
+      ctx.lineTo(-s * 0.9, s * 0.42);
+      ctx.lineTo(-s * 0.9, s * 0.25);
+      ctx.lineTo(-s * 0.2, -s * 0.2);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(0, 230, 118, 0.28)";
+      ctx.fill();
+      ctx.stroke();
+    } else if (id === "heli") {
+      // Rescue Chopper
+      ctx.beginPath();
+      ctx.ellipse(0, s * 0.1, s * 0.45, s * 0.55, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 230, 118, 0.28)";
+      ctx.fill();
+      ctx.stroke();
+      // Rotor blades
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.9, -s * 0.55);
+      ctx.lineTo(s * 0.9, -s * 0.55);
+      ctx.moveTo(0, -s * 0.55);
+      ctx.lineTo(0, -s * 0.45);
+      ctx.stroke();
+    } else if (id === "owl") {
+      // Barn Owl
+      ctx.beginPath();
+      ctx.ellipse(0, s * 0.1, s * 0.55, s * 0.68, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 202, 40, 0.25)";
+      ctx.fill();
+      ctx.stroke();
+      // Eyes
+      ctx.beginPath();
+      ctx.arc(-s * 0.22, -s * 0.15, s * 0.14, 0, Math.PI * 2);
+      ctx.arc(s * 0.22, -s * 0.15, s * 0.14, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+    } else if (id === "fox") {
+      // Red Fox face
+      ctx.beginPath();
+      ctx.moveTo(-s * 0.65, -s * 0.75);
+      ctx.lineTo(-s * 0.2, -s * 0.35);
+      ctx.lineTo(s * 0.2, -s * 0.35);
+      ctx.lineTo(s * 0.65, -s * 0.75);
+      ctx.lineTo(s * 0.75, s * 0.1);
+      ctx.lineTo(0, s * 0.8);
+      ctx.lineTo(-s * 0.75, s * 0.1);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(255, 202, 40, 0.3)";
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function createMiniCanvasDataURL(entityId) {
+    const temp = document.createElement("canvas");
+    temp.width = 64;
+    temp.height = 64;
+    const tctx = temp.getContext("2d");
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#00e5ff";
+    drawEntityCanvas(tctx, entityId, 32, 32, 48, accent);
+    return temp.toDataURL();
+  }
+
+  function drawTarget(ctx, x, y, radius, accentColor) {
+    ctx.save();
+    ctx.translate(x, y);
+    // High-contrast beacon / target symbol
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffca28";
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.42, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff3d00";
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDistractor(ctx, x, y, radius, themeKey) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+    ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+    ctx.lineWidth = 1.8;
+
+    if (themeKey === "deepsea") {
+      // Jellyfish bell + tentacles
+      ctx.beginPath();
+      ctx.arc(0, -2, radius * 0.75, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * radius * 0.35, -2);
+        ctx.lineTo(i * radius * 0.45, radius * 0.75);
+        ctx.stroke();
+      }
+    } else if (themeKey === "space") {
+      // Polygon asteroid
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const ang = (i * Math.PI) / 3;
+        const r = radius * (i % 2 === 0 ? 0.82 : 0.62);
+        if (i === 0) ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r);
+        else ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (themeKey === "atc") {
+      // Weather cell cloud
+      ctx.beginPath();
+      ctx.arc(-radius * 0.3, 0, radius * 0.42, 0, Math.PI * 2);
+      ctx.arc(radius * 0.25, 0, radius * 0.45, 0, Math.PI * 2);
+      ctx.arc(0, -radius * 0.28, radius * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      // Pinecone diamond
+      ctx.beginPath();
+      ctx.moveTo(0, -radius * 0.85);
+      ctx.lineTo(radius * 0.6, 0);
+      ctx.lineTo(0, radius * 0.85);
+      ctx.lineTo(-radius * 0.6, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // --- RADAR RENDERING ---
+  function drawRadar() {
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const maxR = w * 0.46;
+
+    const styles = getComputedStyle(document.documentElement);
+    const accent = styles.getPropertyValue("--accent").trim();
+    const radarLine = styles.getPropertyValue("--radar-line").trim();
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 4 Concentric Rings
+    for (let r = 1; r <= 4; r++) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, (maxR / 4) * r, 0, Math.PI * 2);
+      ctx.strokeStyle = radarLine;
+      ctx.lineWidth = r === 4 ? 2 : 1.2;
+      ctx.stroke();
+    }
+
+    // 8 Radial Spokes (dividing 8 sectors centered at 0, 45, 90... degrees)
+    for (let i = 0; i < 8; i++) {
+      const boundaryAngle = ((i * 45) - 22.5 - 90) * (Math.PI / 180);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(boundaryAngle) * maxR, cy + Math.sin(boundaryAngle) * maxR);
+      ctx.strokeStyle = radarLine;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+
+    // Highlight sector when asking for peripheral location or showing feedback
+    if (gameState === "ASK_SECTOR" && hoveredSector >= 0) {
+      drawSectorWedge(cx, cy, maxR, hoveredSector, "rgba(255, 255, 255, 0.14)", accent);
+    }
+
+    if (gameState === "FEEDBACK" && currentTrial) {
+      if (chosenSector !== currentTrial.targetSector && chosenSector >= 0) {
+        drawSectorWedge(cx, cy, maxR, chosenSector, "rgba(255, 77, 109, 0.25)", "#ff4d6d");
+      }
+      drawSectorWedge(cx, cy, maxR, currentTrial.targetSector, "rgba(0, 230, 118, 0.25)", "#00e676");
+    }
+
+    // Phase-specific visuals
+    if (gameState === "FIXATION") {
+      // Central fixation dot
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff4d6d";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 15, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 77, 109, 0.5)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (gameState === "STIMULUS" && currentTrial) {
+      // Central entity
+      drawEntityCanvas(ctx, currentTrial.centerEntity.id, cx, cy, 56, accent);
+
+      // Ring radius mapping (Ring 1..4)
+      const ringRadii = [0, maxR * 0.34, maxR * 0.54, maxR * 0.74, maxR * 0.91];
+      const dist = ringRadii[currentTrial.ring];
+
+      // Distractors
+      currentTrial.distractors.forEach(d => {
+        const ang = (d.sector * 45 - 90) * (Math.PI / 180);
+        const dDist = ringRadii[d.ring];
+        drawDistractor(ctx, cx + Math.cos(ang) * dDist, cy + Math.sin(ang) * dDist, 16, currentThemeKey);
+      });
+
+      // Target peripheral item
+      const tAng = (currentTrial.targetSector * 45 - 90) * (Math.PI / 180);
+      drawTarget(ctx, cx + Math.cos(tAng) * dist, cy + Math.sin(tAng) * dist, 16, accent);
+    } else if (gameState === "MASK") {
+      // Visual noise mask across radar
+      for (let i = 0; i < 420; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const rad = Math.sqrt(Math.random()) * maxR;
+        const mx = cx + Math.cos(ang) * rad;
+        const my = cy + Math.sin(ang) * rad;
+        ctx.fillStyle = Math.random() > 0.5 ? accent : "#ffffff";
+        ctx.globalAlpha = 0.25 + Math.random() * 0.45;
+        ctx.fillRect(mx - 4, my - 4, 8, 8);
+      }
+      ctx.globalAlpha = 1;
+    } else if (gameState === "ASK_SECTOR" || gameState === "FEEDBACK") {
+      // Draw sector numbers 1-8 around outer rim for clarity
+      ctx.font = "bold 13px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (let s = 0; s < 8; s++) {
+        const ang = (s * 45 - 90) * (Math.PI / 180);
+        const lx = cx + Math.cos(ang) * (maxR * 0.92);
+        const ly = cy + Math.sin(ang) * (maxR * 0.92);
+        ctx.fillStyle = "rgba(255,255,255,0.65)";
+        ctx.fillText(`S${s + 1}`, lx, ly);
+      }
+      // Center dot
+      ctx.beginPath();
+      ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = accent;
+      ctx.fill();
+    }
+  }
+
+  function drawSectorWedge(cx, cy, maxR, sectorIdx, fillStyle, strokeStyle) {
+    const startAng = ((sectorIdx * 45) - 22.5 - 90) * (Math.PI / 180);
+    const endAng = ((sectorIdx * 45) + 22.5 - 90) * (Math.PI / 180);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, maxR, startAng, endAng);
+    ctx.closePath();
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+    ctx.strokeStyle = strokeStyle;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // --- CANVAS INTERACTION FOR SECTOR SELECTION ---
+  function getSectorFromMouse(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (evt.clientX - rect.left) * scaleX - canvas.width / 2;
+    const y = (evt.clientY - rect.top) * scaleY - canvas.height / 2;
+    const dist = Math.hypot(x, y);
+    if (dist < 22 || dist > canvas.width * 0.48) return -1;
+
+    // Angle in degrees where 0 is Top (12 o'clock), clockwise 0..360
+    let deg = (Math.atan2(y, x) * 180) / Math.PI + 90;
+    if (deg < 0) deg += 360;
+    const sector = Math.floor(((deg + 22.5) % 360) / 45);
+    return sector;
+  }
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (gameState !== "ASK_SECTOR") return;
+    const s = getSectorFromMouse(e);
+    if (s !== hoveredSector) {
+      hoveredSector = s;
+      drawRadar();
+    }
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    if (hoveredSector !== -1) {
+      hoveredSector = -1;
+      if (gameState === "ASK_SECTOR") drawRadar();
+    }
+  });
+
+  canvas.addEventListener("click", (e) => {
+    if (gameState !== "ASK_SECTOR") return;
+    const s = getSectorFromMouse(e);
+    if (s >= 0) {
+      sfx.click();
+      chosenSector = s;
+      evaluateTrial();
+    }
+  });
+
+  // --- SESSION & TRIAL FLOW ---
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function updateHUD() {
+    hudTime.textContent = formatTime(secondsRemaining);
+    hudTrial.textContent = trialNum;
+    const completed = trialHistory.length;
+    const acc = completed === 0 ? 100 : Math.round((correctCount / completed) * 100);
+    hudAcc.textContent = `${acc}%`;
+    hudSpeed.textContent = `${currentExposure} ms`;
+    hudRing.textContent = `${currentRing} / 4`;
+    bestSpeedFooter.textContent = fastestCorrectMs
+      ? `Fastest Correct: ${fastestCorrectMs} ms`
+      : `Fastest Correct: —`;
+  }
+
+  function startSession() {
+    sfx.click();
+    const diff = DIFFICULTIES[currentDiffKey];
+    secondsRemaining = sessionMinutes * 60;
+    trialNum = 0;
+    correctCount = 0;
+    currentExposure = diff.startMs;
+    currentRing = diff.startRing;
+    maxRingReached = currentRing;
+    fastestCorrectMs = null;
+    streak = 0;
+    trialHistory = [];
+
+    setupScreen.classList.add("hidden");
+    resultsScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+
+    updateHUD();
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      secondsRemaining--;
+      hudTime.textContent = formatTime(Math.max(0, secondsRemaining));
+      if (secondsRemaining <= 5 && secondsRemaining > 0) {
+        sfx.tickWarn();
+      }
+      if (secondsRemaining <= 0) {
+        endSession();
+      }
+    }, 1000);
+
+    nextTrial();
+  }
+
+  function nextTrial() {
+    if (secondsRemaining <= 0) return;
+    clearTimeout(phaseTimeout);
+
+    trialNum++;
+    chosenCenterId = null;
+    chosenSector = null;
+    hoveredSector = -1;
+
+    const theme = THEMES[currentThemeKey];
+    const diff = DIFFICULTIES[currentDiffKey];
+
+    const centerEntity = theme.centerItems[Math.floor(Math.random() * theme.centerItems.length)];
+    const targetSector = Math.floor(Math.random() * 8);
+
+    // Generate distractors in non-target sectors
+    const numDistractors = Math.min(7, diff.distractorBase + (currentRing - 1));
+    const availableSectors = [0, 1, 2, 3, 4, 5, 6, 7].filter(s => s !== targetSector);
+    // Shuffle available sectors
+    for (let i = availableSectors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableSectors[i], availableSectors[j]] = [availableSectors[j], availableSectors[i]];
+    }
+
+    const distractors = [];
+    for (let i = 0; i < numDistractors; i++) {
+      const dRing = Math.max(1, Math.min(4, currentRing + (Math.random() > 0.6 ? -1 : 0)));
+      distractors.push({
+        sector: availableSectors[i],
+        ring: dRing
+      });
+    }
+
+    currentTrial = {
+      num: trialNum,
+      exposure: currentExposure,
+      ring: currentRing,
+      centerEntity,
+      targetSector,
+      distractors
+    };
+
+    updateHUD();
+    choiceDock.innerHTML = "";
+
+    // Phase 1: Fixation
+    gameState = "FIXATION";
+    promptBanner.textContent = "Keep eyes on the red center dot...";
+    sfx.fixate();
+    drawRadar();
+
+    phaseTimeout = setTimeout(() => {
+      // Phase 2: Stimulus Flash
+      gameState = "STIMULUS";
+      sfx.flash();
+      drawRadar();
+
+      phaseTimeout = setTimeout(() => {
+        // Phase 3: Visual Noise Mask
+        gameState = "MASK";
+        drawRadar();
+
+        phaseTimeout = setTimeout(() => {
+          // Phase 4: Ask Central Identity
+          promptCenterChoice();
+        }, 260);
+      }, currentTrial.exposure);
+    }, 650);
+  }
+
+  function promptCenterChoice() {
+    gameState = "ASK_CENTER";
+    drawRadar();
+    const theme = THEMES[currentThemeKey];
+    promptBanner.textContent = "Step 1: Which central object appeared?";
+    choiceDock.innerHTML = "";
+
+    theme.centerItems.forEach(item => {
+      const btn = document.createElement("div");
+      btn.className = "choice-card";
+      const img = document.createElement("img");
+      img.src = createMiniCanvasDataURL(item.id);
+      img.alt = item.name;
+      img.width = 48;
+      img.height = 48;
+
+      const label = document.createElement("span");
+      label.textContent = item.name;
+
+      btn.appendChild(img);
+      btn.appendChild(label);
+
+      btn.addEventListener("click", () => {
+        if (gameState !== "ASK_CENTER") return;
+        sfx.click();
+        chosenCenterId = item.id;
+        promptSectorChoice();
+      });
+
+      choiceDock.appendChild(btn);
+    });
+  }
+
+  function promptSectorChoice() {
+    gameState = "ASK_SECTOR";
+    choiceDock.innerHTML = "";
+    const theme = THEMES[currentThemeKey];
+    promptBanner.textContent = `Step 2: Click the radar sector where the ${theme.targetName} appeared.`;
+    drawRadar();
+  }
+
+  function evaluateTrial() {
+    gameState = "FEEDBACK";
+    const diff = DIFFICULTIES[currentDiffKey];
+    const centerOk = chosenCenterId === currentTrial.centerEntity.id;
+    const sectorOk = chosenSector === currentTrial.targetSector;
+    const bothOk = centerOk && sectorOk;
+
+    if (bothOk) {
+      sfx.success();
+      correctCount++;
+      streak++;
+      if (!fastestCorrectMs || currentTrial.exposure < fastestCorrectMs) {
+        fastestCorrectMs = currentTrial.exposure;
+      }
+      promptBanner.innerHTML = `<span style="color:var(--success)">✓ Both Correct!</span> Exposure shortened.`;
+      currentExposure = Math.max(diff.minMs, currentExposure - diff.stepDown);
+
+      if (streak >= 2 && currentRing < 4) {
+        currentRing++;
+        maxRingReached = Math.max(maxRingReached, currentRing);
+        streak = 0;
+      }
+    } else {
+      sfx.fail();
+      streak = 0;
+      const reason = !centerOk && !sectorOk
+        ? "Both missed"
+        : !centerOk
+          ? `Center was ${currentTrial.centerEntity.name}`
+          : `Target was in Sector S${currentTrial.targetSector + 1}`;
+      promptBanner.innerHTML = `<span style="color:var(--danger)">✗ ${reason}.</span> Exposure lengthened.`;
+      currentExposure = Math.min(diff.maxMs, currentExposure + diff.stepUp);
+      if (currentRing > 1 && !centerOk && !sectorOk) {
+        currentRing--;
+      }
+    }
+
+    trialHistory.push({
+      num: currentTrial.num,
+      exposure: currentTrial.exposure,
+      ring: currentTrial.ring,
+      centerOk,
+      sectorOk,
+      bothOk
+    });
+
+    updateHUD();
+    drawRadar();
+
+    phaseTimeout = setTimeout(() => {
+      if (secondsRemaining > 0) {
+        nextTrial();
+      } else {
+        endSession();
+      }
+    }, 950);
+  }
+
+  function endSession() {
+    clearInterval(timerInterval);
+    clearTimeout(phaseTimeout);
+    gameState = "OVER";
+    sfx.endSession();
+
+    gameScreen.classList.add("hidden");
+    resultsScreen.classList.remove("hidden");
+
+    const completed = trialHistory.length;
+    const acc = completed === 0 ? 0 : Math.round((correctCount / completed) * 100);
+    const theme = THEMES[currentThemeKey];
+    const diff = DIFFICULTIES[currentDiffKey];
+
+    document.getElementById("resultSummarySub").textContent =
+      `${theme.title.split("—")[0].trim()} • ${diff.label} Difficulty • ${sessionMinutes} Min Session`;
+    document.getElementById("resTrials").textContent = completed;
+    document.getElementById("resAcc").textContent = `${acc}%`;
+    document.getElementById("resFastest").textContent = fastestCorrectMs ? `${fastestCorrectMs} ms` : "—";
+    document.getElementById("resMaxRing").textContent = `${maxRingReached} / 4`;
+
+    const logBody = document.getElementById("logBody");
+    logBody.innerHTML = "";
+    trialHistory.forEach(item => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.num}</td>
+        <td>${item.exposure} ms</td>
+        <td>Ring ${item.ring}</td>
+        <td>${item.centerOk ? '<span class="badge-ok">✓</span>' : '<span class="badge-err">✗</span>'}</td>
+        <td>${item.sectorOk ? '<span class="badge-ok">✓</span>' : '<span class="badge-err">✗</span>'}</td>
+        <td>${item.bothOk ? '<span class="badge-ok">Pass</span>' : '<span class="badge-err">Miss</span>'}</td>
+      `;
+      logBody.appendChild(tr);
+    });
+  }
+
+  // --- BUTTON LISTENERS ---
+  document.getElementById("startBtn").addEventListener("click", startSession);
+  document.getElementById("endEarlyBtn").addEventListener("click", () => {
+    sfx.click();
+    endSession();
+  });
+  document.getElementById("playAgainBtn").addEventListener("click", startSession);
+  document.getElementById("backSetupBtn").addEventListener("click", () => {
+    sfx.click();
+    resultsScreen.classList.add("hidden");
+    setupScreen.classList.remove("hidden");
+  });
+
+  // Initialize defaults
+  applyTheme("deepsea");
+  setDuration(2);
+  setDifficulty("navigator");
+})();
+</script>
+</body>
+</html>
