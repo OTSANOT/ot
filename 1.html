@@ -82,7 +82,6 @@
       z-index: 2;
     }
 
-    /* Lantern Top & Bottom Caps */
     .lantern::before,
     .lantern::after {
       content: "";
@@ -102,7 +101,6 @@
       bottom: -8px;
     }
 
-    /* Subtle Lantern Ribs */
     .rib {
       position: absolute;
       width: 82%;
@@ -120,7 +118,6 @@
       z-index: 3;
     }
 
-    /* Phase Guidance */
     .phase-box {
       min-height: 74px;
       display: flex;
@@ -141,7 +138,6 @@
       color: #cbd5e1;
     }
 
-    /* Controls & Stats */
     .stats {
       font-size: 14px;
       color: #94a3b8;
@@ -230,6 +226,8 @@
       { name: "Exhale", duration: 8, scale: 1.0,  color: "#34d399", hint: "Breathe out slowly through your mouth..." }
     ];
 
+    const tones =;
+
     let isRunning = false;
     let soundEnabled = true;
     let phaseIndex = 0;
@@ -252,6 +250,9 @@
       try {
         if (!audioCtx) {
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
         }
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -279,14 +280,11 @@
       phaseLabel.style.color = p.color;
       phaseHint.textContent = p.hint;
 
-      // Smoothly animate lantern size over the exact phase duration
       lantern.style.transition = `transform ${p.duration}s ease-in-out`;
       aura.style.transition = `transform ${p.duration}s ease-in-out`;
       lantern.style.transform = `scale(${p.scale})`;
       aura.style.transform = `scale(${p.scale * 1.15})`;
 
-      // Soft pitch cues for each phase
-      const tones =;
       playChime(tones[index]);
     }
 
