@@ -5,21 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MTR Rush Hour Balance</title>
 <script src="https://jsdelivr.net" crossorigin="anonymous" defer></script>
-<script src="https://jsdelivr.net" crossorigin="anonymous" defer></script>
 <style>
   body{font-family:Arial,sans-serif;background:#121826;color:#fff;margin:0;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center}
   .dom{font-size:12px;font-weight:bold;color:#34d399;text-transform:uppercase;letter-spacing:.8px}
   h1{margin:4px 0;font-size:24px;color:#38bdf8}
-  .sub{color:#94a3b8;font-size:13px;margin-bottom:12px}
+  .sub{color:#94a3b8;font-size:13px;margin-bottom:10px}
   .hud{display:flex;gap:16px;font-size:15px;font-weight:bold;margin-bottom:10px}
-  .cabin{position:relative;width:100%;max-width:440px;height:250px;background:#1e293b;border:3px solid #334155;border-radius:14px;overflow:hidden;margin-bottom:12px}
-  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:.35}
-  .pole{position:absolute;top:0;bottom:0;width:6px;background:#94a3b8;opacity:.4}
-  .safe-zone{position:absolute;top:25%;bottom:15%;left:36%;width:28%;background:rgba(52,211,153,.15);border:2px dashed #34d399;border-radius:10px}
-  .jolt-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,.85);padding:4px 12px;border-radius:12px;font-size:13px;font-weight:bold;color:#fbbf24;white-space:nowrap}
-  .avatar{position:absolute;bottom:22px;left:50%;width:54px;height:90px;margin-left:-27px;transition:left .08s linear;display:flex;flex-direction:column;align-items:center}
-  .head{width:32px;height:32px;border-radius:50%;background:#38bdf8;border:2px solid #fff}
-  .torso{width:46px;height:52px;border-radius:12px 12px 4px 4px;background:#0284c7;margin-top:3px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .cabin{position:relative;width:100%;max-width:440px;height:250px;background:#1e293b;border:3px solid #334155;border-radius:14px;overflow:hidden;margin-bottom:12px;transition:transform .4s ease}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:.38}
+  .safe-zone{position:absolute;top:25%;bottom:15%;left:36%;width:28%;background:rgba(52,211,153,.16);border:2px dashed #34d399;border-radius:10px}
+  .jolt-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,.9);padding:5px 12px;border-radius:12px;font-size:13px;font-weight:bold;color:#fbbf24;white-space:nowrap;z-index:3}
+  .avatar{position:absolute;bottom:20px;left:50%;width:52px;height:88px;margin-left:-26px;transition:left .08s linear;display:flex;flex-direction:column;align-items:center;z-index:2}
+  .head{width:30px;height:30px;border-radius:50%;background:#38bdf8;border:2px solid #fff}
+  .torso{width:44px;height:50px;border-radius:12px 12px 4px 4px;background:#0284c7;margin-top:3px;display:flex;align-items:center;justify-content:center;font-size:18px}
   .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
   button{padding:11px 18px;font-size:14px;font-weight:bold;border-radius:10px;border:none;cursor:pointer}
   .p{background:#38bdf8;color:#0f172a}.s{background:#1e293b;color:#cbd5e1;border:1px solid #334155}
@@ -28,7 +26,7 @@
 <body>
   <div class="dom">Trunk &amp; Postural Control</div>
   <h1>🚇 MTR Rush Hour Balance</h1>
-  <div class="sub">Shift your trunk left or right to stay inside the green midline zone during train curves!</div>
+  <div class="sub">Lean your trunk left or right against train curves to stay in the green zone!</div>
 
   <div class="hud">
     <span>Score: <strong id="sc" style="color:#34d399">0</strong></span>
@@ -38,104 +36,81 @@
 
   <div class="cabin" id="cabin">
     <video id="vid" playsinline></video>
-    <div class="pole" style="left:18%"></div>
-    <div class="pole" style="right:18%"></div>
     <div class="safe-zone" id="zone"></div>
-    <div class="jolt-banner" id="msg">Press Start (Camera or Touch)</div>
+    <div class="jolt-banner" id="msg">Press Start to board train</div>
     <div class="avatar" id="av"><div class="head"></div><div class="torso">🧍</div></div>
   </div>
 
   <div class="btns">
     <button class="s" onmousedown="nudge(-8)" ontouchstart="nudge(-8)">◀ Lean Left</button>
-    <button class="p" id="startBtn" onclick="startGame()">Start Session</button>
+    <button class="p" onclick="startGame()">Start Session</button>
     <button class="s" onmousedown="nudge(8)" ontouchstart="nudge(8)">Lean Right ▶</button>
   </div>
 
 <script>
-let pos=50,jolt=0,score=0,hp=100,time=45,active=false,camOn=false,loopIv,secIv;
+let pos=50,userLean=0,jolt=0,score=0,hp=100,time=45,active=false,camOn=false,loopIv,secIv;
 const av=document.getElementById("av"),msg=document.getElementById("msg"),scEl=document.getElementById("sc"),
-      hpEl=document.getElementById("hp"),tmEl=document.getElementById("tm"),zone=document.getElementById("zone");
+      hpEl=document.getElementById("hp"),tmEl=document.getElementById("tm"),zone=document.getElementById("zone"),
+      cabin=document.getElementById("cabin");
 
-function nudge(d){if(active)pos=Math.max(8,Math.min(92,pos+d));}
+function nudge(d){if(active)userLean=Math.max(-42,Math.min(42,userLean+d));}
 
 async function initCam(){
   if(camOn)return;
   try{
     const vid=document.getElementById("vid");
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}});
-    vid.srcObject=stream;
-    await vid.play();
-    camOn=true;
-    msg.textContent="📷 Camera Active — Lean Left or Right!";
-
+    vid.srcObject=stream;await vid.play();camOn=true;
     if(typeof Pose!=="undefined"){
       const pose=new Pose({locateFile:f=>`https://jsdelivr.net{f}`});
       pose.setOptions({modelComplexity:0,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
       pose.onResults(res=>{
-        if(!active||!res.poseLandmarks)return;
+        if(!res.poseLandmarks)return;
         const nose=res.poseLandmarks.at(0);
-        if(nose){
-          const lean=(0.5-nose.x)*180;
-          pos=Math.max(8,Math.min(92,50+lean+jolt*14));
-        }
+        if(nose)userLean=(0.5-nose.x)*190;
       });
-      const detect=async()=>{
-        if(vid.readyState>=2)await pose.send({image:vid});
-        requestAnimationFrame(detect);
-      };
+      const detect=async()=>{if(vid.readyState>=2)await pose.send({image:vid});requestAnimationFrame(detect);};
       detect();
     }
-  }catch(e){msg.textContent="Camera blocked or unavailable — use Lean buttons!";}
+  }catch(e){msg.textContent="Camera off — use Lean buttons!";}
 }
-
 
 function startGame(){
   initCam();
-  pos=50;jolt=0;score=0;hp=100;time=45;active=true;
+  pos=50;userLean=0;jolt=0;score=0;hp=100;time=45;active=true;
   scEl.textContent=0;hpEl.textContent="100%";tmEl.textContent="45s";
-  msg.textContent="🚇 Train Departing — Get Ready!";
+  cabin.style.transform="rotate(0deg)";
+  msg.textContent="🚇 Departing Station — Hold Midline!";
   clearInterval(loopIv);clearInterval(secIv);
 
   const curves=[
-    {v:-0.55,t:"⚠️ Sharp Curve Left! Lean Right →"},
-    {v:0.55, t:"⚠️ Sharp Curve Right! ← Lean Left"},
-    {v:-0.40,t:"⚠️ Tunnel Bend Left! Lean Right →"},
-    {v:0.40, t:"⚠️ Cross-Harbour Curve Right! ← Lean Left"}
+    {v:-26,deg:-3,t:"⚠️ Curve Left! Lean Right →"},
+    {v:26, deg:3, t:"⚠️ Curve Right! ← Lean Left"},
+    {v:-34,deg:-4,t:"⚠️ Sharp Bend Left! Lean Right →"},
+    {v:34, deg:4, t:"⚠️ Sharp Bend Right! ← Lean Left"}
   ];
 
   secIv=setInterval(()=>{
     if(!active)return;
     time--;tmEl.textContent=time+"s";
-    if(time===43 || time%3===0){
-      const pick=curves[Math.floor(Math.random()*curves.length)];
-      jolt=pick.v;msg.textContent=pick.t;
+    if(time===43||time%3===0){
+      const c=curves[Math.floor(Math.random()*curves.length)];
+      jolt=c.v;msg.textContent=c.t;cabin.style.transform=`rotate(${c.deg}deg)`;
     }
     if(time<=0||hp<=0){
-      active=false;clearInterval(loopIv);clearInterval(secIv);
-      msg.textContent=hp<=0?"Session Paused — Re-center & Retry!":"🎉 Ride Complete! Final Score: "+score;
+      active=false;clearInterval(loopIv);clearInterval(secIv);cabin.style.transform="rotate(0deg)";
+      msg.textContent=hp<=0?"Paused — Re-center & Retry!":"🎉 Ride Complete! Score: "+score;
     }
   },1000);
 
   loopIv=setInterval(()=>{
     if(!active)return;
-    if(!camOn)pos=Math.max(8,Math.min(92,pos+jolt*3.5));
+    pos=Math.max(8,Math.min(92,50+userLean+jolt));
     av.style.left=pos+"%";
     const inZone=pos>=36&&pos<=64;
     zone.style.borderColor=inZone?"#34d399":"#ef4444";
     if(inZone){score+=2;scEl.textContent=score;}
     else{hp=Math.max(0,hp-0.8);hpEl.textContent=Math.round(hp)+"%";}
-  },80);
-}
-
-
-  loopIv=setInterval(()=>{
-    if(!active)return;
-    if(!camOn)pos=Math.max(8,Math.min(92,pos+jolt*2.2));
-    av.style.left=pos+"%";
-    const inZone=pos>=36&&pos<=64;
-    zone.style.borderColor=inZone?"#34d399":"#ef4444";
-    if(inZone){score+=2;scEl.textContent=score;}
-    else{hp=Math.max(0,hp-0.6);hpEl.textContent=Math.round(hp)+"%";}
   },80);
 }
 </script>
