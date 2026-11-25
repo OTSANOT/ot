@@ -62,21 +62,32 @@ async function initCam(){
   if(camOn)return;
   try{
     const vid=document.getElementById("vid");
-    const pose=new Pose({locateFile:f=>`https://jsdelivr.net{f}`});
-    pose.setOptions({modelComplexity:0,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
-    pose.onResults(res=>{
-      if(!active||!res.poseLandmarks)return;
-      const nose=res.poseLandmarks[0];
-      if(nose){
-        // Mirror X (1 - nose.x) and amplify trunk lean sensitivity
-        const lean=(0.5-nose.x)*180;
-        pos=Math.max(8,Math.min(92,50+lean+jolt*14));
-      }
-    });
-    const cam=new Camera(vid,{onFrame:async()=>{await pose.send({image:vid});},width:320,height:240});
-    await cam.start();camOn=true;
-  }catch(e){msg.textContent="Camera unavailable — use Lean buttons!";}
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}});
+    vid.srcObject=stream;
+    await vid.play();
+    camOn=true;
+    msg.textContent="📷 Camera Active — Lean Left or Right!";
+
+    if(typeof Pose!=="undefined"){
+      const pose=new Pose({locateFile:f=>`https://jsdelivr.net{f}`});
+      pose.setOptions({modelComplexity:0,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
+      pose.onResults(res=>{
+        if(!active||!res.poseLandmarks)return;
+        const nose=res.poseLandmarks.at(0);
+        if(nose){
+          const lean=(0.5-nose.x)*180;
+          pos=Math.max(8,Math.min(92,50+lean+jolt*14));
+        }
+      });
+      const detect=async()=>{
+        if(vid.readyState>=2)await pose.send({image:vid});
+        requestAnimationFrame(detect);
+      };
+      detect();
+    }
+  }catch(e){msg.textContent="Camera blocked or unavailable — use Lean buttons!";}
 }
+
 
 function startGame(){
   initCam();
