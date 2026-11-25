@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>4-7-8 Breathing Lantern</title>
+  <title>3-2-6 Breathing Lantern</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -47,8 +47,8 @@
 
     .stage {
       position: relative;
-      width: 280px;
-      height: 280px;
+      width: 270px;
+      height: 270px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -192,15 +192,15 @@
 
   <header>
     <div class="domain">Sensory &amp; Emotional Regulation</div>
-    <h1>4-7-8 Breathing Lantern</h1>
-    <div class="subtitle">Follow the lantern's glow to slow your breathing and calm your nervous system.</div>
+    <h1>3-2-6 Breathing Lantern</h1>
+    <div class="subtitle">Follow the lantern's glow (3s Inhale • 2s Hold • 6s Exhale) with soothing singing bowl tones.</div>
   </header>
 
   <div class="stage">
     <div class="aura" id="aura"></div>
     <div class="lantern" id="lantern">
       <div class="rib"></div>
-      <div class="timer-num" id="countdown">4</div>
+      <div class="timer-num" id="countdown">3</div>
     </div>
   </div>
 
@@ -213,25 +213,29 @@
     <div class="stats">Completed Cycles: <strong id="cycleCount" style="color:#34d399;">0</strong> / 4</div>
     <div class="controls">
       <button class="btn-primary" id="startBtn" onclick="toggleSession()">Start Session</button>
-      <button class="btn-secondary" id="soundBtn" onclick="toggleSound()">🔔 Chime: ON</button>
+      <button class="btn-secondary" id="soundBtn" onclick="toggleSound()">🔔 Bowl Audio: ON</button>
     </div>
-    <a class="back-link" href="index.html">&larr; Back to OT Training Hub</a>
+    
   </div>
 
   <script>
     const phases = [
-      { name: "Inhale", duration: 4, scale: 1.55, color: "#38bdf8", tone: 528, hint: "Breathe in quietly through your nose..." },
-      { name: "Hold",   duration: 7, scale: 1.55, color: "#fbbf24", tone: 660, hint: "Gently hold your breath..." },
-      { name: "Exhale", duration: 8, scale: 1.0,  color: "#34d399", tone: 396, hint: "Breathe out slowly through your mouth..." }
+      { name: "Inhale", duration: 3, scale: 1.55, color: "#38bdf8", tone: 396, hint: "Breathe in gently through your nose..." },
+      { name: "Hold",   duration: 2, scale: 1.55, color: "#fbbf24", tone: 528, hint: "Pause softly..." },
+      { name: "Exhale", duration: 6, scale: 1.0,  color: "#34d399", tone: 264, hint: "Breathe out slowly through your mouth..." }
     ];
 
     let isRunning = false;
     let soundEnabled = true;
     let phaseIndex = 0;
-    let secondsLeft = 4;
+    let secondsLeft = 3;
     let cycles = 0;
     let timerInterval = null;
+
+    // Web Audio Singing Bowl Engine
     let audioCtx = null;
+    let bgMasterGain = null;
+    let bgNodes = [];
 
     const lantern = document.getElementById("lantern");
     const aura = document.getElementById("aura");
@@ -242,31 +246,118 @@
     const startBtn = document.getElementById("startBtn");
     const soundBtn = document.getElementById("soundBtn");
 
-    function playChime(freq) {
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    // Continuous resonant singing bowl background hum
+    function startBackgroundBowl() {
+      if (!soundEnabled) return;
+      initAudio();
+      stopBackgroundBowl(true);
+
+      const now = audioCtx.currentTime;
+      bgMasterGain = audioCtx.createGain();
+      bgMasterGain.gain.setValueAtTime(0.0001, now);
+      bgMasterGain.gain.linearRampToValueAtTime(0.07, now + 2.5);
+      bgMasterGain.connect(audioCtx.destination);
+
+      // Harmonic frequencies for a warm singing bowl drone (174Hz root + fifth + octave + gentle beat)
+      const harmonics = [
+        { freq: 174,   vol: 0.50 },
+        { freq: 175.2, vol: 0.35 }, // Subtle binaural warmth
+        { freq: 261,   vol: 0.25 },
+        { freq: 522,   vol: 0.12 }
+      ];
+
+      // Slow LFO breathing swell on the bowl resonance
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.setValueAtTime(0.18, now);
+      lfoGain.gain.setValueAtTime(0.025, now);
+      lfo.connect(lfoGain);
+      lfoGain.connect(bgMasterGain.gain);
+      lfo.start(now);
+      bgNodes.push(lfo);
+
+      harmonics.forEach(h => {
+        const osc = audioCtx.createOscillator();
+        const oscGain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(h.freq, now);
+        oscGain.gain.setValueAtTime(h.vol, now);
+        osc.connect(oscGain);
+        oscGain.connect(bgMasterGain);
+        osc.start(now);
+        bgNodes.push(osc);
+      });
+    }
+
+    function stopBackgroundBowl(immediate = false) {
+      if (!audioCtx || !bgMasterGain) return;
+      const now = audioCtx.currentTime;
+      const fadeTime = immediate ? 0.05 : 1.2;
+
+      try {
+        bgMasterGain.gain.cancelScheduledValues(now);
+        bgMasterGain.gain.setValueAtTime(bgMasterGain.gain.value, now);
+        bgMasterGain.gain.exponentialRampToValueAtTime(0.0001, now + fadeTime);
+      } catch (e) {}
+
+      const nodesToStop = bgNodes.slice();
+      bgNodes = [];
+      bgMasterGain = null;
+
+      setTimeout(() => {
+        nodesToStop.forEach(node => {
+          try { node.stop(); node.disconnect(); } catch (e) {}
+        });
+      }, fadeTime * 1000 + 50);
+    }
+
+    // Soft singing bowl strike at each phase change
+    function playBowlStrike(baseFreq) {
       if (!soundEnabled) return;
       try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === "suspended") {
-          audioCtx.resume();
-        }
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.4);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 1.4);
+        initAudio();
+        const now = audioCtx.currentTime;
+        const partials = [
+          { mult: 1,    vol: 0.11, decay: 3.2 },
+          { mult: 2.0,  vol: 0.04, decay: 2.4 },
+          { mult: 2.75, vol: 0.02, decay: 1.6 }
+        ];
+
+        partials.forEach(p => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(baseFreq * p.mult, now);
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(p.vol, now + 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + p.decay);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + p.decay);
+        });
       } catch (e) {}
     }
 
     function toggleSound() {
       soundEnabled = !soundEnabled;
-      soundBtn.textContent = soundEnabled ? "🔔 Chime: ON" : "🔕 Chime: OFF";
+      soundBtn.textContent = soundEnabled ? "🔔 Bowl Audio: ON" : "🔕 Bowl Audio: OFF";
+      if (isRunning) {
+        if (soundEnabled) {
+          startBackgroundBowl();
+        } else {
+          stopBackgroundBowl();
+        }
+      }
     }
 
     function applyPhase(index) {
@@ -275,62 +366,3 @@
       countdownEl.textContent = secondsLeft;
       phaseLabel.textContent = p.name;
       phaseLabel.style.color = p.color;
-      phaseHint.textContent = p.hint;
-
-      lantern.style.transition = `transform ${p.duration}s ease-in-out`;
-      aura.style.transition = `transform ${p.duration}s ease-in-out`;
-      lantern.style.transform = `scale(${p.scale})`;
-      aura.style.transform = `scale(${p.scale * 1.15})`;
-
-      playChime(p.tone);
-    }
-
-    function toggleSession() {
-      if (isRunning) {
-        stopSession();
-      } else {
-        startSession();
-      }
-    }
-
-    function startSession() {
-      isRunning = true;
-      startBtn.textContent = "Pause / Reset";
-      startBtn.className = "btn-secondary";
-      phaseIndex = 0;
-      applyPhase(phaseIndex);
-
-      timerInterval = setInterval(() => {
-        secondsLeft--;
-        if (secondsLeft > 0) {
-          countdownEl.textContent = secondsLeft;
-        } else {
-          phaseIndex++;
-          if (phaseIndex >= phases.length) {
-            phaseIndex = 0;
-            cycles++;
-            cycleCountEl.textContent = cycles;
-          }
-          applyPhase(phaseIndex);
-        }
-      }, 1000);
-    }
-
-    function stopSession() {
-      isRunning = false;
-      clearInterval(timerInterval);
-      startBtn.textContent = "Start Session";
-      startBtn.className = "btn-primary";
-      lantern.style.transition = "transform 0.5s ease";
-      aura.style.transition = "transform 0.5s ease";
-      lantern.style.transform = "scale(1)";
-      aura.style.transform = "scale(1)";
-      countdownEl.textContent = "4";
-      phaseLabel.textContent = "Ready";
-      phaseLabel.style.color = "#fbbf24";
-      phaseHint.textContent = "Sit comfortably and press Start when ready";
-    }
-  </script>
-
-</body>
-</html>
