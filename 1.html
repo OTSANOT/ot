@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4-7-8 Breathing Lantern</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121826;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px 16px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    header {
+      max-width: 500px;
+    }
+
+    .domain {
+      font-size: 13px;
+      font-weight: bold;
+      color: #34d399;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #38bdf8;
+    }
+
+    .subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    /* Lantern Visual Stage */
+    .stage {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .aura {
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.35) 0%, rgba(56, 189, 248, 0.08) 60%, transparent 75%);
+      transform: scale(1);
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+
+    .lantern {
+      position: relative;
+      width: 110px;
+      height: 135px;
+      background: linear-gradient(180deg, #f59e0b 0%, #ef4444 55%, #b91c1c 100%);
+      border-radius: 50px / 60px;
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.45), inset 0 0 18px rgba(254, 243, 199, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transform: scale(1);
+      z-index: 2;
+    }
+
+    /* Lantern Top & Bottom Caps */
+    .lantern::before,
+    .lantern::after {
+      content: "";
+      position: absolute;
+      width: 54px;
+      height: 10px;
+      background: #1e293b;
+      border: 2px solid #fbbf24;
+      border-radius: 4px;
+    }
+
+    .lantern::before {
+      top: -8px;
+    }
+
+    .lantern::after {
+      bottom: -8px;
+    }
+
+    /* Subtle Lantern Ribs */
+    .rib {
+      position: absolute;
+      width: 82%;
+      height: 88%;
+      border: 1px solid rgba(254, 243, 199, 0.25);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .timer-num {
+      font-size: 38px;
+      font-weight: bold;
+      color: #fef3c7;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      z-index: 3;
+    }
+
+    /* Phase Guidance */
+    .phase-box {
+      min-height: 74px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .phase-label {
+      font-size: 24px;
+      font-weight: bold;
+      color: #fbbf24;
+      margin-bottom: 4px;
+    }
+
+    .phase-hint {
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    /* Controls & Stats */
+    .stats {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    button {
+      padding: 12px 22px;
+      font-size: 15px;
+      font-weight: bold;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+    }
+
+    .back-link {
+      color: #64748b;
+      text-decoration: none;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .back-link:hover {
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="domain">Sensory &amp; Emotional Regulation</div>
+    <h1>4-7-8 Breathing Lantern</h1>
+    <div class="subtitle">Follow the lantern's glow to slow your breathing and calm your nervous system.</div>
+  </header>
+
+  <div class="stage">
+    <div class="aura" id="aura"></div>
+    <div class="lantern" id="lantern">
+      <div class="rib"></div>
+      <div class="timer-num" id="countdown">4</div>
+    </div>
+  </div>
+
+  <div class="phase-box">
+    <div class="phase-label" id="phaseLabel">Ready</div>
+    <div class="phase-hint" id="phaseHint">Sit comfortably and press Start when ready</div>
+  </div>
+
+  <div>
+    <div class="stats">Completed Cycles: <strong id="cycleCount" style="color:#34d399;">0</strong> / 4</div>
+    <div class="controls">
+      <button class="btn-primary" id="startBtn" onclick="toggleSession()">Start Session</button>
+      <button class="btn-secondary" id="soundBtn" onclick="toggleSound()">🔔 Chime: ON</button>
+    </div>
+    <a class="back-link" href="index.html">&larr; Back to OT Training Hub</a>
+  </div>
+
+  <script>
+    const phases = [
+      { name: "Inhale", duration: 4, scale: 1.55, color: "#38bdf8", hint: "Breathe in quietly through your nose..." },
+      { name: "Hold",   duration: 7, scale: 1.55, color: "#fbbf24", hint: "Gently hold your breath..." },
+      { name: "Exhale", duration: 8, scale: 1.0,  color: "#34d399", hint: "Breathe out slowly through your mouth..." }
+    ];
+
+    let isRunning = false;
+    let soundEnabled = true;
+    let phaseIndex = 0;
+    let secondsLeft = 4;
+    let cycles = 0;
+    let timerInterval = null;
+    let audioCtx = null;
+
+    const lantern = document.getElementById("lantern");
+    const aura = document.getElementById("aura");
+    const countdownEl = document.getElementById("countdown");
+    const phaseLabel = document.getElementById("phaseLabel");
+    const phaseHint = document.getElementById("phaseHint");
+    const cycleCountEl = document.getElementById("cycleCount");
+    const startBtn = document.getElementById("startBtn");
+    const soundBtn = document.getElementById("soundBtn");
+
+    function playChime(freq) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1.4);
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      soundBtn.textContent = soundEnabled ? "🔔 Chime: ON" : "🔕 Chime: OFF";
+    }
+
+    function applyPhase(index) {
+      const p = phases[index];
+      secondsLeft = p.duration;
+      countdownEl.textContent = secondsLeft;
+      phaseLabel.textContent = p.name;
+      phaseLabel.style.color = p.color;
+      phaseHint.textContent = p.hint;
+
+      // Smoothly animate lantern size over the exact phase duration
+      lantern.style.transition = `transform ${p.duration}s ease-in-out`;
+      aura.style.transition = `transform ${p.duration}s ease-in-out`;
+      lantern.style.transform = `scale(${p.scale})`;
+      aura.style.transform = `scale(${p.scale * 1.15})`;
+
+      // Soft pitch cues for each phase
+      const tones =;
+      playChime(tones[index]);
+    }
+
+    function toggleSession() {
+      if (isRunning) {
+        stopSession();
+      } else {
+        startSession();
+      }
+    }
+
+    function startSession() {
+      isRunning = true;
+      startBtn.textContent = "Pause / Reset";
+      startBtn.className = "btn-secondary";
+      phaseIndex = 0;
+      applyPhase(phaseIndex);
+
+      timerInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft > 0) {
+          countdownEl.textContent = secondsLeft;
+        } else {
+          phaseIndex++;
+          if (phaseIndex >= phases.length) {
+            phaseIndex = 0;
+            cycles++;
+            cycleCountEl.textContent = cycles;
+          }
+          applyPhase(phaseIndex);
+        }
+      }, 1000);
+    }
+
+    function stopSession() {
+      isRunning = false;
+      clearInterval(timerInterval);
+      startBtn.textContent = "Start Session";
+      startBtn.className = "btn-primary";
+      lantern.style.transition = "transform 0.5s ease";
+      aura.style.transition = "transform 0.5s ease";
+      lantern.style.transform = "scale(1)";
+      aura.style.transform = "scale(1)";
+      countdownEl.textContent = "4";
+      phaseLabel.textContent = "Ready";
+      phaseLabel.style.color = "#fbbf24";
+      phaseHint.textContent = "Sit comfortably and press Start when ready";
+    }
+  </script>
+
+</body>
+</html>
