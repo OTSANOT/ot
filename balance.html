@@ -34,7 +34,7 @@
 <body>
   <div class="domain">Trunk &amp; Postural Control</div>
   <h1>🚇 MTR Rush Hour Balance</h1>
-  <div class="sub">Lean your trunk left or right against train curves. Stay in the green zone!</div>
+  <div class="sub">Counter the train's movement: when it curves right, lean left; when it curves left, lean right. Stay in the green zone!</div>
 
   <div class="hud">
     <span>Score: <strong id="score" style="color:var(--green)">0</strong></span>
@@ -85,6 +85,9 @@
 
   async function startCamera() {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access requires HTTPS or localhost');
+      }
       cameraStatus.textContent='Starting camera…';
       const stream = await navigator.mediaDevices.getUserMedia({
         video:{facingMode:'user', width:{ideal:640}, height:{ideal:480}}, audio:false
@@ -92,36 +95,41 @@
       video.srcObject=stream;
       await video.play();
 
-      if (typeof Pose === 'undefined') {
-        throw new Error('MediaPipe Pose did not load');
-      }
+      if (typeof Pose === 'undefined') throw new Error('MediaPipe Pose did not load');
 
       pose = new Pose({locateFile:file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
       pose.setOptions({modelComplexity:0,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
       pose.onResults(results => {
         ctx.clearRect(0,0,overlay.width,overlay.height);
-        if (!results.poseLandmarks) { cameraStatus.textContent='Camera active — pose not detected'; return; }
-
         const lm=results.poseLandmarks;
-        const nose=lm[0], left=lm[11], right=lm[12];
-        if (!nose || !left || !right) return;
+        if (!lm) { cameraStatus.textContent='Camera active — pose not detected'; return; }
 
-        const shoulderMid=(left.x+right.x)/2;
-        const torsoTilt=((shoulderMid-nose.x)*-170);
-        cameraLean=Math.max(-42,Math.min(42,torsoTilt));
+        const leftShoulder=lm[11], rightShoulder=lm[12];
+        const leftHip=lm[23], rightHip=lm[24];
+        if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) return;
+        if ([leftShoulder,rightShoulder,leftHip,rightHip].some(p => (p.visibility ?? 1) < .35)) {
+          cameraStatus.textContent='Camera active — move back so shoulders and hips are visible';
+          return;
+        }
+
+        // Video is mirrored. Convert shoulder-vs-hip displacement into the same
+        // left/right direction shown on screen (positive means screen-right).
+        const shoulderMid=(leftShoulder.x+rightShoulder.x)/2;
+        const hipMid=(leftHip.x+rightHip.x)/2;
+        cameraLean=Math.max(-42,Math.min(42,(hipMid-shoulderMid)*220));
 
         ctx.fillStyle='#38bdf8';
-        [nose,left,right].forEach(p=>{
-          ctx.beginPath(); ctx.arc(p.x*320,p.y*240,5,0,Math.PI*2); ctx.fill();
+        [leftShoulder,rightShoulder,leftHip,rightHip].forEach(p=>{
+          ctx.beginPath(); ctx.arc((1-p.x)*320,p.y*240,5,0,Math.PI*2); ctx.fill();
         });
-        cameraStatus.textContent='Camera tracking active';
+        cameraStatus.textContent='Camera tracking active — lean your shoulders left or right';
       });
 
       if (typeof Camera === 'undefined') throw new Error('Camera helper did not load');
-      camera=new Camera(video,{onFrame:async()=>{await pose.send({image:video});},width:640,height:480});
+      camera=new Camera(video,{onFrame:async()=>{if(pose) await pose.send({image:video});},width:640,height:480});
       await camera.start();
     } catch (err) {
-      cameraStatus.textContent='Camera unavailable — use the buttons instead (' + (err.message || 'permission denied') + ')';
+      cameraStatus.textContent='Camera unavailable — use the Lean buttons instead (' + (err.message || 'permission denied') + ')';
     }
   }
 
@@ -135,15 +143,16 @@
 
     if (!pose) startCamera();
 
+    // A rightward train curve pushes the rider right, so the player must lean left.
+    // The opposite applies for a leftward curve.
     const curves=[
-      {lean:-24,deg:-3,text:'⚠️ Curve Left — Lean Right →'},
-      {lean:24,deg:3,text:'⚠️ Curve Right — Lean Left ←'},
-      {lean:-30,deg:-4,text:'⚠️ Sharp Bend Left — Lean Right →'},
-      {lean:30,deg:4,text:'⚠️ Sharp Bend Right — Lean Left ←'}
+      {lean:-24,deg:-3,text:'⚠️ Curve Left — Counter it: lean right →'},
+      {lean:24,deg:3,text:'⚠️ Curve Right — Counter it: lean left ←'},
+      {lean:-30,deg:-4,text:'⚠️ Sharp Bend Left — Lean right →'},
+      {lean:30,deg:4,text:'⚠️ Sharp Bend Right — Lean left ←'}
     ];
 
     clearInterval(clockTimer); clearInterval(loopTimer);
-
     clockTimer=setInterval(()=>{
       if (!active) return;
       timeLeft--;
@@ -154,7 +163,7 @@
         message.textContent=c.text;
         cabin.style.transform=`rotate(${c.deg}deg)`;
       }
-      if (timeLeft<=0) endGame(false);
+      if (timeLeft<=0) endGame();
     },1000);
 
     loopTimer=setInterval(()=>{
@@ -163,17 +172,24 @@
       avatar.style.left=pos+'%';
       const inZone=pos>=36 && pos<=64;
       zone.style.borderColor=inZone?'#34d399':'#ef4444';
-      if (inZone) { score+=2; scoreEl.textContent=score; }
-      else { stability=Math.max(0,stability-.25); stabilityEl.textContent=Math.round(stability)+'%'; }
-      if (stability<=0) endGame(true);
+      if (inZone) {
+        score+=2;
+        stability=Math.min(100,stability+.08);
+        scoreEl.textContent=score;
+      } else {
+        // Stability can reach zero but will not end the session early; the timer
+        // always runs the full 45 seconds unless the player stops it themselves.
+        stability=Math.max(0,stability-.12);
+      }
+      stabilityEl.textContent=Math.round(stability)+'%';
     },80);
   }
 
-  function endGame(lost) {
+  function endGame() {
     active=false;
     clearInterval(loopTimer); clearInterval(clockTimer);
     cabin.style.transform='rotate(0deg)';
-    message.textContent=lost?'Paused — Re-center & Retry!':'🎉 Ride Complete! Score: '+score;
+    message.textContent='🎉 Ride Complete! Score: '+score;
   }
 
   document.getElementById('startBtn').addEventListener('click',startGame);
