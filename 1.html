@@ -45,7 +45,6 @@
       line-height: 1.4;
     }
 
-    /* Lantern Visual Stage */
     .stage {
       position: relative;
       width: 280px;
@@ -221,12 +220,10 @@
 
   <script>
     const phases = [
-      { name: "Inhale", duration: 4, scale: 1.55, color: "#38bdf8", hint: "Breathe in quietly through your nose..." },
-      { name: "Hold",   duration: 7, scale: 1.55, color: "#fbbf24", hint: "Gently hold your breath..." },
-      { name: "Exhale", duration: 8, scale: 1.0,  color: "#34d399", hint: "Breathe out slowly through your mouth..." }
+      { name: "Inhale", duration: 4, scale: 1.55, color: "#38bdf8", tone: 528, hint: "Breathe in quietly through your nose..." },
+      { name: "Hold",   duration: 7, scale: 1.55, color: "#fbbf24", tone: 660, hint: "Gently hold your breath..." },
+      { name: "Exhale", duration: 8, scale: 1.0,  color: "#34d399", tone: 396, hint: "Breathe out slowly through your mouth..." }
     ];
-
-    const tones =;
 
     let isRunning = false;
     let soundEnabled = true;
@@ -285,7 +282,7 @@
       lantern.style.transform = `scale(${p.scale})`;
       aura.style.transform = `scale(${p.scale * 1.15})`;
 
-      playChime(tones[index]);
+      playChime(p.tone);
     }
 
     function toggleSession() {
