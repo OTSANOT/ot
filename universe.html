@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Infinite Universe Travel - Wormholes & Audio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020308;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #ffffff;
+        }
+
+        #space-canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        #space-canvas:active {
+            cursor: grabbing;
+        }
+
+        /* Wormhole Flash Overlay */
+        #wormhole-flash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.95) 0%, rgba(0, 229, 255, 0.7) 45%, rgba(124, 77, 255, 0) 100%);
+            opacity: 0;
+            transition: opacity 0.15s ease-out;
+            z-index: 5;
+        }
+
+        /* HUD Overlay */
+        .hud-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px;
+            z-index: 10;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .telemetry-panel {
+            background: rgba(10, 15, 30, 0.55);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(100, 180, 255, 0.25);
+            border-radius: 14px;
+            padding: 14px 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .telemetry-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #64b5f6;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .telemetry-data {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 14px;
+            color: #e3f2fd;
+            line-height: 1.5;
+        }
+
+        .telemetry-highlight {
+            color: #00e5ff;
+            font-weight: bold;
+        }
+
+        .telemetry-wormhole {
+            color: #ea80fc;
+            font-weight: bold;
+        }
+
+        .hud-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+        }
+
+        .controls-bar {
+            pointer-events: auto;
+            background: rgba(10, 15, 30, 0.65);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(100, 180, 255, 0.3);
+            border-radius: 20px;
+            padding: 12px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            max-width: 96vw;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #90caf9;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 120px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 5px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00e5ff;
+            box-shadow: 0 0 12px #00e5ff;
+            cursor: pointer;
+            transition: transform 0.15s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(41, 121, 255, 0.25));
+            border: 1px solid rgba(0, 229, 255, 0.5);
+            color: #ffffff;
+            padding: 9px 15px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(0, 229, 255, 0.15);
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.4), rgba(41, 121, 255, 0.45));
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn.active-warp {
+            background: linear-gradient(135deg, #00e5ff, #2979ff);
+            color: #020308;
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.8);
+        }
+
+        .btn-wormhole {
+            background: linear-gradient(135deg, rgba(213, 0, 249, 0.25), rgba(101, 31, 255, 0.3));
+            border: 1px solid rgba(234, 128, 252, 0.6);
+            box-shadow: 0 4px 15px rgba(213, 0, 249, 0.2);
+        }
+
+        .btn-wormhole:hover {
+            background: linear-gradient(135deg, rgba(213, 0, 249, 0.45), rgba(101, 31, 255, 0.5));
+            box-shadow: 0 0 22px rgba(234, 128, 252, 0.6);
+        }
+
+        .btn-audio-on {
+            background: linear-gradient(135deg, rgba(0, 230, 118, 0.25), rgba(0, 176, 255, 0.3));
+            border-color: #00e676;
+            color: #b9f6ca;
+            box-shadow: 0 0 18px rgba(0, 230, 118, 0.35);
+        }
+
+        .instructions-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        @media (max-width: 680px) {
+            .hud-container {
+                padding: 14px;
+            }
+            .telemetry-panel {
+                padding: 10px 14px;
+                width: 100%;
+            }
+            .controls-bar {
+                padding: 10px 12px;
+                gap: 8px;
+            }
+            input[type="range"] {
+                width: 90px;
+            }
+            .btn {
+                padding: 8px 11px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="space-canvas"></canvas>
+    <div id="wormhole-flash"></div>
+
+    <div class="hud-container">
+        <div class="hud-top">
+            <div class="telemetry-panel">
+                <div class="telemetry-title">Navigation Telemetry</div>
+                <div class="telemetry-data">
+                    SECTOR: <span id="sector-name" class="telemetry-highlight">ORION NEBULA</span><br>
+                    VELOCITY: <span id="velocity-display" class="telemetry-highlight">1.50</span> LY/S<br>
+                    DISTANCE: <span id="distance-display" class="telemetry-highlight">0.00</span> LIGHT YEARS<br>
+                    ANOMALY: <span id="anomaly-display" class="telemetry-wormhole">SCANNING...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-bottom">
+            <div class="controls-bar">
+                <div class="control-group">
+                    <span class="control-label">Thrust</span>
+                    <input type="range" id="speed-slider" min="0.1" max="15" step="0.1" value="1.5">
+                </div>
+                <button id="warp-btn" class="btn">Engage Hyperdrive</button>
+                <button id="wormhole-btn" class="btn btn-wormhole">Open Wormhole</button>
+                <button id="shift-universe-btn" class="btn">Quantum Shift</button>
+                <button id="audio-btn" class="btn">Audio: Off</button>
+            </div>
+            <div class="instructions-hint">
+                Steer directly into swirling Wormhole Portals to jump across dimensions &bull; Drag to steer &bull; Scroll for thrust
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('space-canvas');
+        const ctx = canvas.getContext('2d');
+        const flashOverlay = document.getElementById('wormhole-flash');
+
+        // UI Elements
+        const speedSlider = document.getElementById('speed-slider');
+        const warpBtn = document.getElementById('warp-btn');
+        const wormholeBtn = document.getElementById('wormhole-btn');
+        const shiftBtn = document.getElementById('shift-universe-btn');
+        const audioBtn = document.getElementById('audio-btn');
+        const sectorDisplay = document.getElementById('sector-name');
+        const velocityDisplay = document.getElementById('velocity-display');
+        const distanceDisplay = document.getElementById('distance-display');
+        const anomalyDisplay = document.getElementById('anomaly-display');
+
+        let width, height, centerX, centerY;
+
+        // ==========================================
+        // PROCEDURAL AMBIENT SPACE AUDIO ENGINE
+        // ==========================================
+        class SpaceAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.isPlaying = false;
+                this.masterGain = null;
+                this.droneGain = null;
+                this.droneOsc1 = null;
+                this.droneOsc2 = null;
+                this.droneFilter = null;
+                this.windFilter = null;
+                this.windGain = null;
+                this.chimeTimer = null;
+            }
+
+            init() {
+                if (this.ctx) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+                this.masterGain.connect(this.ctx.destination);
+
+                // 1. Deep Space Sub-Bass & Harmonic Drone
+                this.droneFilter = this.ctx.createBiquadFilter();
+                this.droneFilter.type = 'lowpass';
+                this.droneFilter.frequency.setValueAtTime(110, this.ctx.currentTime);
+
+                this.droneGain = this.ctx.createGain();
+                this.droneGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+
+                this.droneOsc1 = this.ctx.createOscillator();
+                this.droneOsc1.type = 'sawtooth';
+                this.droneOsc1.frequency.setValueAtTime(43.65, this.ctx.currentTime); // F1
+
+                this.droneOsc2 = this.ctx.createOscillator();
+                this.droneOsc2.type = 'triangle';
+                this.droneOsc2.frequency.setValueAtTime(65.41, this.ctx.currentTime); // C2
+
+                this.droneOsc1.connect(this.droneFilter);
+                this.droneOsc2.connect(this.droneFilter);
+                this.droneFilter.connect(this.droneGain);
+                this.droneGain.connect(this.masterGain);
+
+                this.droneOsc1.start();
+                this.droneOsc2.start();
+
+                // 2. Filtered Cosmic Solar Wind
+                const bufferSize = this.ctx.sampleRate * 3;
+                const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                let lastOut = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    output[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = output[i];
+                    output[i] *= 2.5;
+                }
+
+                const whiteNoise = this.ctx.createBufferSource();
+                whiteNoise.buffer = noiseBuffer;
+                whiteNoise.loop = true;
+
+                this.windFilter = this.ctx.createBiquadFilter();
+                this.windFilter.type = 'bandpass';
+                this.windFilter.frequency.setValueAtTime(240, this.ctx.currentTime);
+                this.windFilter.Q.setValueAtTime(2.5, this.ctx.currentTime);
+
+                this.windGain = this.ctx.createGain();
+                this.windGain.gain.setValueAtTime(0.14, this.ctx.currentTime);
+
+                whiteNoise.connect(this.windFilter);
+                this.windFilter.connect(this.windGain);
+                this.windGain.connect(this.masterGain);
+                whiteNoise.start();
+
+                this.startAmbientChimes();
+            }
+
+            toggle() {
+                if (!this.ctx) {
+                    this.init();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+
+                this.isPlaying = !this.isPlaying;
+                const now = this.ctx.currentTime;
+
+                if (this.isPlaying) {
+                    this.masterGain.gain.cancelScheduledValues(now);
+                    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+                    this.masterGain.gain.linearRampToValueAtTime(0.65, now + 1.2);
+                } else {
+                    this.masterGain.gain.cancelScheduledValues(now);
+                    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+                    this.masterGain.gain.linearRampToValueAtTime(0.0001, now + 0.6);
+                }
+                return this.isPlaying;
+            }
+
+            updateModulation(speed, isWarping) {
+                if (!this.ctx || !this.isPlaying) return;
+                const now = this.ctx.currentTime;
+                const normSpeed = Math.min(1, speed / 26);
+
+                const targetFilterFreq = isWarping ? 480 : 90 + normSpeed * 260;
+                const targetBasePitch = 43.65 + normSpeed * 22;
+                const targetWindFreq = isWarping ? 620 : 200 + normSpeed * 320;
+                const targetWindGain = isWarping ? 0.28 : 0.1 + normSpeed * 0.12;
+
+                this.droneFilter.frequency.setTargetAtTime(targetFilterFreq, now, 0.2);
+                this.droneOsc1.frequency.setTargetAtTime(targetBasePitch, now, 0.2);
+                this.droneOsc2.frequency.setTargetAtTime(targetBasePitch * 1.498, now, 0.2);
+                this.windFilter.frequency.setTargetAtTime(targetWindFreq, now, 0.25);
+                this.windGain.gain.setTargetAtTime(targetWindGain, now, 0.25);
+            }
+
+            startAmbientChimes() {
+                const scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+                const triggerChime = () => {
+                    if (this.ctx && this.isPlaying) {
+                        const now = this.ctx.currentTime;
+                        const freq = scale[Math.floor(Math.random() * scale.length)];
+
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now);
+
+                        gain.gain.setValueAtTime(0.0001, now);
+                        gain.gain.exponentialRampToValueAtTime(0.06, now + 1.4);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + 5.5);
+
+                        osc.connect(gain);
+                        gain.connect(this.masterGain);
+
+                        osc.start(now);
+                        osc.stop(now + 5.6);
+                    }
+                    const nextDelay = 3200 + Math.random() * 4500;
+                    this.chimeTimer = setTimeout(triggerChime, nextDelay);
+                };
+                this.chimeTimer = setTimeout(triggerChime, 2000);
+            }
+
+            playShiftEffect() {
+                if (!this.ctx || !this.isPlaying) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(680, now + 0.45);
+                osc.frequency.exponentialRampToValueAtTime(95, now + 1.2);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.18, now + 0.18);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc.start(now);
+                osc.stop(now + 1.35);
+            }
+
+            playWormholeJump() {
+                if (!this.ctx || !this.isPlaying) return;
+                const now = this.ctx.currentTime;
+
+                // Deep gravitational bass drop + harmonic sweep
+                const subOsc = this.ctx.createOscillator();
+                const sweepOsc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                subOsc.type = 'triangle';
+                subOsc.frequency.setValueAtTime(160, now);
+                subOsc.frequency.exponentialRampToValueAtTime(32, now + 1.6);
+
+                sweepOsc.type = 'sine';
+                sweepOsc.frequency.setValueAtTime(220, now);
+                sweepOsc.frequency.exponentialRampToValueAtTime(1180, now + 0.5);
+                sweepOsc.frequency.exponentialRampToValueAtTime(110, now + 1.8);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.32, now + 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.85);
+
+                subOsc.connect(gain);
+                sweepOsc.connect(gain);
+                gain.connect(this.masterGain);
+
+                subOsc.start(now);
+                sweepOsc.start(now);
+                subOsc.stop(now + 1.9);
+                sweepOsc.stop(now + 1.9);
+            }
+        }
+
+        const spaceAudio = new SpaceAudioEngine();
+
+        // ==========================================
+        // UNIVERSE SIMULATION ENGINE
+        // ==========================================
+        const universeThemes = [
+            { name: "ORION NEBULA", bg: "#020308", starColors: ["#ffffff", "#cce7ff", "#90caf9", "#ffd54f", "#ff8a65"], nebulaColors: ["rgba(41, 121, 255, 0.14)", "rgba(156, 39, 176, 0.12)"], wormholeColors: ["#00e5ff", "#7c4dff", "#ea80fc"] },
+            { name: "CRIMSON VOID", bg: "#070204", starColors: ["#ffffff", "#ffcdd2", "#ff8a80", "#ffab40", "#ffe57f"], nebulaColors: ["rgba(213, 0, 0, 0.14)", "rgba(255, 109, 0, 0.12)"], wormholeColors: ["#ff5252", "#ffab40", "#ff4081"] },
+            { name: "EMERALD EXPANSE", bg: "#020706", starColors: ["#ffffff", "#b9f6ca", "#69f0ae", "#84ffff", "#ffff8d"], nebulaColors: ["rgba(0, 200, 83, 0.13)", "rgba(0, 176, 255, 0.12)"], wormholeColors: ["#00e676", "#00e5ff", "#b9f6ca"] },
+            { name: "ANDROMEDA CORE", bg: "#040209", starColors: ["#ffffff", "#e1bee7", "#b388ff", "#82b1ff", "#ff80ab"], nebulaColors: ["rgba(101, 31, 255, 0.15)", "rgba(245, 0, 87, 0.12)"], wormholeColors: ["#ea80fc", "#651fff", "#82b1ff"] },
+            { name: "GOLDEN SINGULARITY", bg: "#060502", starColors: ["#ffffff", "#fff9c4", "#ffe57f", "#ffd180", "#80d8ff"], nebulaColors: ["rgba(255, 171, 0, 0.14)", "rgba(0, 229, 255, 0.11)"], wormholeColors: ["#ffd740", "#ff6d00", "#00e5ff"] }
+        ];
+
+        let currentThemeIndex = 0;
+        let currentTheme = universeThemes[0];
+
+        let baseSpeed = 1.5;
+        let currentSpeed = 1.5;
+        let isWarping = false;
+        let wormholeSurgeTimer = 0;
+        let totalDistance = 0;
+
+        let steerX = 0;
+        let steerY = 0;
+        let targetSteerX = 0;
+        let targetSteerY = 0;
+        let isDragging = false;
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+
+        const NUM_STARS = 1100;
+        const NUM_NEBULAE = 14;
+        const NUM_PLANETS = 4;
+        const MAX_DEPTH = 2000;
+
+        let stars = [];
+        let nebulae = [];
+        let planets = [];
+        let wormhole = null;
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            centerX = width / 2;
+            centerY = height / 2;
+        }
+
+        function randomRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function pickRandom(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        class Star {
+            constructor() {
+                this.reset(true);
+            }
+
+            reset(initial = false) {
+                this.x = randomRange(-width * 1.5, width * 1.5);
+                this.y = randomRange(-height * 1.5, height * 1.5);
+                this.z = initial ? randomRange(10, MAX_DEPTH) : MAX_DEPTH;
+                this.pz = this.z;
+                this.size = randomRange(0.7, 2.2);
+                this.color = pickRandom(currentTheme.starColors);
+            }
+
+            update(speed) {
+                this.pz = this.z;
+                this.z -= speed * 12;
+
+                this.x -= steerX * (MAX_DEPTH - this.z) * 0.0012;
+                this.y -= steerY * (MAX_DEPTH - this.z) * 0.0012;
+
+                if (this.z < 1) {
+                    this.reset(false);
+                    this.pz = this.z;
+                }
+            }
+
+            draw() {
+                const fov = 450;
+                const sx = (this.x / this.z) * fov + centerX;
+                const sy = (this.y / this.z) * fov + centerY;
+                const px = (this.x / this.pz) * fov + centerX;
+                const py = (this.y / this.pz) * fov + centerY;
+
+                if (sx < -50 || sx > width + 50 || sy < -50 || sy > height + 50) {
+                    return;
+                }
+
+                const depthRatio = 1 - this.z / MAX_DEPTH;
+                const radius = Math.max(0.4, this.size * depthRatio * 1.8);
+                const alpha = Math.min(1, depthRatio * 1.4);
+
+                ctx.strokeStyle = this.color;
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = alpha;
+
+                if (currentSpeed > 4.5 || isWarping || wormholeSurgeTimer > 0) {
+                    ctx.lineWidth = radius * 1.3;
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(sx, sy);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        class Nebula {
+            constructor() {
+                this.reset(true);
+            }
+
+            reset(initial = false) {
+                this.x = randomRange(-width * 1.2, width * 1.2);
+                this.y = randomRange(-height * 1.2, height * 1.2);
+                this.z = initial ? randomRange(200, MAX_DEPTH) : MAX_DEPTH;
+                this.radius = randomRange(250, 550);
+                this.color = pickRandom(currentTheme.nebulaColors);
+            }
+
+            update(speed) {
+                this.z -= speed * 8;
+                this.x -= steerX * (MAX_DEPTH - this.z) * 0.0008;
+                this.y -= steerY * (MAX_DEPTH - this.z) * 0.0008;
+
+                if (this.z < 50) {
+                    this.reset(false);
+                }
+            }
+
+            draw() {
+                const fov = 450;
+                const scale = fov / this.z;
+                const sx = this.x * scale + centerX;
+                const sy = this.y * scale + centerY;
+                const r = this.radius * scale;
+
+                if (sx + r < 0 || sx - r > width || sy + r < 0 || sy - r > height) {
+                    return;
+                }
+
+                const depthAlpha = Math.sin((1 - this.z / MAX_DEPTH) * Math.PI);
+                ctx.globalAlpha = Math.max(0, depthAlpha * 0.85);
+
+                const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+                grad.addColorStop(0, this.color);
+                grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(sx, sy, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class Planet {
+            constructor() {
+                this.reset(true);
+            }
+
+            reset(initial = false) {
+                const angle = randomRange(0, Math.PI * 2);
+                const dist = randomRange(220, 750);
+                this.x = Math.cos(angle) * dist;
+                this.y = Math.sin(angle) * dist;
+                this.z = initial ? randomRange(400, MAX_DEPTH) : MAX_DEPTH;
+                this.radius = randomRange(28, 75);
+                this.hasRings = Math.random() > 0.55;
+                this.ringTilt = randomRange(-0.5, 0.5);
+
+                const palettes = [
+                    { c1: "#4fc3f7", c2: "#01579b", ring: "rgba(129, 212, 250, 0.35)" },
+                    { c1: "#ffb74d", c2: "#bf360c", ring: "rgba(255, 204, 128, 0.35)" },
+                    { c1: "#ce93d8", c2: "#4a148c", ring: "rgba(225, 190, 231, 0.35)" },
+                    { c1: "#80cbc4", c2: "#004d40", ring: "rgba(178, 223, 219, 0.35)" }
+                ];
+                this.palette = pickRandom(palettes);
+            }
+
+            update(speed) {
+                this.z -= speed * 10;
+                this.x -= steerX * (MAX_DEPTH - this.z) * 0.0011;
+                this.y -= steerY * (MAX_DEPTH - this.z) * 0.0011;
+
+                if (this.z < 40) {
+                    this.reset(false);
+                }
+            }
+
+            draw() {
+                const fov = 450;
+                const scale = fov / this.z;
+                const sx = this.x * scale + centerX;
+                const sy = this.y * scale + centerY;
+                const r = this.radius * scale;
+
+                if (sx + r * 2.5 < 0 || sx - r * 2.5 > width || sy + r * 2.5 < 0 || sy - r * 2.5 > height) {
+                    return;
+                }
+
+                const alpha = Math.min(1, (1 - this.z / MAX_DEPTH) * 2);
+                ctx.globalAlpha = alpha;
+
+                const grad = ctx.createRadialGradient(sx - r * 0.3, sy - r * 0.3, r * 0.1, sx, sy, r);
+                grad.addColorStop(0, this.palette.c1);
+                grad.addColorStop(0.7, this.palette.c2);
+                grad.addColorStop(1, "#020308");
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(sx, sy, r, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (this.hasRings) {
+                    ctx.save();
+                    ctx.translate(sx, sy);
+                    ctx.rotate(this.ringTilt);
+                    ctx.strokeStyle = this.palette.ring;
+                    ctx.lineWidth = Math.max(1.5, r * 0.18);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r * 2.1, r * 0.45, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+
+        // ==========================================
+        // SWIRLING 3D WORMHOLE PORTAL CLASS
+        // ==========================================
+        class WormholePortal {
+            constructor(centered = false) {
+                this.active = true;
+                this.x = centered ? randomRange(-60, 60) : randomRange(-240, 240);
+                this.y = centered ? randomRange(-40, 40) : randomRange(-160, 160);
+                this.z = MAX_DEPTH * 0.95;
+                this.baseRadius = 155;
+                this.rotation = 0;
+                this.colors = [...currentTheme.wormholeColors];
+            }
+
+            update(speed) {
+                if (!this.active) return;
+                this.z -= speed * 11;
+                this.rotation += 0.045;
+
+                // Steering parallax
+                this.x -= steerX * (MAX_DEPTH - this.z) * 0.0012;
+                this.y -= steerY * (MAX_DEPTH - this.z) * 0.0012;
+
+                // Subtle gravitational pull when close to center
+                const fov = 450;
+                const scale = fov / Math.max(10, this.z);
+                const sx = this.x * scale + centerX;
+                const sy = this.y * scale + centerY;
+                const screenRadius = this.baseRadius * scale;
+
+                const distToCenter = Math.hypot(sx - centerX, sy - centerY);
+
+                // Update HUD Telemetry
+                if (this.z > 40) {
+                    const lyDist = (this.z / 120).toFixed(1);
+                    anomalyDisplay.textContent = `WORMHOLE DETECTED (${lyDist} LY)`;
+                }
+
+                // Check if ship enters the wormhole event horizon!
+                if (this.z < 95 && this.z > 5 && distToCenter < screenRadius * 0.85) {
+                    triggerWormholeTransit();
+                    this.active = false;
+                    return;
+                }
+
+                if (this.z <= 5) {
+                    this.active = false;
+                    anomalyDisplay.textContent = "SCANNING...";
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                const fov = 450;
+                const scale = fov / Math.max(10, this.z);
+                const sx = this.x * scale + centerX;
+                const sy = this.y * scale + centerY;
+                const r = this.baseRadius * scale;
+
+                if (sx + r * 2 < 0 || sx - r * 2 > width || sy + r * 2 < 0 || sy - r * 2 > height) {
+                    return;
+                }
+
+                const alpha = Math.min(1, (1 - this.z / MAX_DEPTH) * 2.2);
+                ctx.save();
+                ctx.translate(sx, sy);
+                ctx.globalAlpha = alpha;
+
+                // Outer gravitational lensing aura
+                const outerGlow = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 1.75);
+                outerGlow.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+                outerGlow.addColorStop(0.35, this.colors[0] + "aa");
+                outerGlow.addColorStop(0.7, this.colors[1] + "55");
+                outerGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+                ctx.fillStyle = outerGlow;
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 1.75, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Rotating spiral vortex arms
+                const numArms = 6;
+                for (let i = 0; i < numArms; i++) {
+                    ctx.save();
+                    ctx.rotate(this.rotation + (i * Math.PI * 2) / numArms);
+                    ctx.strokeStyle = i % 2 === 0 ? this.colors[0] : this.colors[2];
+                    ctx.lineWidth = Math.max(1.5, r * 0.08);
+                    ctx.beginPath();
+                    for (let t = 0.15; t <= 1.0; t += 0.08) {
+                        const spiralAngle = t * Math.PI * 1.8;
+                        const spiralRadius = t * r * 1.25;
+                        const px = Math.cos(spiralAngle) * spiralRadius;
+                        const py = Math.sin(spiralAngle) * spiralRadius;
+                        if (t === 0.15) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Concentric depth rings inside the tunnel
+                for (let ring = 1; ring <= 4; ring++) {
+                    const ringR = r * (ring * 0.24);
+                    ctx.strokeStyle = ring % 2 === 0 ? "#ffffff" : this.colors[1];
+                    ctx.lineWidth = Math.max(1, r * 0.035);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Event Horizon Core (Singularity throat)
+                const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.35);
+                coreGrad.addColorStop(0, "#020308");
+                coreGrad.addColorStop(0.75, "#090418");
+                coreGrad.addColorStop(1, "#ffffff");
+
+                ctx.fillStyle = coreGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        function spawnWormhole(centered = false) {
+            wormhole = new WormholePortal(centered);
+            anomalyDisplay.textContent = "WORMHOLE OPENING...";
+        }
+
+        function triggerWormholeTransit() {
+            // Visual white/cyan flash
+            flashOverlay.style.opacity = "0.92";
+            setTimeout(() => {
+                flashOverlay.style.opacity = "0";
+            }, 260);
+
+            // Surge speed and jump distance
+            wormholeSurgeTimer = 75;
+            totalDistance += 500;
+
+            // Shift into a new cosmic dimension
+            shiftUniverse(false);
+            anomalyDisplay.textContent = "DIMENSION JUMPED (+500 LY)";
+            setTimeout(() => {
+                if (!wormhole || !wormhole.active) {
+                    anomalyDisplay.textContent = "SCANNING...";
+                }
+            }, 3000);
+
+            // Audio effect
+            spaceAudio.playWormholeJump();
+        }
+
+        function initUniverse() {
+            stars = Array.from({ length: NUM_STARS }, () => new Star());
+            nebulae = Array.from({ length: NUM_NEBULAE }, () => new Nebula());
+            planets = Array.from({ length: NUM_PLANETS }, () => new Planet());
+            sectorDisplay.textContent = currentTheme.name;
+            // Spawn an initial wormhole ahead so user sees one soon
+            setTimeout(() => spawnWormhole(true), 2500);
+        }
+
+        function shiftUniverse(playSound = true) {
+            currentThemeIndex = (currentThemeIndex + 1) % universeThemes.length;
+            currentTheme = universeThemes[currentThemeIndex];
+            sectorDisplay.textContent = currentTheme.name;
+
+            stars.forEach(s => s.color = pickRandom(currentTheme.starColors));
+            nebulae.forEach(n => n.color = pickRandom(currentTheme.nebulaColors));
+            if (playSound) {
+                spaceAudio.playShiftEffect();
+            }
+        }
+
+        function animate() {
+            if (wormholeSurgeTimer > 0) {
+                wormholeSurgeTimer--;
+            }
+
+            const targetSpeed = wormholeSurgeTimer > 0 ? 34 : (isWarping ? 26 : baseSpeed);
+            currentSpeed += (targetSpeed - currentSpeed) * 0.08;
+
+            spaceAudio.updateModulation(currentSpeed, isWarping || wormholeSurgeTimer > 0);
+
+            steerX += (targetSteerX - steerX) * 0.1;
+            steerY += (targetSteerY - steerY) * 0.1;
+            if (!isDragging) {
+                targetSteerX *= 0.94;
+                targetSteerY *= 0.94;
+            }
+
+            ctx.globalAlpha = (isWarping || wormholeSurgeTimer > 0) ? 0.25 : 0.75;
+            ctx.fillStyle = currentTheme.bg;
+            ctx.fillRect(0, 0, width, height);
+
+            nebulae.forEach(nebula => {
+                nebula.update(currentSpeed);
+                nebula.draw();
+            });
+
+            stars.forEach(star => {
+                star.update(currentSpeed);
+                star.draw();
+            });
+
+            planets.sort((a, b) => b.z - a.z);
+            planets.forEach(planet => {
+                planet.update(currentSpeed);
+                planet.draw();
+            });
+
+            // Update and draw active wormhole portal
+            if (wormhole && wormhole.active) {
+                wormhole.update(currentSpeed);
+                wormhole.draw();
+            } else if (Math.random() < 0.0025) {
+                // Periodically spawn natural wormhole anomalies in deep space
+                spawnWormhole(false);
+            }
+
+            ctx.globalAlpha = 1;
+
+            totalDistance += currentSpeed * 0.04;
+            velocityDisplay.textContent = currentSpeed.toFixed(2);
+            distanceDisplay.textContent = totalDistance.toFixed(2);
+
+            requestAnimationFrame(animate);
+        }
+
+        // Control Listeners
+        speedSlider.addEventListener('input', (e) => {
+            baseSpeed = parseFloat(e.target.value);
+            if (isWarping) {
+                isWarping = false;
+                warpBtn.classList.remove('active-warp');
+                warpBtn.textContent = "Engage Hyperdrive";
+            }
+        });
+
+        warpBtn.addEventListener('click', () => {
+            isWarping = !isWarping;
+            if (isWarping) {
+                warpBtn.classList.add('active-warp');
+                warpBtn.textContent = "Disengage Hyperdrive";
+            } else {
+                warpBtn.classList.remove('active-warp');
+                warpBtn.textContent = "Engage Hyperdrive";
+            }
+        });
+
+        wormholeBtn.addEventListener('click', () => {
+            spawnWormhole(true);
+        });
+
+        shiftBtn.addEventListener('click', () => {
+            shiftUniverse(true);
+        });
+
+        audioBtn.addEventListener('click', () => {
+            const active = spaceAudio.toggle();
+            if (active) {
+                audioBtn.textContent = "Audio: On";
+                audioBtn.classList.add('btn-audio-on');
+            } else {
+                audioBtn.textContent = "Audio: Off";
+                audioBtn.classList.remove('btn-audio-on');
+            }
+        });
+
+        // Pointer Steering
+        function handlePointerDown(x, y) {
+            isDragging = true;
+            lastPointerX = x;
+            lastPointerY = y;
+        }
+
+        function handlePointerMove(x, y) {
+            if (!isDragging) return;
+            const dx = x - lastPointerX;
+            const dy = y - lastPointerY;
+            targetSteerX = Math.max(-25, Math.min(25, targetSteerX - dx * 0.08));
+            targetSteerY = Math.max(-25, Math.min(25, targetSteerY - dy * 0.08));
+            lastPointerX = x;
+            lastPointerY = y;
+        }
+
+        function handlePointerUp() {
+            isDragging = false;
+        }
+
+        canvas.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY));
+        window.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', handlePointerUp);
+
+        window.addEventListener('wheel', (e) => {
+            if (isWarping) return;
+            baseSpeed = Math.max(0.1, Math.min(15, baseSpeed - e.deltaY * 0.005));
+            speedSlider.value = baseSpeed.toFixed(1);
+        }, { passive: true });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        window.onload = function () {
+            resizeCanvas();
+            initUniverse();
+            animate();
+        };
+    </script>
+</body>
+</html>
