@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MTR Rush Hour Balance</title>
+<script src="https://jsdelivr.net" crossorigin="anonymous" defer></script>
 <style>
   body{font-family:Arial,sans-serif;background:#121826;color:#fff;margin:0;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center}
   .dom{font-size:12px;font-weight:bold;color:#34d399;text-transform:uppercase;letter-spacing:.8px}
@@ -11,10 +12,11 @@
   .sub{color:#94a3b8;font-size:13px;margin-bottom:10px}
   .hud{display:flex;gap:16px;font-size:15px;font-weight:bold;margin-bottom:10px}
   .cabin{position:relative;width:100%;max-width:440px;height:250px;background:#1e293b;border:3px solid #334155;border-radius:14px;overflow:hidden;margin-bottom:12px;transition:transform .4s ease}
-  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);opacity:.38}
-  .safe-zone{position:absolute;top:25%;bottom:15%;left:36%;width:28%;background:rgba(52,211,153,.16);border:2px dashed #34d399;border-radius:10px}
-  .jolt-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,.9);padding:5px 12px;border-radius:12px;font-size:13px;font-weight:bold;color:#fbbf24;white-space:nowrap;z-index:3}
-  .avatar{position:absolute;bottom:20px;left:50%;width:52px;height:88px;margin-left:-26px;transition:left .06s linear;display:flex;flex-direction:column;align-items:center;z-index:2}
+  video,canvas.ov{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  video{opacity:.4}canvas.ov{z-index:1;pointer-events:none}
+  .safe-zone{position:absolute;top:25%;bottom:15%;left:36%;width:28%;background:rgba(52,211,153,.16);border:2px dashed #34d399;border-radius:10px;z-index:2}
+  .jolt-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(15,23,42,.9);padding:5px 12px;border-radius:12px;font-size:13px;font-weight:bold;color:#fbbf24;white-space:nowrap;z-index:4}
+  .avatar{position:absolute;bottom:20px;left:50%;width:52px;height:88px;margin-left:-26px;transition:left .08s linear;display:flex;flex-direction:column;align-items:center;z-index:3}
   .head{width:30px;height:30px;border-radius:50%;background:#38bdf8;border:2px solid #fff}
   .torso{width:44px;height:50px;border-radius:12px 12px 4px 4px;background:#0284c7;margin-top:3px;display:flex;align-items:center;justify-content:center;font-size:18px}
   .btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
@@ -35,6 +37,7 @@
 
   <div class="cabin" id="cabin">
     <video id="vid" playsinline muted></video>
+    <canvas class="ov" id="ov" width="320" height="240"></canvas>
     <div class="safe-zone" id="zone"></div>
     <div class="jolt-banner" id="msg">Press Start to board train</div>
     <div class="avatar" id="av"><div class="head"></div><div class="torso">🧍</div></div>
@@ -47,10 +50,10 @@
   </div>
 
 <script>
-let pos=50,btnLean=0,camLean=0,jolt=0,score=0,hp=100,time=45,active=false,camOn=false,loopIv,secIv,prevFrame=null;
+let pos=50,btnLean=0,camLean=0,jolt=0,score=0,hp=100,time=45,active=false,camOn=false,loopIv,secIv;
 const av=document.getElementById("av"),msg=document.getElementById("msg"),scEl=document.getElementById("sc"),
       hpEl=document.getElementById("hp"),tmEl=document.getElementById("tm"),zone=document.getElementById("zone"),
-      cabin=document.getElementById("cabin");
+      cabin=document.getElementById("cabin"),ov=document.getElementById("ov"),octx=ov.getContext("2d");
 
 function nudge(d){if(active)btnLean=Math.max(-42,Math.min(42,btnLean+d));}
 
@@ -58,31 +61,27 @@ async function initCam(){
   if(camOn)return;
   try{
     const vid=document.getElementById("vid");
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:160,height:120}});
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:320,height:240}});
     vid.srcObject=stream;await vid.play();camOn=true;
-    const c=document.createElement("canvas");c.width=40;c.height=30;
-    const ctx=c.getContext("2d",{willReadFrequently:true});
-    setInterval(()=>{
-      if(!active||vid.readyState<2)return;
-      ctx.drawImage(vid,0,0,40,30);
-      const data=ctx.getImageData(0,0,40,30).data;
-      if(prevFrame){
-        let sumX=0,weight=0;
-        for(let y=0;y<30;y++){
-          for(let x=0;x<40;x++){
-            const idx=(y*40+x)*4;
-            const diff=Math.abs(data[idx]-prevFrame[idx])+Math.abs(data[idx+1]-prevFrame[idx+1]);
-            if(diff>35){sumX+=(39-x)*diff;weight+=diff;}
-          }
+    const waitPose=setInterval(()=>{
+      if(typeof Pose==="undefined")return;
+      clearInterval(waitPose);
+      const pose=new Pose({locateFile:f=>`https://jsdelivr.net{f}`});
+      pose.setOptions({modelComplexity:0,smoothLandmarks:true,minDetectionConfidence:.5,minTrackingConfidence:.5});
+      pose.onResults(res=>{
+        octx.clearRect(0,0,320,240);
+        if(!res.poseLandmarks)return;
+        const nose=res.poseLandmarks.at(0),lSh=res.poseLandmarks.at(11),rSh=res.poseLandmarks.at(12);
+        if(nose&&lSh&&rSh){
+          const midX=(nose.x + (lSh.x+rSh.x)/2)/2;
+          camLean=(0.5-midX)*170;
+          octx.fillStyle="#38bdf8";
+          [nose,lSh,rSh].forEach(pt=>{octx.beginPath();octx.arc(pt.x*320,pt.y*240,5,0,Math.PI*2);octx.fill();});
         }
-        if(weight>1500){
-          const centerX=sumX/weight; // 0..39 mirrored
-          const target=((centerX-19.5)/19.5)*48;
-          camLean=camLean*0.65+target*0.35;
-        }
-      }
-      prevFrame=new Uint8ClampedArray(data);
-    },80);
+      });
+      const detect=async()=>{if(vid.readyState>=2)await pose.send({image:vid});requestAnimationFrame(detect);};
+      detect();
+    },200);
   }catch(e){}
 }
 
@@ -95,10 +94,10 @@ function startGame(){
   clearInterval(loopIv);clearInterval(secIv);
 
   const curves=[
-    {v:-26,deg:-3,t:"⚠️ Curve Left! Lean Right →"},
-    {v:26, deg:3, t:"⚠️ Curve Right! ← Lean Left"},
-    {v:-34,deg:-4,t:"⚠️ Sharp Bend Left! Lean Right →"},
-    {v:34, deg:4, t:"⚠️ Sharp Bend Right! ← Lean Left"}
+    {v:-24,deg:-3,t:"⚠️ Curve Left! Lean Right →"},
+    {v:24, deg:3, t:"⚠️ Curve Right! ← Lean Left"},
+    {v:-30,deg:-4,t:"⚠️ Sharp Bend Left! Lean Right →"},
+    {v:30, deg:4, t:"⚠️ Sharp Bend Right! ← Lean Left"}
   ];
 
   secIv=setInterval(()=>{
@@ -121,7 +120,7 @@ function startGame(){
     const inZone=pos>=36&&pos<=64;
     zone.style.borderColor=inZone?"#34d399":"#ef4444";
     if(inZone){score+=2;scEl.textContent=score;}
-    else{hp=Math.max(0,hp-0.8);hpEl.textContent=Math.round(hp)+"%";}
+    else{hp=Math.max(0,hp-0.25);hpEl.textContent=Math.round(hp)+"%";}
   },80);
 }
 </script>
