@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3-2-6 Breathing Lantern</title>
+<title>4-2-8 Breathing Lantern</title>
 <style>
   body{font-family:Arial,sans-serif;background:#121826;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;min-height:100vh;margin:0;padding:24px 16px;box-sizing:border-box;text-align:center}
   .domain{font-size:13px;font-weight:bold;color:#34d399;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
@@ -27,12 +27,12 @@
 <body>
   <div>
     <div class="domain">Sensory &amp; Emotional Regulation</div>
-    <h1>3-2-6 Breathing Lantern</h1>
-    <div class="sub">3s Inhale &bull; 2s Hold &bull; 6s Exhale</div>
+    <h1>4-2-8 Breathing Lantern</h1>
+    <div class="sub">4s Inhale &bull; 2s Hold &bull; 8s Exhale</div>
   </div>
   <div class="stage">
     <div class="aura" id="aura"></div>
-    <div class="lantern" id="lantern"><div class="num" id="num">3</div></div>
+    <div class="lantern" id="lantern"><div class="num" id="num">4</div></div>
   </div>
   <div>
     <div class="phase" id="phase">Ready</div>
@@ -48,11 +48,11 @@
   </div>
 <script>
 const P=[
-  {n:"Inhale",d:3,s:1.55,c:"#38bdf8",f:396,h:"Breathe in gently through your nose..."},
+  {n:"Inhale",d:4,s:1.55,c:"#38bdf8",f:396,h:"Breathe in gently through your nose..."},
   {n:"Hold",d:2,s:1.55,c:"#fbbf24",f:528,h:"Pause softly..."},
-  {n:"Exhale",d:6,s:1.0,c:"#34d399",f:264,h:"Breathe out slowly through your mouth..."}
+  {n:"Exhale",d:8,s:1.0,c:"#34d399",f:264,h:"Breathe out slowly through your mouth..."}
 ];
-let run=0,snd=1,pi=0,sec=3,cyc=0,iv,ctx,bgG,bgO=[];
+let run=0,snd=1,pi=0,sec=4,cyc=0,iv,ctx,bgG,bgO=[];
 const L=document.getElementById("lantern"),A=document.getElementById("aura"),N=document.getElementById("num"),
       PH=document.getElementById("phase"),H=document.getElementById("hint"),C=document.getElementById("cyc"),
       SB=document.getElementById("startBtn"),AB=document.getElementById("sndBtn");
@@ -89,7 +89,7 @@ function toggle(){
   if(run){
     run=0;clearInterval(iv);stopBg();SB.textContent="Start Session";SB.className="p";
     L.style.transition=A.style.transition="transform .5s";L.style.transform=A.style.transform="scale(1)";
-    N.textContent=3;PH.textContent="Ready";PH.style.color="#fbbf24";H.textContent="Press Start when ready";
+    N.textContent=4;PH.textContent="Ready";PH.style.color="#fbbf24";H.textContent="Press Start when ready";
   }else{
     run=1;SB.textContent="Pause / Reset";SB.className="s";startBg();pi=0;setP(0);
     iv=setInterval(()=>{if(--sec>0)N.textContent=sec;else{if(++pi>=3){pi=0;C.textContent=++cyc;}setP(pi);}},1000);
