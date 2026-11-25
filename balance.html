@@ -93,14 +93,21 @@ function startGame(){
   initCam();
   pos=50;jolt=0;score=0;hp=100;time=45;active=true;
   scEl.textContent=0;hpEl.textContent="100%";tmEl.textContent="45s";
+  msg.textContent="🚇 Train Departing — Get Ready!";
   clearInterval(loopIv);clearInterval(secIv);
+
+  const curves=[
+    {v:-0.55,t:"⚠️ Sharp Curve Left! Lean Right →"},
+    {v:0.55, t:"⚠️ Sharp Curve Right! ← Lean Left"},
+    {v:-0.40,t:"⚠️ Tunnel Bend Left! Lean Right →"},
+    {v:0.40, t:"⚠️ Cross-Harbour Curve Right! ← Lean Left"}
+  ];
 
   secIv=setInterval(()=>{
     if(!active)return;
     time--;tmEl.textContent=time+"s";
-    if(time%5===0){
-      const dirs=[{v:-0.35,t:"⚠️ Curve Left! Lean Right →"},{v:0.35,t:"⚠️ Curve Right! ← Lean Left"},{v:0,t:"✅ Straight Track — Hold Midline"}];
-      const pick=dirs[Math.floor(Math.random()*dirs.length)];
+    if(time===43 || time%3===0){
+      const pick=curves[Math.floor(Math.random()*curves.length)];
       jolt=pick.v;msg.textContent=pick.t;
     }
     if(time<=0||hp<=0){
@@ -108,6 +115,18 @@ function startGame(){
       msg.textContent=hp<=0?"Session Paused — Re-center & Retry!":"🎉 Ride Complete! Final Score: "+score;
     }
   },1000);
+
+  loopIv=setInterval(()=>{
+    if(!active)return;
+    if(!camOn)pos=Math.max(8,Math.min(92,pos+jolt*3.5));
+    av.style.left=pos+"%";
+    const inZone=pos>=36&&pos<=64;
+    zone.style.borderColor=inZone?"#34d399":"#ef4444";
+    if(inZone){score+=2;scEl.textContent=score;}
+    else{hp=Math.max(0,hp-0.8);hpEl.textContent=Math.round(hp)+"%";}
+  },80);
+}
+
 
   loopIv=setInterval(()=>{
     if(!active)return;
