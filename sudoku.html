@@ -1,9 +1,436 @@
-class="seg-btn" data-size="6">6×6</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sudoku Studio — 4x4, 6x6 & 9x9</title>
+  <style>
+    :root {
+      --bg-app: #f4f6fb;
+      --bg-card: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-soft: #dbeafe;
+      --peer-bg: #eff6ff;
+      --same-num-bg: #bfdbfe;
+      --given-text: #0f172a;
+      --user-text: #2563eb;
+      --error-bg: #fee2e2;
+
+
+      --error-text: #dc2626;
+      --border-thin: #cbd5e1;
+      --border-thick: #1e293b;
+      --note-text: #475569;
+      --shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      min-height: 100vh;
+
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 540px;
+      background: var(--bg-card);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+
+
+
+
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--given-text);
+    }
+
+    .timer-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-app);
+      padding: 6px 12px;
+      border-radius: 999px;
+
+
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      border-radius: 50%;
+      transition: background 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+
+
+    }
+
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .segmented-group {
+      display: inline-flex;
+      background: var(--bg-app);
+      padding: 4px;
+      border-radius: 12px;
+      gap: 2px;
+    }
+
+    .seg-btn {
+      border: none;
+
+
+      background: transparent;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .seg-btn.active {
+      background: var(--bg-card);
+      color: var(--primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .board-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+
+
+      max-width: 460px;
+      margin: 0 auto;
+    }
+
+    .sudoku-board {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      border: 3px solid var(--border-thick);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg-card);
+    }
+
+    .cell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid var(--border-thin);
+
+
+      border-bottom: 1px solid var(--border-thin);
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.1s;
+    }
+
+    .cell.given {
+      color: var(--given-text);
+      font-weight: 700;
+    }
+
+    .cell.user-val {
+      color: var(--user-text);
+    }
+
+    .cell.peer {
+      background-color: var(--peer-bg);
+    }
+
+    .cell.same-number {
+
+
+      background-color: var(--same-num-bg);
+    }
+
+    .cell.selected {
+      background-color: var(--primary-soft) !important;
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+      z-index: 2;
+    }
+
+    .cell.error {
+      background-color: var(--error-bg) !important;
+      color: var(--error-text) !important;
+    }
+
+    .notes-grid {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      padding: 2px;
+
+
+      pointer-events: none;
+    }
+
+    .note-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.55rem, 1.8vw, 0.72rem);
+      font-weight: 600;
+      color: var(--note-text);
+      line-height: 1;
+    }
+
+    .note-num.highlight-note {
+      color: var(--primary-hover);
+      font-weight: 800;
+      background: rgba(59, 130, 246, 0.18);
+      border-radius: 3px;
+    }
+
+
+
+    .board-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      z-index: 10;
+      text-align: center;
+      padding: 20px;
+      gap: 12px;
+    }
+
+    .board-overlay.visible {
+      display: flex;
+    }
+
+
+
+    .overlay-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--given-text);
+    }
+
+    .overlay-sub {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .tools-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .tool-btn {
+      display: flex;
+      flex-direction: column;
+
+
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 10px 6px;
+      border: 1px solid var(--border-thin);
+      border-radius: 12px;
+      background: var(--bg-card);
+      color: var(--text-main);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s;
+    }
+
+    .tool-btn:hover {
+      background: var(--bg-app);
+    }
+
+    .tool-btn.active {
+
+
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+    }
+
+    .badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: var(--border-thin);
+      color: var(--text-main);
+    }
+
+    .tool-btn.active .badge {
+      background: #ffffff;
+      color: var(--primary);
+
+
+    }
+
+    .numpad {
+      display: grid;
+      gap: 8px;
+    }
+
+    .num-btn {
+      aspect-ratio: 1 / 1;
+      max-height: 54px;
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      background: var(--primary-soft);
+      color: var(--primary-hover);
+      font-size: 1.35rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s, background-color 0.15s;
+    }
+
+
+
+    .num-btn:hover {
+      background: #bfdbfe;
+    }
+
+    .num-btn:active {
+      transform: scale(0.95);
+    }
+
+    .num-btn.completed {
+      opacity: 0.35;
+    }
+
+    .primary-btn {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+
+
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .primary-btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .status-banner {
+      text-align: center;
+      font-size: 0.85rem;
+      min-height: 20px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    @media (max-width: 420px) {
+      .app-container {
+        padding: 14px;
+
+
+        gap: 12px;
+      }
+      h1 {
+        font-size: 1.2rem;
+      }
+      .seg-btn {
+        padding: 5px 9px;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>Sudoku Studio</h1>
+      <div class="timer-box">
+        <span id="timerDisplay">00:00</span>
+        <button class="icon-btn" id="pauseBtn" title="Pause / Resume" aria-label="Pause or Resume Timer">
+          <svg id="pauseIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+
+
+            <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+            <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="controls-row">
+      <div class="segmented-group" id="sizeSelector">
+        <button class="seg-btn" data-size="4">4×4</button>
+        <button class="seg-btn" data-size="6">6×6</button>
         <button class="seg-btn active" data-size="9">9×9</button>
       </div>
-
-      <!-- Difficulty Selector -->
-
 
       <div class="segmented-group" id="diffSelector">
         <button class="seg-btn active" data-diff="easy">Easy</button>
@@ -12,10 +439,11 @@ class="seg-btn" data-size="6">6×6</button>
       </div>
     </div>
 
+
+
     <div class="board-wrapper">
       <div class="sudoku-board" id="sudokuBoard"></div>
 
-      <!-- Pause / Victory Overlay -->
       <div class="board-overlay" id="boardOverlay">
         <div class="overlay-title" id="overlayTitle">Game Paused</div>
         <div class="overlay-sub" id="overlaySub">Take a breather. Your progress is safe.</div>
@@ -25,14 +453,14 @@ class="seg-btn" data-size="6">6×6</button>
 
     <div class="tools-bar">
       <button class="tool-btn" id="undoBtn" title="Undo (Ctrl+Z)">
-
-
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 7v6h6"></path>
           <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
         </svg>
         <span>Undo</span>
       </button>
+
+
 
       <button class="tool-btn" id="eraseBtn" title="Erase (Backspace)">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -47,8 +475,6 @@ class="seg-btn" data-size="6">6×6</button>
         <span class="badge" id="notesBadge">OFF</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 20h9"></path>
-
-
           <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
         </svg>
         <span>Notes</span>
@@ -56,6 +482,8 @@ class="seg-btn" data-size="6">6×6</button>
 
       <button class="tool-btn" id="newGameBtn" title="Start New Puzzle">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+
+
           <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
           <path d="M21 3v5h-5"></path>
         </svg>
@@ -69,33 +497,28 @@ class="seg-btn" data-size="6">6×6</button>
 
   <script>
     (() => {
-
-
-      // Grid configuration for 4x4, 6x6, and 9x9
       const CONFIG = {
         4: { size: 4, boxRows: 2, boxCols: 2, noteCols: 2, remove: { easy: 6, medium: 8, hard: 10 } },
         6: { size: 6, boxRows: 2, boxCols: 3, noteCols: 3, remove: { easy: 14, medium: 19, hard: 23 } },
         9: { size: 9, boxRows: 3, boxCols: 3, noteCols: 3, remove: { easy: 32, medium: 43, hard: 52 } }
       };
 
-      // Application State
       let gridSize = 9;
+
+
       let difficulty = "easy";
       let solution = [];
       let puzzle = [];
       let board = [];
-      let notes = []; // 2D array of Sets
+      let notes = [];
       let history = [];
       let selected = { r: 0, c: 0 };
       let notesMode = false;
       let isPaused = false;
       let isWon = false;
       let secondsElapsed = 0;
-
-
       let timerInterval = null;
 
-      // DOM Elements
       const boardEl = document.getElementById("sudokuBoard");
       const numpadEl = document.getElementById("numpad");
       const timerDisplay = document.getElementById("timerDisplay");
@@ -103,6 +526,8 @@ class="seg-btn" data-size="6">6×6</button>
       const pauseIcon = document.getElementById("pauseIcon");
       const boardOverlay = document.getElementById("boardOverlay");
       const overlayTitle = document.getElementById("overlayTitle");
+
+
       const overlaySub = document.getElementById("overlaySub");
       const overlayActionBtn = document.getElementById("overlayActionBtn");
       const notesBtn = document.getElementById("notesBtn");
@@ -111,9 +536,6 @@ class="seg-btn" data-size="6">6×6</button>
       const eraseBtn = document.getElementById("eraseBtn");
       const newGameBtn = document.getElementById("newGameBtn");
       const statusBanner = document.getElementById("statusBanner");
-
-      // --- Puzzle Generation ---
-
 
       function shuffle(arr) {
         const copy = [...arr];
@@ -126,6 +548,8 @@ class="seg-btn" data-size="6">6×6</button>
 
       function isValidPlacement(grid, r, c, num, size, boxRows, boxCols) {
         for (let i = 0; i < size; i++) {
+
+
           if (grid[r][i] === num || grid[i][c] === num) return false;
         }
         const startR = Math.floor(r / boxRows) * boxRows;
@@ -135,8 +559,6 @@ class="seg-btn" data-size="6">6×6</button>
             if (grid[startR + i][startC + j] === num) return false;
           }
         }
-
-
         return true;
       }
 
@@ -149,6 +571,8 @@ class="seg-btn" data-size="6">6×6</button>
           const r = Math.floor(cellIdx / size);
           const c = cellIdx % size;
 
+
+
           for (const num of shuffle(nums)) {
             if (isValidPlacement(grid, r, c, num, size, boxRows, boxCols)) {
               grid[r][c] = num;
@@ -157,8 +581,6 @@ class="seg-btn" data-size="6">6×6</button>
             }
           }
           return false;
-
-
         }
 
         fill(0);
@@ -170,6 +592,8 @@ class="seg-btn" data-size="6">6×6</button>
 
         function solve() {
           if (count >= limit) return;
+
+
           let emptyR = -1;
           let emptyC = -1;
 
@@ -179,8 +603,6 @@ class="seg-btn" data-size="6">6×6</button>
                 emptyR = r;
                 emptyC = c;
                 break;
-
-
               }
             }
             if (emptyR !== -1) break;
@@ -192,6 +614,8 @@ class="seg-btn" data-size="6">6×6</button>
           }
 
           for (let num = 1; num <= size; num++) {
+
+
             if (isValidPlacement(grid, emptyR, emptyC, num, size, boxRows, boxCols)) {
               grid[emptyR][emptyC] = num;
               solve();
@@ -200,8 +624,6 @@ class="seg-btn" data-size="6">6×6</button>
             }
           }
         }
-
-
 
         solve();
         return count;
@@ -214,6 +636,8 @@ class="seg-btn" data-size="6">6×6</button>
 
         const coords = [];
         for (let r = 0; r < size; r++) {
+
+
           for (let c = 0; c < size; c++) {
             coords.push([r, c]);
           }
@@ -223,13 +647,10 @@ class="seg-btn" data-size="6">6×6</button>
         const target = remove[diff];
 
         for (const [r, c] of shuffle(coords)) {
-
-
           if (removed >= target) break;
           const backup = puz[r][c];
           puz[r][c] = 0;
 
-          // Ensure unique solution
           const testGrid = puz.map(row => [...row]);
           if (countSolutions(testGrid, size, boxRows, boxCols, 2) !== 1) {
             puz[r][c] = backup;
@@ -238,15 +659,14 @@ class="seg-btn" data-size="6">6×6</button>
           }
         }
 
+
+
         return { solved, puz };
       }
 
-      // --- Timer ---
       function formatTime(sec) {
         const m = String(Math.floor(sec / 60)).padStart(2, "0");
         const s = String(sec % 60).padStart(2, "0");
-
-
         return `${m}:${s}`;
       }
 
@@ -260,6 +680,8 @@ class="seg-btn" data-size="6">6×6</button>
         }, 1000);
       }
 
+
+
       function updatePauseIcon() {
         if (isPaused) {
           pauseIcon.innerHTML = `<polygon points="6 4 20 12 6 20 6 4"></polygon>`;
@@ -267,8 +689,6 @@ class="seg-btn" data-size="6">6×6</button>
           pauseIcon.innerHTML = `<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>`;
         }
       }
-
-
 
       function togglePause() {
         if (isWon) return;
@@ -282,15 +702,14 @@ class="seg-btn" data-size="6">6×6</button>
           boardOverlay.classList.add("visible");
         } else {
           boardOverlay.classList.remove("visible");
+
+
         }
       }
 
-      // --- Game Initialization ---
       function initGame() {
         const { solved, puz } = createPuzzle(gridSize, difficulty);
         solution = solved;
-
-
         puzzle = puz;
         board = puz.map(row => [...row]);
         notes = Array.from({ length: gridSize }, () =>
@@ -305,17 +724,16 @@ class="seg-btn" data-size="6">6×6</button>
         timerDisplay.textContent = "00:00";
         updatePauseIcon();
         boardOverlay.classList.remove("visible");
+
+
         statusBanner.textContent = `${gridSize}×${gridSize} • ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Mode`;
 
         buildBoardDOM();
         buildNumpadDOM();
         renderBoard();
         startTimer();
-
-
       }
 
-      // --- Rendering ---
       function buildBoardDOM() {
         const { boxRows, boxCols } = CONFIG[gridSize];
         boardEl.innerHTML = "";
@@ -328,12 +746,11 @@ class="seg-btn" data-size="6">6×6</button>
         for (let r = 0; r < gridSize; r++) {
           for (let c = 0; c < gridSize; c++) {
             const cell = document.createElement("div");
+
+
             cell.className = "cell";
             cell.dataset.r = r;
             cell.dataset.c = c;
-
-            // Thick box borders
-
 
             if ((c + 1) % boxCols === 0 && c !== gridSize - 1) {
               cell.style.borderRight = "2.5px solid var(--border-thick)";
@@ -351,12 +768,12 @@ class="seg-btn" data-size="6">6×6</button>
             boardEl.appendChild(cell);
           }
         }
+
+
       }
 
       function buildNumpadDOM() {
         numpadEl.innerHTML = "";
-
-
         numpadEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
 
         for (let num = 1; num <= gridSize; num++) {
@@ -373,12 +790,12 @@ class="seg-btn" data-size="6">6×6</button>
         if (val === 0) return false;
         const { boxRows, boxCols } = CONFIG[gridSize];
         for (let i = 0; i < gridSize; i++) {
+
+
           if (i !== c && board[r][i] === val) return true;
           if (i !== r && board[i][c] === val) return true;
         }
         const startR = Math.floor(r / boxRows) * boxRows;
-
-
         const startC = Math.floor(c / boxCols) * boxCols;
         for (let i = 0; i < boxRows; i++) {
           for (let j = 0; j < boxCols; j++) {
@@ -396,10 +813,10 @@ class="seg-btn" data-size="6">6×6</button>
         const selBoxR = Math.floor(selected.r / boxRows);
         const selBoxC = Math.floor(selected.c / boxCols);
 
+
+
         const counts = Array(gridSize + 1).fill(0);
         const cells = boardEl.children;
-
-
 
         for (let r = 0; r < gridSize; r++) {
           for (let c = 0; c < gridSize; c++) {
@@ -417,12 +834,12 @@ class="seg-btn" data-size="6">6×6</button>
 
             const sameBox = Math.floor(r / boxRows) === selBoxR && Math.floor(c / boxCols) === selBoxC;
             if (r === selected.r || c === selected.c || sameBox) {
+
+
               cell.classList.add("peer");
             }
 
             if (selVal !== 0 && val === selVal) {
-
-
               cell.classList.add("same-number");
             }
 
@@ -434,17 +851,16 @@ class="seg-btn" data-size="6">6×6</button>
               cell.classList.add("error");
             }
 
-            // Content: Number or Pencil Notes
             if (val !== 0) {
               cell.textContent = val;
             } else if (notes[r][c].size > 0) {
               const noteRows = Math.ceil(gridSize / noteCols);
               let html = `<div class="notes-grid" style="grid-template-columns: repeat(${noteCols}, 1fr); grid-template-rows: repeat(${noteRows}, 1fr);">`;
+
+
               for (let n = 1; n <= gridSize; n++) {
                 const hasN = notes[r][c].has(n);
                 const hl = hasN && selVal === n ? "highlight-note" : "";
-
-
                 html += `<span class="note-num ${hl}">${hasN ? n : ""}</span>`;
               }
               html += `</div>`;
@@ -455,18 +871,16 @@ class="seg-btn" data-size="6">6×6</button>
           }
         }
 
-        // Update numpad completion states
         Array.from(numpadEl.children).forEach(btn => {
           const n = Number(btn.dataset.num);
           btn.classList.toggle("completed", counts[n] >= gridSize);
         });
       }
 
-      // --- Gameplay Actions ---
       function saveHistory() {
+
+
         history.push({
-
-
           board: board.map(row => [...row]),
           notes: notes.map(row => row.map(s => new Set(s)))
         });
@@ -486,9 +900,9 @@ class="seg-btn" data-size="6">6×6</button>
             notes[startR + i][startC + j].delete(num);
           }
         }
+
+
       }
-
-
 
       function handleNumberInput(num) {
         if (isPaused || isWon || num < 1 || num > gridSize) return;
@@ -508,9 +922,9 @@ class="seg-btn" data-size="6">6×6</button>
           }
         } else {
           if (board[r][c] === num) {
+
+
             board[r][c] = 0;
-
-
           } else {
             board[r][c] = num;
             notes[r][c].clear();
@@ -530,9 +944,9 @@ class="seg-btn" data-size="6">6×6</button>
 
         saveHistory();
         board[r][c] = 0;
+
+
         notes[r][c].clear();
-
-
         renderBoard();
       }
 
@@ -552,9 +966,9 @@ class="seg-btn" data-size="6">6×6</button>
 
       function checkWin() {
         for (let r = 0; r < gridSize; r++) {
+
+
           for (let c = 0; c < gridSize; c++) {
-
-
             if (board[r][c] === 0 || hasConflict(r, c, board[r][c])) {
               return;
             }
@@ -568,7 +982,6 @@ class="seg-btn" data-size="6">6×6</button>
         boardOverlay.classList.add("visible");
       }
 
-      // --- Event Listeners ---
       document.querySelectorAll("#sizeSelector .seg-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           document.querySelectorAll("#sizeSelector .seg-btn").forEach(b => b.classList.remove("active"));
@@ -605,7 +1018,6 @@ class="seg-btn" data-size="6">6×6</button>
       notesBtn.addEventListener("click", toggleNotesMode);
       newGameBtn.addEventListener("click", initGame);
 
-      // Keyboard Support
       document.addEventListener("keydown", e => {
         if (isPaused || isWon) return;
 
@@ -619,9 +1031,9 @@ class="seg-btn" data-size="6">6×6</button>
           e.preventDefault();
           toggleNotesMode();
         } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-
-
           e.preventDefault();
+
+
           handleUndo();
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
@@ -644,7 +1056,6 @@ class="seg-btn" data-size="6">6×6</button>
 
 
 
-      // Boot
       initGame();
     })();
   </script>
