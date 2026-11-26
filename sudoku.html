@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Sudoku</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    color: #111;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 0;
+  }
+  body.dark {
+    background: #121826;
+    color: #f4f6f8;
+  }
+  .box {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+  }
+  body.dark .box {
+    background: #1e293b;
+  }
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  select, button {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    background: #fff;
+    color: #111;
+  }
+  body.dark select, body.dark button {
+    background: #334155;
+    color: #fff;
+    border-color: #475569;
+  }
+  .btn-blue {
+    background: #2563eb !important;
+    color: #fff !important;
+    border: none !important;
+    margin-left: auto;
+  }
+  .info {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  .grid {
+    display: grid;
+    border: 3px solid #111;
+    margin-bottom: 15px;
+    user-select: none;
+  }
+  body.dark .grid {
+    border-color: #94a3b8;
+  }
+  .cell {
+    aspect-ratio: 1;
+    border: 1px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  body.dark .cell {
+    border-color: #475569;
+  }
+  .fixed { background: #e2e8f0; }
+  body.dark .fixed { background: #0f172a; }
+  .user { color: #2563eb; }
+  body.dark .user { color: #60a5fa; }
+  .selected { background: #bfdbfe !important; color: #111 !important; }
+  .wrong { background: #fecaca !important; color: #dc2626 !important; }
+
+  /* 4x4 Borders */
+  .s4 .cell:nth-child(2n) { border-right: 3px solid #111; }
+  .s4 .cell:nth-child(4n) { border-right: none; }
+  .s4 .cell:nth-child(n+5):nth-child(-n+8) { border-bottom: 3px solid #111; }
+
+  /* 6x6 Borders */
+  .s6 .cell:nth-child(3n) { border-right: 3px solid #111; }
+  .s6 .cell:nth-child(6n) { border-right: none; }
+  .s6 .cell:nth-child(n+7):nth-child(-n+12),
+  .s6 .cell:nth-child(n+19):nth-child(-n+24) { border-bottom: 3px solid #111; }
+
+  .notes {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    font-size: 10px;
+    place-items: center;
+    color: #64748b;
+  }
+  .pad {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .pad button {
+    padding: 10px 0;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .tools {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .note-on {
+    background: #dbeafe !important;
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+  }
+  #msg {
+    text-align: center;
+    font-weight: bold;
+    color: #16a34a;
+    margin-top: 10px;
+    min-height: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <div class="top">
+    <h3 style="margin:0;">Focus Sudoku</h3>
+    <button type="button" onclick="document.body.classList.toggle('dark')">Theme</button>
+  </div>
+
+  <div class="bar">
+    <select id="sz">
+      <option value="4">4x4</option>
+      <option value="6" selected>6x6</option>
+    </select>
+    <select id="df">
+      <option value="easy">Easy</option>
+      <option value="medium" selected>Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    <button type="button" class="btn-blue" onclick="start()">New Game</button>
+  </div>
+
+  <div class="info">
+    <span id="tm">00:00</span>
+    <span id="ms">Mistakes: 0</span>
+  </div>
+
+  <div id="bd" class="grid"></div>
+  <div id="pd" class="pad"></div>
+
+  <div class="tools">
+    <button type="button" id="nb" onclick="toggleNote()">Notes: OFF</button>
+    <button type="button" onclick="erase()">Erase</button>
+  </div>
+
+  <div id="msg"></div>
+</div>
+
+<script>
+var N = 6, sol = [], cur = [], fix = [], nts = [], sel = null, noteOn = false, err = 0, sec = 0, tmr = null, done = false;
+
+function makeBoard(n) {
+  var br = 2, bc = (n === 4 ? 2 : 3);
+  var g = [];
+  for (var i = 0; i < n; i++) {
+    g[i] = [];
+    for (var j = 0; j < n; j++) g[i][j] = 0;
+  }
+  function ok(r, c, v) {
+    for (var i = 0; i < n; i++) {
+      if (g[r][i] === v || g[i][c] === v) return false;
+    }
+    var sr = Math.floor(r / br) * br, sc = Math.floor(c / bc) * bc;
+    for (var r0 = 0; r0 < br; r0++) {
+      for (var c0 = 0; c0 < bc; c0++) {
+        if (g[sr + r0][sc + c0] === v) return false;
+      }
+    }
+    return true;
+  }
+  function fill(idx) {
+    if (idx === n * n) return true;
+    var r = Math.floor(idx / n), c = idx % n;
+    var nums = [];
+    for (var i = 1; i <= n; i++) nums.push(i);
+    nums.sort(function() { return Math.random() - 0.5; });
+    for (var i = 0; i < nums.length; i++) {
+      if (ok(r, c, nums[i])) {
+        g[r][c] = nums[i];
+        if (fill(idx + 1)) return true;
+        g[r][c] = 0;
+      }
+    }
+    return false;
+  }
+  fill(0);
+  var flat = [];
+  for (var i = 0; i < n; i++) {
+    for (var j = 0; j < n; j++) flat.push(g[i][j]);
+  }
+  return flat;
+}
+
+function start() {
+  N = parseInt(document.getElementById('sz').value, 10);
+  var d = document.getElementById('df').value;
+  done = false;
+  err = 0;
+  sel = null;
+  document.getElementById('msg').innerText = '';
+  document.getElementById('ms').innerText = 'Mistakes: 0';
+
+  sol = makeBoard(N);
+  cur = sol.slice();
+  fix = [];
+  nts = [];
+  for (var i = 0; i < N * N; i++) {
+    fix[i] = true;
+    nts[i] = [];
+  }
+
+  var rem = (N === 4) ? { easy: 6, medium: 8, hard: 10 }[d] : { easy: 14, medium: 19, hard: 24 }[d];
+  var idxs = [];
+  for (var i = 0; i < N * N; i++) idxs.push(i);
+  idxs.sort(function() { return Math.random() - 0.5; });
+
+  for (var i = 0; i < rem; i++) {
+    cur[idxs[i]] = 0;
+    fix[idxs[i]] = false;
+  }
+
+  drawPad();
+  drawBoard();
+
+  clearInterval(tmr);
+  sec = 0;
+  document.getElementById('tm').innerText = '00:00';
+  tmr = setInterval(function() {
+    if (!done) {
+      sec++;
+      var m = ('0' + Math.floor(sec / 60)).slice(-2);
+      var s = ('0' + (sec % 60)).slice(-2);
+      document.getElementById('tm').innerText = m + ':' + s;
+    }
+  }, 1000);
+}
+
+function drawPad() {
+  var pd = document.getElementById('pd');
+  pd.innerHTML = '';
+  pd.style.gridTemplateColumns = 'repeat(' + N + ', 1fr)';
+  for (var i = 1; i <= N; i++) {
+    (function(num) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.innerText = num;
+      b.onclick = function() { put(num); };
+      pd.appendChild(b);
+    })(i);
+  }
+}
+
+function drawBoard() {
+  var bd = document.getElementById('bd');
+  bd.innerHTML = '';
+  bd.className = 'grid s' + N;
+  bd.style.gridTemplateColumns = 'repeat(' + N + ', 1fr)';
+
+  for (var i = 0; i < N * N; i++) {
+    (function(idx) {
+      var c = document.createElement('div');
+      c.className = 'cell';
+      if (fix[idx]) c.className += ' fixed';
+      else if (cur[idx] !== 0) c.className += ' user';
+      if (idx === sel) c.className += ' selected';
+      if (cur[idx] !== 0 && cur[idx] !== sol[idx]) c.className += ' wrong';
+
+      if (cur[idx] !== 0) {
+        c.innerText = cur[idx];
+      } else if (nts[idx].length > 0) {
+        var ng = document.createElement('div');
+        ng.className = 'notes';
+        ng.style.gridTemplateColumns = 'repeat(' + (N === 4 ? 2 : 3) + ', 1fr)';
+        for (var k = 1; k <= N; k++) {
+          var sp = document.createElement('span');
+          sp.innerText = nts[idx].indexOf(k) > -1 ? k : '';
+          ng.appendChild(sp);
+        }
+        c.appendChild(ng);
+      }
+
+      c.onclick = function() {
+        sel = idx;
+        drawBoard();
+      };
+      bd.appendChild(c);
+    })(i);
+  }
+}
+
+function put(num) {
+  if (done || sel === null || fix[sel]) return;
+  if (noteOn) {
+    if (cur[sel] !== 0) return;
+    var pos = nts[sel].indexOf(num);
+    if (pos > -1) nts[sel].splice(pos, 1);
+    else nts[sel].push(num);
+  } else {
+    cur[sel] = num;
+    nts[sel] = [];
+    if (num !== sol[sel]) {
+      err++;
+      document.getElementById('ms').innerText = 'Mistakes: ' + err;
+    } else {
+      var win = true;
+      for (var i = 0; i < N * N; i++) {
+        if (cur[i] !== sol[i]) win = false;
+      }
+      if (win) {
+        done = true;
+        clearInterval(tmr);
+        document.getElementById('msg').innerText = 'Solved in ' + document.getElementById('tm').innerText + '!';
+      }
+    }
+  }
+  drawBoard();
+}
+
+function erase() {
+  if (done || sel === null || fix[sel]) return;
+  cur[sel] = 0;
+  nts[sel] = [];
+  drawBoard();
+}
+
+function toggleNote() {
+  noteOn = !noteOn;
+  var nb = document.getElementById('nb');
+  nb.innerText = 'Notes: ' + (noteOn ? 'ON' : 'OFF');
+  if (noteOn) nb.className = 'note-on';
+  else nb.className = '';
+}
+
+document.onkeydown = function(e) {
+  if (e.key === 'n' || e.key === 'N') toggleNote();
+  if (e.key === 'Backspace' || e.key === 'Delete') erase();
+  var v = parseInt(e.key, 10);
+  if (v >= 1 && v <= N) put(v);
+};
+
+start();
+</script>
+
+</body>
+</html>
