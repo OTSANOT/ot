@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inhibition Control — Go/No-Go Task</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --go: #22c55e;
+    --nogo: #ef4444;
+    --accent: #38bdf8;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: radial-gradient(circle at top, #1e293b, #0f172a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    width: min(720px, 100%);
+    background: var(--panel);
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 1.6rem;
+    letter-spacing: -.02em;
+  }
+
+  p {
+    color: var(--muted);
+    line-height: 1.55;
+    margin: 0 0 20px;
+  }
+
+  .rules {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .rule {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .rule strong { display: block; margin-bottom: 4px; }
+
+  .go-dot, .nogo-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  .go-dot { background: var(--go); }
+  .nogo-dot { background: var(--nogo); }
+
+  .stage {
+    height: 260px;
+    border-radius: 16px;
+    border: 1px solid #334155;
+    background: #0b1220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shape {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: #04121f;
+    animation: pop .15s ease-out;
+  }
+
+  .shape.go { background: var(--go); }
+  .shape.nogo { background: var(--nogo); border-radius: 18px; }
+
+  @keyframes pop {
+    from { transform: scale(.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .message {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    background: rgba(15,23,42,.85);
+  }
+
+  .feedback {
+    min-height: 28px;
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .feedback.good { color: var(--go); }
+  .feedback.bad { color: var(--nogo); }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    font: inherit;
+    font-weight: 700;
+    border: 0;
+    border-radius: 999px;
+    padding: 13px 22px;
+    cursor: pointer;
+    color: #04121f;
+    background: var(--accent);
+  }
+
+  button.secondary {
+    background: #334155;
+    color: var(--text);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .stat {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  .stat span {
+    display: block;
+    color: var(--muted);
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .stat strong {
+    font-size: 1.4rem;
+  }
+
+  kbd {
+    background: #334155;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: .85rem;
+  }
+
+  @media (max-width: 520px) {
+    .card { padding: 20px; }
+    .shape { width: 105px; height: 105px; }
+    .stage { height: 220px; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Inhibition Control</h1>
+    <p>
+      Inhibitory control is the ability to stop an automatic or inappropriate response.
+      In this Go/No-Go exercise, respond quickly to <strong>Go</strong> shapes, but resist responding to
+      <strong>No-Go</strong> shapes. Go trials are more frequent, so they build a habit of responding that you must override. [1][6]
+    </p>
+
+    <section class="rules">
+      <div class="rule">
+        <span class="go-dot"></span><strong>Green circle = Go</strong>
+        Press <kbd>Space</kbd> or tap <strong>Respond</strong>.
+      </div>
+      <div class="rule">
+        <span class="nogo-dot"></span><strong>Red square = No-Go</strong>
+        Do <strong>not</strong> respond.
+      </div>
+    </section>
+
+    <div class="stage" id="stage">
+      <div class="message" id="message">
+        Press <strong>Start</strong> to begin.<br>
+        <small>20 trials • Respond to green circles only</small>
+      </div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+      <button id="startBtn">Start</button>
+      <button id="respondBtn" class="secondary">Respond</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+
+    <section class="stats">
+      <div class="stat">
+        <span>Score</span>
+        <strong id="score">0</strong>
+      </div>
+      <div class="stat">
+        <span>Correct</span>
+        <strong id="correct">0</strong>
+      </div>
+      <div class="stat">
+        <span>Inhibition errors</span>
+        <strong id="errors">0</strong>
+      </div>
+    </section>
+  </main>
+
+<script>
+  const stage = document.getElementById("stage");
+  const message = document.getElementById("message");
+  const feedback = document.getElementById("feedback");
+  const startBtn = document.getElementById("startBtn");
+  const respondBtn = document.getElementById("respondBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const scoreEl = document.getElementById("score");
+  const correctEl = document.getElementById("correct");
+  const errorsEl = document.getElementById("errors");
+
+  const TOTAL_TRIALS = 20;
+  const STIMULUS_TIME = 900;
+  const GAP_TIME = 700;
+
+  let trials = [];
+  let currentTrial = 0;
+  let running = false;
+  let stimulusActive = false;
+  let currentType = null;
+  let stimulusTimer = null;
+  let gapTimer = null;
+
+  function updateStats() {
+    const score = Number(scoreEl.textContent);
+    const correct = Number(correctEl.textContent);
+    const errors = Number(errorsEl.textContent);
+    scoreEl.textContent = score;
+    correctEl.textContent = correct;
+    errorsEl.textContent = errors;
+  }
+
+  function createTrials() {
+    // 15 Go trials and 5 No-Go trials, shuffled.
+    const trialTypes = [
+      ...Array(15).fill("go"),
+      ...Array(5).fill("nogo")
+    ];
+
+    for (let i = trialTypes.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [trialTypes[i], trialTypes[j]] = [trialTypes[j], trialTypes[i]];
+    }
+
+    return trialTypes;
+  }
+
+  function showStimulus(type) {
+    currentType = type;
+    stimulusActive = true;
+
+    stage.innerHTML = `
+      <div class="shape ${type}">
+        ${type === "go" ? "GO" : "STOP"}
+      </div>
+    `;
+
+    stimulusTimer = setTimeout(() => {
+      stimulusActive = false;
+
+      if (currentType === "go") {
+        feedback.textContent = "Missed Go — respond faster next time.";
+        feedback.className = "feedback bad";
+      } else {
+        scoreEl.textContent = Number(scoreEl.textContent) + 10;
+        correctEl.textContent = Number(correctEl.textContent) + 1;
+        feedback.textContent = "Good inhibition — you withheld your response.";
+        feedback.className = "feedback good";
+      }
+
+      updateStats();
+      nextTrial();
+    }, STIMULUS_TIME);
+  }
+
+  function nextTrial() {
+    currentTrial++;
+
+    if (currentTrial >= TOTAL_TRIALS) {
+      finish();
+      return;
+    }
+
+    gapTimer = setTimeout(() => {
+      showStimulus(trials[currentTrial]);
+    }, GAP_TIME);
+  }
+
+  function respond() {
+    if (!running || !stimulusActive) return;
+
+    clearTimeout(stimulusTimer);
+    stimulusActive = false;
+
+    if (currentType === "go") {
+      scoreEl.textContent = Number(scoreEl.textContent) + 10;
+      correctEl.textContent = Number(correctEl.textContent) + 1;
+      feedback.textContent = "Correct Go response.";
+      feedback.className = "feedback good";
+    } else {
+      errorsEl.textContent = Number(errorsEl.textContent) + 1;
+      feedback.textContent = "Inhibition error — you responded to a No-Go shape.";
+      feedback.className = "feedback bad";
+    }
+
+    updateStats();
+    nextTrial();
+  }
+
+  function start() {
+    reset();
+    running = true;
+    message.remove();
+    feedback.textContent = "Get ready…";
+    feedback.className = "feedback";
+
+    setTimeout(() => {
+      feedback.textContent = "";
+      showStimulus(trials[currentTrial]);
+    }, 1000);
+  }
+
+  function finish() {
+    running = false;
+
+    const score = Number(scoreEl.textContent);
+    const correct = Number(correctEl.textContent);
+    const errors = Number(errorsEl.textContent);
+    const accuracy = Math.round((correct / TOTAL_TRIALS) * 100);
+
+    stage.innerHTML = `
+      <div class="message">
+        Finished!<br>
+        Score: <strong>${score}</strong> •
+        Accuracy: <strong>${accuracy}%</strong> •
+        Inhibition errors: <strong>${errors}</strong>
+      </div>
+    `;
+
+    feedback.textContent = errors === 0
+      ? "Excellent inhibitory control."
+      : "Try again and focus on stopping before the red square.";
+    feedback.className = errors === 0 ? "feedback good" : "feedback bad";
+  }
+
+  function reset() {
+    clearTimeout(stimulusTimer);
+    clearTimeout(gapTimer);
+
+    trials = createTrials();
+    currentTrial = 0;
+    running = false;
+    stimulusActive = false;
+    currentType = null;
+
+    scoreEl.textContent = "0";
+    correctEl.textContent = "0";
+    errorsEl.textContent = "0";
+    feedback.textContent = "";
+    feedback.className = "feedback";
+
+    stage.innerHTML = `
+      <div class="message" id="message">
+        Press <strong>Start</strong> to begin.<br>
+        <small>20 trials • Respond to green circles only</small>
+      </div>
+    `;
+  }
+
+  startBtn.addEventListener("click", start);
+  respondBtn.addEventListener("click", respond);
+  resetBtn.addEventListener("click", reset);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.code === "Space") {
+      event.preventDefault();
+      respond();
+    }
+  });
+
+  reset();
+</script>
+</body>
+</html>
