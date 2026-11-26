@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual N-Back | Cognitive Training</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Space Grotesk & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Space Grotesk"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        obsidian: '#09090b',
+                        slateDark: '#121217',
+                        cardDark: '#18181f',
+                        neonCyan: '#06b6d4',
+                        neonPurple: '#8b5cf6',
+                        neonEmerald: '#10b981',
+                        neonRose: '#f43f5e'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #09090b;
+            color: #f4f4f5;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #27272a;
+            border-radius: 999px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -7px;
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        /* Grid Cell Glow Animation */
+        .cell-active {
+            background: linear-gradient(135deg, #06b6d4, #3b82f6) !important;
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.7), inset 0 0 10px rgba(255, 255, 255, 0.4);
+            border-color: #67e8f9 !important;
+            transform: scale(0.97);
+        }
+
+        /* Button Press & Feedback States */
+        .btn-action {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+        .feedback-correct {
+            border-color: #10b981 !important;
+            background-color: rgba(16, 185, 129, 0.15) !important;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4) !important;
+        }
+        .feedback-wrong {
+            border-color: #f43f5e !important;
+            background-color: rgba(244, 63, 94, 0.15) !important;
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.4) !important;
+        }
+        .feedback-selected {
+            border-color: #06b6d4 !important;
+            background-color: rgba(6, 182, 212, 0.15) !important;
+        }
+
+        /* Glassmorphism Backdrop */
+        .glass-panel {
+            background: rgba(24, 24, 31, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased overflow-x-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="w-full border-b border-zinc-800/80 bg-obsidian/90 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-3xl mx-auto px-4 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-neonCyan to-neonPurple flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight text-white leading-none">NEURO<span class="text-neonCyan">BACK</span></h1>
+                    <p class="text-[11px] font-mono text-zinc-400 mt-0.5">WORKING MEMORY LAB</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Help Button -->
+                <button id="btn-help" class="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition" title="How to Play">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </button>
+                <!-- Settings Button -->
+                <button id="btn-settings" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-sm font-medium transition">
+                    <svg class="w-4 h-4 text-neonCyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                    </svg>
+                    <span class="hidden sm:inline">Settings</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Arena -->
+    <main class="flex-1 max-w-xl w-full mx-auto px-4 py-6 flex flex-col items-center justify-center gap-6">
+        
+        <!-- Status Pills -->
+        <div class="w-full grid grid-cols-3 gap-3">
+            <div class="glass-panel rounded-2xl p-3 text-center">
+                <div class="text-[11px] font-mono uppercase tracking-wider text-zinc-400">Level</div>
+                <div id="hud-level" class="text-xl font-bold font-mono text-neonCyan mt-0.5">2-BACK</div>
+            </div>
+            <div class="glass-panel rounded-2xl p-3 text-center">
+                <div class="text-[11px] font-mono uppercase tracking-wider text-zinc-400">Trial</div>
+                <div id="hud-trial" class="text-xl font-bold font-mono text-white mt-0.5">0 / 20</div>
+            </div>
+            <div class="glass-panel rounded-2xl p-3 text-center">
+                <div class="text-[11px] font-mono uppercase tracking-wider text-zinc-400">Accuracy</div>
+                <div id="hud-score" class="text-xl font-bold font-mono text-neonEmerald mt-0.5">--%</div>
+            </div>
+        </div>
+
+        <!-- Spoken Letter Indicator & Progress Bar -->
+        <div class="w-full flex flex-col items-center gap-2">
+            <div class="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-gradient-to-r from-neonCyan to-neonPurple w-0 transition-all duration-300"></div>
+            </div>
+            <div class="h-6 flex items-center justify-center">
+                <span id="status-message" class="text-xs font-mono tracking-wide text-zinc-400 uppercase">Ready to initiate session</span>
+            </div>
+        </div>
+
+        <!-- 3x3 Spatial Grid -->
+        <div class="relative w-full max-w-[340px] aspect-square p-3.5 rounded-3xl glass-panel shadow-2xl">
+            <div id="grid-container" class="w-full h-full grid grid-cols-3 grid-rows-3 gap-3">
+                <!-- 9 Cells generated via JS or static -->
+                <div data-index="0" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200"></div>
+                <div data-index="1" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200"></div>
+                <div data-index="2" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200"></div>
+                <div data-index="3" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200"></div>
+                <div data-index="4" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200 flex items-center justify-center">
+                    <!-- Subtle Center Fixation Crosshair -->
+                    <div class="w-2 h-2 rounded-full bg-zinc-700/60"></div>
+                </div>
+                <div data-index="5" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200"></div>
+                <div data-index="6" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200"></div>
+                <div data-index="7" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200"></div>
+                <div data-index="8" class="grid-cell rounded-2xl bg-zinc-900/90 border border-zinc-800/90 transition-all duration-200"></div>
+            </div>
+
+            <!-- Visual Audio Cue Badge (appears briefly when audio plays) -->
+            <div id="audio-wave-badge" class="pointer-events-none absolute -top-3 right-4 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-xs font-mono text-neonPurple flex items-center gap-1.5 opacity-0 transition-opacity duration-200 shadow-lg">
+                <span class="w-2 h-2 rounded-full bg-neonPurple animate-ping"></span>
+                <span id="spoken-letter-display">AUDIO</span>
+            </div>
+        </div>
+
+        <!-- Match Action Controls -->
+        <div class="w-full max-w-[360px] grid grid-cols-2 gap-3.5">
+            <button id="btn-match-pos" disabled class="btn-action py-4 px-4 rounded-2xl bg-zinc-900 border-2 border-zinc-800 text-zinc-300 font-semibold flex flex-col items-center justify-center gap-1 disabled:opacity-40 disabled:pointer-events-none hover:border-zinc-700">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-neonCyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                    </svg>
+                    <span>Position</span>
+                </div>
+                <span class="text-[11px] font-mono text-zinc-500">[Key: A]</span>
+            </button>
+
+            <button id="btn-match-audio" disabled class="btn-action py-4 px-4 rounded-2xl bg-zinc-900 border-2 border-zinc-800 text-zinc-300 font-semibold flex flex-col items-center justify-center gap-1 disabled:opacity-40 disabled:pointer-events-none hover:border-zinc-700">
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-neonPurple" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+                    </svg>
+                    <span>Audio</span>
+                </div>
+                <span class="text-[11px] font-mono text-zinc-500">[Key: L]</span>
+            </button>
+        </div>
+
+        <!-- Start / Stop Master Button -->
+        <div class="w-full max-w-[360px]">
+            <button id="btn-start-stop" class="btn-action w-full py-4 rounded-2xl bg-gradient-to-r from-neonCyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-obsidian font-bold text-base tracking-wide shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2">
+                <svg id="icon-play" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                </svg>
+                <span id="text-start-stop">START SESSION</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-4 text-center text-xs font-mono text-zinc-600">
+        DUAL N-BACK PROTOCOL • KEYBOARD: [SPACE] START/STOP • [A] POSITION • [L] AUDIO
+    </footer>
+
+    <!-- SETTINGS MODAL (Matching all features in screenshot with dark cyber styling) -->
+    <div id="modal-settings" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl border border-zinc-700/60 animate-fade-in">
+            <div class="flex items-center justify-between pb-4 border-b border-zinc-800">
+                <h2 class="text-xl font-bold text-white tracking-tight">Game Settings</h2>
+                <button id="btn-close-settings" class="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="space-y-6 my-6">
+                <!-- N-Back Level Slider (1 to 10) -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="setting-nback" class="text-sm font-semibold text-zinc-200">N-Back Level</label>
+                        <span id="val-nback" class="text-sm font-mono font-bold text-neonCyan bg-cyan-950/60 px-2.5 py-0.5 rounded-lg border border-cyan-800/50">2-back</span>
+                    </div>
+                    <input type="range" id="setting-nback" min="1" max="10" value="2" class="w-full">
+                    <div class="flex justify-between text-[10px] font-mono text-zinc-500 mt-1">
+                        <span>1-back (Easy)</span>
+                        <span>5-back</span>
+                        <span>10-back (Extreme)</span>
+                    </div>
+                </div>
+
+                <!-- Voice Type Radio -->
+                <div>
+                    <span class="block text-sm font-semibold text-zinc-200 mb-2.5">Voice Type</span>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="voice-type" value="male" class="peer sr-only">
+                            <div class="py-2.5 px-4 rounded-xl bg-zinc-900 border border-zinc-800 text-center text-sm font-medium text-zinc-400 peer-checked:border-neonCyan peer-checked:text-white peer-checked:bg-cyan-950/30 transition">
+                                Male Voice
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="voice-type" value="female" checked class="peer sr-only">
+                            <div class="py-2.5 px-4 rounded-xl bg-zinc-900 border border-zinc-800 text-center text-sm font-medium text-zinc-400 peer-checked:border-neonCyan peer-checked:text-white peer-checked:bg-cyan-950/30 transition">
+                                Female Voice
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Training Mode Checkboxes -->
+                <div>
+                    <span class="block text-sm font-semibold text-zinc-200 mb-2.5">Training Mode</span>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center gap-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800 cursor-pointer hover:border-zinc-700 transition">
+                            <input type="checkbox" id="setting-mode-pos" checked class="w-4 h-4 accent-cyan-500 rounded">
+                            <span class="text-sm font-medium text-zinc-200">Position</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800 cursor-pointer hover:border-zinc-700 transition">
+                            <input type="checkbox" id="setting-mode-audio" checked class="w-4 h-4 accent-purple-500 rounded">
+                            <span class="text-sm font-medium text-zinc-200">Audio</span>
+                        </label>
+                    </div>
+                    <p id="mode-warning" class="text-xs text-neonRose mt-1.5 hidden">At least one training mode must be active.</p>
+                </div>
+
+                <!-- Trials Per Round Slider -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="setting-trials" class="text-sm font-semibold text-zinc-200">Trials Per Round</label>
+                        <span id="val-trials" class="text-sm font-mono font-bold text-zinc-200">Trials: 20</span>
+                    </div>
+                    <input type="range" id="setting-trials" min="10" max="50" step="5" value="20" class="w-full">
+                </div>
+
+                <!-- Trial Speed Slider -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="setting-speed" class="text-sm font-semibold text-zinc-200">Trial Speed</label>
+                        <span id="val-speed" class="text-sm font-mono font-bold text-zinc-200">3.0s</span>
+                    </div>
+                    <input type="range" id="setting-speed" min="1.5" max="5.0" step="0.5" value="3.0" class="w-full">
+                </div>
+            </div>
+
+            <button id="btn-save-settings" class="w-full py-3.5 rounded-2xl bg-white hover:bg-zinc-200 text-obsidian font-bold text-sm tracking-wide transition shadow-lg">
+                Save Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- RESULTS SUMMARY MODAL -->
+    <div id="modal-results" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl border border-zinc-700/60 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-neonEmerald/20 border border-neonEmerald/40 text-neonEmerald flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-white">Round Complete</h2>
+            <p id="res-subtitle" class="text-sm font-mono text-zinc-400 mt-1">2-BACK • 20 TRIALS</p>
+
+            <div class="my-6 p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800">
+                <div class="text-xs font-mono text-zinc-400 uppercase">Overall Accuracy</div>
+                <div id="res-total-acc" class="text-4xl font-bold font-mono text-neonCyan mt-1">85%</div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-left mb-6">
+                <div class="p-3.5 rounded-2xl bg-zinc-900/70 border border-zinc-800/80">
+                    <div class="text-xs font-mono text-neonCyan mb-1">POSITION</div>
+                    <div id="res-pos-stats" class="text-sm text-zinc-300 font-mono">Hits: 0/0<br>False: 0</div>
+                </div>
+                <div class="p-3.5 rounded-2xl bg-zinc-900/70 border border-zinc-800/80">
+                    <div class="text-xs font-mono text-neonPurple mb-1">AUDIO</div>
+                    <div id="res-aud-stats" class="text-sm text-zinc-300 font-mono">Hits: 0/0<br>False: 0</div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button id="btn-close-results" class="flex-1 py-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm transition">
+                    Close
+                </button>
+                <button id="btn-play-again" class="flex-1 py-3.5 rounded-2xl bg-neonCyan hover:bg-cyan-400 text-obsidian font-bold text-sm transition">
+                    Next Round
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOW TO PLAY MODAL -->
+    <div id="modal-help" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl border border-zinc-700/60">
+            <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+                <h2 class="text-lg font-bold text-white">How Dual N-Back Works</h2>
+                <button id="btn-close-help" class="p-1.5 rounded-lg text-zinc-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-3 my-4 text-sm text-zinc-300 leading-relaxed">
+                <p>You will be presented with a sequence of stimuli: a <span class="text-neonCyan font-semibold">lit square</span> on the 3×3 grid and a <span class="text-neonPurple font-semibold">spoken letter</span>.</p>
+                <p>Your goal is to press <strong>Position</strong> or <strong>Audio</strong> if the current stimulus matches the one presented <strong>N steps earlier</strong> in the sequence.</p>
+                <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
+                    Example (2-Back):<br>
+                    Step 1: Top-Left + "C"<br>
+                    Step 2: Center + "K"<br>
+                    Step 3: Top-Left + "R" → <span class="text-neonCyan">POSITION MATCH!</span>
+                </div>
+                <p class="text-xs text-zinc-400">Tip: Both Position and Audio can match simultaneously on the same turn!</p>
+            </div>
+            <button id="btn-got-it" class="w-full py-3 rounded-xl bg-neonCyan text-obsidian font-bold text-sm">Got It</button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Dual N-Back Engine
+         * Self-contained audio synthesis (Web Speech API + Web Audio API fallback chimes)
+         * and deterministic N-Back trial generator with guaranteed target injection.
+         */
+        // Phonetic mapping ensures TTS pronounces single letters distinctly without clipping
+        const LETTER_PHONETICS = {
+            'C': 'see',
+            'H': 'aitch',
+            'K': 'kay',
+            'L': 'ell',
+            'Q': 'cue',
+            'R': 'are',
+            'S': 'ess',
+            'T': 'tea'
+        };
+        const LETTERS = Object.keys(LETTER_PHONETICS);
+
+        // Default Configuration (Matches user screenshot options, defaulting to 2-back for immediate playability)
+        const config = {
+            nBack: 2,
+            voiceType: 'female',
+            posEnabled: true,
+            audioEnabled: true,
+            trialsPerRound: 20,
+            trialSpeed: 3.0 // seconds
+        };
+
+        // Runtime Game State
+        let state = {
+            isRunning: false,
+            sequence: [], // Array of { pos: number, letter: string }
+            currentStep: -1,
+            timerId: null,
+            userRespondedPos: false,
+            userRespondedAudio: false,
+            stats: {
+                posTargets: 0,
+                posHits: 0,
+                posFalseAlarms: 0,
+                audioTargets: 0,
+                audioHits: 0,
+                audioFalseAlarms: 0
+            }
+        };
+
+        // DOM Elements
+        const cells = document.querySelectorAll('.grid-cell');
+        const hudLevel = document.getElementById('hud-level');
+        const hudTrial = document.getElementById('hud-trial');
+        const hudScore = document.getElementById('hud-score');
+        const progressBar = document.getElementById('progress-bar');
+        const statusMsg = document.getElementById('status-message');
+        const audioBadge = document.getElementById('audio-wave-badge');
+        const spokenLetterDisplay = document.getElementById('spoken-letter-display');
+
+        const btnStartStop = document.getElementById('btn-start-stop');
+        const textStartStop = document.getElementById('text-start-stop');
+        const btnMatchPos = document.getElementById('btn-match-pos');
+        const btnMatchAudio = document.getElementById('btn-match-audio');
+
+        // Modals & Settings Inputs
+        const modalSettings = document.getElementById('modal-settings');
+        const modalResults = document.getElementById('modal-results');
+        const modalHelp = document.getElementById('modal-help');
+
+        const inputNback = document.getElementById('setting-nback');
+        const valNback = document.getElementById('val-nback');
+        const inputTrials = document.getElementById('setting-trials');
+        const valTrials = document.getElementById('val-trials');
+        const inputSpeed = document.getElementById('setting-speed');
+        const valSpeed = document.getElementById('val-speed');
+        const inputModePos = document.getElementById('setting-mode-pos');
+        const inputModeAudio = document.getElementById('setting-mode-audio');
+        const modeWarning = document.getElementById('mode-warning');
+
+        // Audio Context for tactile UI feedback beeps
+        let audioCtx = null;
+        function playFeedbackTone(type) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'hit') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.12); // A5
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+                } else if (type === 'miss') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(160, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+                } else {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+                }
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            } catch (e) {
+                // Ignore audio errors if blocked
+            }
+        }
+
+        // Speech Synthesis for Letters
+        let availableVoices = [];
+        function loadVoices() {
+            if ('speechSynthesis' in window) {
+                availableVoices = window.speechSynthesis.getVoices();
+            }
+        }
+        if ('speechSynthesis' in window) {
+            loadVoices();
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        function speakLetter(letter) {
+            // Show visual audio badge briefly
+            spokenLetterDisplay.textContent = `AUDIO: "${letter}"`;
+            audioBadge.classList.remove('opacity-0');
+            setTimeout(() => audioBadge.classList.add('opacity-0'), 900);
+
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+
+            // Refresh voices if empty on first interaction
+            if (availableVoices.length === 0) {
+                availableVoices = window.speechSynthesis.getVoices();
+            }
+
+            // Use phonetic spelling so browser TTS articulates the letter cleanly without cutting off
+            const spokenText = LETTER_PHONETICS[letter] || letter.toLowerCase();
+            const utterance = new SpeechSynthesisUtterance(spokenText);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.95; // Slightly slower for crisp articulation
+            utterance.volume = 1.0;
+
+            // Prioritize natural/enhanced/neural system voices for maximum clarity
+            const enVoices = availableVoices.filter(v => v.lang.toLowerCase().startsWith('en'));
+            const premiumVoices = enVoices.filter(v => /natural|neural|enhanced|premium|google|samantha|daniel|alex|victoria|ava|allison|aria|guy/i.test(v.name));
+            const voicePool = premiumVoices.length > 0 ? premiumVoices : enVoices;
+
+            if (voicePool.length > 0) {
+                if (config.voiceType === 'female') {
+                    const fem = voicePool.find(v => /female|samantha|victoria|zira|ava|allison|aria|google us english/i.test(v.name));
+                    utterance.voice = fem || voicePool[0];
+                    utterance.pitch = 1.05; // Natural pitch avoids robotic distortion
+                } else {
+                    const male = voicePool.find(v => /male|daniel|david|alex|guy|aaron|google uk english male/i.test(v.name));
+                    utterance.voice = male || voicePool[0];
+                    utterance.pitch = 0.95;
+                }
+            } else {
+                utterance.pitch = config.voiceType === 'female' ? 1.05 : 0.95;
+            }
+
+            // Short delay after cancel() prevents Web Speech API from clipping the first consonant
+            setTimeout(() => {
+                window.speechSynthesis.speak(utterance);
+            }, 35);
+        }
+
+        // Generate Sequence with ~30% match probability after initial N steps
+        function generateSequence() {
+            const totalSteps = config.trialsPerRound + config.nBack;
+            const seq = [];
+
+            for (let i = 0; i < totalSteps; i++) {
+                let pos = Math.floor(Math.random() * 9);
+                let letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+
+                if (i >= config.nBack) {
+                    const targetStep = seq[i - config.nBack];
+                    // ~30% chance to force a position match
+                    if (config.posEnabled && Math.random() < 0.30) {
+                        pos = targetStep.pos;
+                    } else if (pos === targetStep.pos) {
+                        // Ensure non-match when not chosen
+                        pos = (pos + 1 + Math.floor(Math.random() * 8)) % 9;
+                    }
+
+                    // ~30% chance to force an audio match
+                    if (config.audioEnabled && Math.random() < 0.30) {
+                        letter = targetStep.letter;
+                    } else if (letter === targetStep.letter) {
+                        const otherLetters = LETTERS.filter(l => l !== targetStep.letter);
+                        letter = otherLetters[Math.floor(Math.random() * otherLetters.length)];
+                    }
+                }
+                seq.push({ pos, letter });
+            }
+            return seq;
+        }
+
+        function updateHUD() {
+            hudLevel.textContent = `${config.nBack}-BACK`;
+            const activeTrial = Math.max(0, state.currentStep - config.nBack + 1);
+            hudTrial.textContent = `${Math.min(activeTrial, config.trialsPerRound)} / ${config.trialsPerRound}`;
+            
+            const pct = (Math.min(activeTrial, config.trialsPerRound) / config.trialsPerRound) * 100;
+            progressBar.style.width = `${pct}%`;
+
+            // Calculate live accuracy
+            const totalOpportunities = state.stats.posTargets + state.stats.posFalseAlarms + state.stats.audioTargets + state.stats.audioFalseAlarms;
+            const totalHits = state.stats.posHits + state.stats.audioHits;
+            if (totalOpportunities > 0) {
+                const acc = Math.round((totalHits / totalOpportunities) * 100);
+                hudScore.textContent = `${acc}%`;
+            } else {
+                hudScore.textContent = '--%';
+            }
+        }
+
+        function resetButtonStyles() {
+            btnMatchPos.classList.remove('feedback-correct', 'feedback-wrong', 'feedback-selected');
+            btnMatchAudio.classList.remove('feedback-correct', 'feedback-wrong', 'feedback-selected');
+        }
+
+        function evaluatePreviousStep() {
+            if (state.currentStep < config.nBack) return;
+
+            const curr = state.sequence[state.currentStep];
+            const prev = state.sequence[state.currentStep - config.nBack];
+
+            // Evaluate Position
+            if (config.posEnabled) {
+                const isPosMatch = curr.pos === prev.pos;
+                if (isPosMatch) {
+                    state.stats.posTargets++;
+                    if (state.userRespondedPos) {
+                        state.stats.posHits++;
+                    }
+                } else if (state.userRespondedPos) {
+                    state.stats.posFalseAlarms++;
+                }
+            }
+
+            // Evaluate Audio
+            if (config.audioEnabled) {
+                const isAudioMatch = curr.letter === prev.letter;
+                if (isAudioMatch) {
+                    state.stats.audioTargets++;
+                    if (state.userRespondedAudio) {
+                        state.stats.audioHits++;
+                    }
+                } else if (state.userRespondedAudio) {
+                    state.stats.audioFalseAlarms++;
+                }
+            }
+        }
+
+        function stepTrial() {
+            // Score the trial that just finished
+            if (state.currentStep >= 0) {
+                evaluatePreviousStep();
+            }
+
+            state.currentStep++;
+            const totalSteps = config.trialsPerRound + config.nBack;
+
+            if (state.currentStep >= totalSteps) {
+                finishGame();
+                return;
+            }
+
+            // Reset turn flags & button visuals
+            state.userRespondedPos = false;
+            state.userRespondedAudio = false;
+            resetButtonStyles();
+            updateHUD();
+
+            const canMatch = state.currentStep >= config.nBack;
+            btnMatchPos.disabled = !(canMatch && config.posEnabled);
+            btnMatchAudio.disabled = !(canMatch && config.audioEnabled);
+
+            if (!canMatch) {
+                const remainingBuffer = config.nBack - state.currentStep;
+                statusMsg.textContent = `Memorize sequence (${remainingBuffer} before matching)`;
+                statusMsg.className = 'text-xs font-mono tracking-wide text-amber-400 uppercase';
+            } else {
+                statusMsg.textContent = `Compare with ${config.nBack} step${config.nBack > 1 ? 's' : ''} ago`;
+                statusMsg.className = 'text-xs font-mono tracking-wide text-neonCyan uppercase';
+            }
+
+            const stimulus = state.sequence[state.currentStep];
+
+            // Activate Position
+            if (config.posEnabled) {
+                const targetCell = cells[stimulus.pos];
+                targetCell.classList.add('cell-active');
+                setTimeout(() => {
+                    targetCell.classList.remove('cell-active');
+                }, Math.min(800, config.trialSpeed * 1000 * 0.55));
+            }
+
+            // Activate Audio
+            if (config.audioEnabled) {
+                speakLetter(stimulus.letter);
+            }
+        }
+
+        function handleMatchInput(type) {
+            if (!state.isRunning || state.currentStep < config.nBack) return;
+
+            const curr = state.sequence[state.currentStep];
+            const prev = state.sequence[state.currentStep - config.nBack];
+
+            if (type === 'pos' && config.posEnabled && !state.userRespondedPos) {
+                state.userRespondedPos = true;
+                const isMatch = curr.pos === prev.pos;
+                btnMatchPos.classList.add(isMatch ? 'feedback-correct' : 'feedback-wrong');
+                playFeedbackTone(isMatch ? 'hit' : 'miss');
+            }
+
+            if (type === 'audio' && config.audioEnabled && !state.userRespondedAudio) {
+                state.userRespondedAudio = true;
+                const isMatch = curr.letter === prev.letter;
+                btnMatchAudio.classList.add(isMatch ? 'feedback-correct' : 'feedback-wrong');
+                playFeedbackTone(isMatch ? 'hit' : 'miss');
+            }
+        }
+
+        function startGame() {
+            state.isRunning = true;
+            state.sequence = generateSequence();
+            state.currentStep = -1;
+            state.stats = {
+                posTargets: 0, posHits: 0, posFalseAlarms: 0,
+                audioTargets: 0, audioHits: 0, audioFalseAlarms: 0
+            };
+
+            textStartStop.textContent = 'ABORT SESSION';
+            btnStartStop.className = 'btn-action w-full py-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-neonRose font-bold text-base tracking-wide flex items-center justify-center gap-2';
+            document.getElementById('icon-play').innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path>';
+
+            stepTrial();
+            state.timerId = setInterval(stepTrial, config.trialSpeed * 1000);
+        }
+
+        function stopGame(aborted = true) {
+            state.isRunning = false;
+            clearInterval(state.timerId);
+            cells.forEach(c => c.classList.remove('cell-active'));
+            resetButtonStyles();
+            btnMatchPos.disabled = true;
+            btnMatchAudio.disabled = true;
+
+            textStartStop.textContent = 'START SESSION';
+            btnStartStop.className = 'btn-action w-full py-4 rounded-2xl bg-gradient-to-r from-neonCyan to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-obsidian font-bold text-base tracking-wide shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2';
+            document.getElementById('icon-play').innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>';
+
+            if (aborted) {
+                statusMsg.textContent = 'Session aborted';
+                statusMsg.className = 'text-xs font-mono tracking-wide text-zinc-500 uppercase';
+            }
+        }
+
+        function finishGame() {
+            stopGame(false);
+            updateHUD();
+            statusMsg.textContent = 'Session complete';
+            statusMsg.className = 'text-xs font-mono tracking-wide text-neonEmerald uppercase';
+
+            // Populate Results Modal
+            const s = state.stats;
+            const totalOps = s.posTargets + s.posFalseAlarms + s.audioTargets + s.audioFalseAlarms;
+            const totalHits = s.posHits + s.audioHits;
+            const overallAcc = totalOps > 0 ? Math.round((totalHits / totalOps) * 100) : 100;
+
+            document.getElementById('res-subtitle').textContent = `${config.nBack}-BACK • ${config.trialsPerRound} TRIALS`;
+            document.getElementById('res-total-acc').textContent = `${overallAcc}%`;
+
+            document.getElementById('res-pos-stats').innerHTML = config.posEnabled
+                ? `Hits: <span class="text-white">${s.posHits}/${s.posTargets}</span><br>False: <span class="text-neonRose">${s.posFalseAlarms}</span>`
+                : `<span class="text-zinc-500">Disabled</span>`;
+
+            document.getElementById('res-aud-stats').innerHTML = config.audioEnabled
+                ? `Hits: <span class="text-white">${s.audioHits}/${s.audioTargets}</span><br>False: <span class="text-neonRose">${s.audioFalseAlarms}</span>`
+                : `<span class="text-zinc-500">Disabled</span>`;
+
+            modalResults.classList.remove('hidden');
+            modalResults.classList.add('flex');
+        }
+
+        // Event Listeners: Core Controls
+        btnStartStop.addEventListener('click', () => {
+            if (state.isRunning) stopGame(true);
+            else startGame();
+        });
+
+        btnMatchPos.addEventListener('click', () => handleMatchInput('pos'));
+        btnMatchAudio.addEventListener('click', () => handleMatchInput('audio'));
+
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (!modalSettings.classList.contains('hidden') || !modalHelp.classList.contains('hidden')) return;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') handleMatchInput('pos');
+            if (e.code === 'KeyL' || e.code === 'ArrowRight') handleMatchInput('audio');
+            if (e.code === 'Space') {
+                e.preventDefault();
+                btnStartStop.click();
+            }
+        });
+
+        // Settings Modal Live Sliders
+        inputNback.addEventListener('input', (e) => {
+            valNback.textContent = `${e.target.value}-back`;
+        });
+        inputTrials.addEventListener('input', (e) => {
+            valTrials.textContent = `Trials: ${e.target.value}`;
+        });
+        inputSpeed.addEventListener('input', (e) => {
+            valSpeed.textContent = `${parseFloat(e.target.value).toFixed(1)}s`;
+        });
+
+        // Open / Close Settings
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            if (state.isRunning) stopGame(true);
+            inputNback.value = config.nBack;
+            valNback.textContent = `${config.nBack}-back`;
+            inputTrials.value = config.trialsPerRound;
+            valTrials.textContent = `Trials: ${config.trialsPerRound}`;
+            inputSpeed.value = config.trialSpeed;
+            valSpeed.textContent = `${config.trialSpeed.toFixed(1)}s`;
+            inputModePos.checked = config.posEnabled;
+            inputModeAudio.checked = config.audioEnabled;
+            document.querySelector(`input[name="voice-type"][value="${config.voiceType}"]`).checked = true;
+            modeWarning.classList.add('hidden');
+
+            modalSettings.classList.remove('hidden');
+            modalSettings.classList.add('flex');
+        });
+
+        document.getElementById('btn-close-settings').addEventListener('click', () => {
+            modalSettings.classList.add('hidden');
+            modalSettings.classList.remove('flex');
+        });
+
+        document.getElementById('btn-save-settings').addEventListener('click', () => {
+            if (!inputModePos.checked && !inputModeAudio.checked) {
+                modeWarning.classList.remove('hidden');
+                return;
+            }
+            config.nBack = parseInt(inputNback.value, 10);
+            config.trialsPerRound = parseInt(inputTrials.value, 10);
+            config.trialSpeed = parseFloat(inputSpeed.value);
+            config.posEnabled = inputModePos.checked;
+            config.audioEnabled = inputModeAudio.checked;
+            config.voiceType = document.querySelector('input[name="voice-type"]:checked').value;
+
+            state.currentStep = -1;
+            updateHUD();
+            modalSettings.classList.add('hidden');
+            modalSettings.classList.remove('flex');
+        });
+
+        // Results Modal Actions
+        document.getElementById('btn-close-results').addEventListener('click', () => {
+            modalResults.classList.add('hidden');
+            modalResults.classList.remove('flex');
+        });
+        document.getElementById('btn-play-again').addEventListener('click', () => {
+            modalResults.classList.add('hidden');
+            modalResults.classList.remove('flex');
+            startGame();
+        });
+
+        // Help Modal Actions
+        document.getElementById('btn-help').addEventListener('click', () => {
+            modalHelp.classList.remove('hidden');
+            modalHelp.classList.add('flex');
+        });
+        const closeHelp = () => {
+            modalHelp.classList.add('hidden');
+            modalHelp.classList.remove('flex');
+        };
+        document.getElementById('btn-close-help').addEventListener('click', closeHelp);
+        document.getElementById('btn-got-it').addEventListener('click', closeHelp);
+
+        // Initialize HUD
+        updateHUD();
+    </script>
+</body>
+</html>

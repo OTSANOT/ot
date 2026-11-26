@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rotating Schulte Table — Cognitive Focus Trainer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom animations and canvas styling */
+        body {
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            touch-action: none;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.98); opacity: 0.8; }
+            50% { transform: scale(1.02); opacity: 1; }
+            100% { transform: scale(0.98); opacity: 0.8; }
+        }
+        .animate-subtle-pulse {
+            animation: pulse-ring 3s infinite ease-in-out;
+        }
+        .btn-game {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-game:active {
+            transform: translateY(2px) scale(0.98);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Header Navigation -->
+    <header class="w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="9" stroke-dasharray="14 6"/>
+                        <circle cx="12" cy="12" r="4"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg tracking-tight leading-none">Rotating Schulte Table</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Dynamic Visual Search & Attention</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Sound Toggle -->
+                <button id="soundToggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition" title="Toggle Sound">
+                    <svg id="soundOnIcon" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                    </svg>
+                    <svg id="soundOffIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                    </svg>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button id="themeToggle" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition" title="Toggle Theme">
+                    <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-4 sm:py-6 flex flex-col items-center justify-between gap-4">
+
+        <!-- Top HUD Bar -->
+        <div class="w-full max-w-xl grid grid-cols-3 gap-2.5 sm:gap-4">
+            <!-- Timer Card -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 text-center shadow-sm">
+                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Time</div>
+                <div id="timerDisplay" class="font-mono text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-0.5">0.0s</div>
+            </div>
+
+            <!-- Target Number Card -->
+            <div class="bg-indigo-600 dark:bg-indigo-500/20 border-2 border-indigo-500 rounded-2xl p-3 text-center shadow-md shadow-indigo-500/10 relative overflow-hidden">
+                <div class="text-[11px] uppercase tracking-wider font-bold text-indigo-100 dark:text-indigo-300">Find Next</div>
+                <div class="flex items-baseline justify-center gap-1 mt-0.5">
+                    <span id="targetDisplay" class="font-mono text-2xl sm:text-3xl font-extrabold text-white dark:text-indigo-300">1</span>
+                    <span id="totalDisplay" class="font-mono text-xs font-semibold text-indigo-200 dark:text-indigo-400">/ 42</span>
+                </div>
+            </div>
+
+            <!-- Mistakes Card -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 text-center shadow-sm">
+                <div class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Mistakes (+1s)</div>
+                <div id="mistakesDisplay" class="font-mono text-xl sm:text-2xl font-bold text-rose-500 mt-0.5">0</div>
+            </div>
+        </div>
+
+        <!-- Speed & Mode Controls -->
+        <div class="w-full max-w-xl flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-2.5 shadow-sm">
+            <!-- Number Count Selector -->
+            <div class="flex items-center gap-1">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1">Count:</span>
+                <button data-count="12" class="count-btn px-2 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-500/20">12</button>
+                <button data-count="22" class="count-btn px-2 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-500/20">22</button>
+                <button data-count="32" class="count-btn px-2 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-500/20">32</button>
+                <button data-count="42" class="count-btn px-2 py-1 rounded-lg text-xs font-mono font-bold bg-indigo-600 text-white shadow-sm">42</button>
+            </div>
+
+            <!-- Speed Selector -->
+            <div class="flex items-center gap-1">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-1">Speed:</span>
+                <button data-speed="0.6" class="speed-btn px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-500/20">Slow</button>
+                <button data-speed="1.0" class="speed-btn px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm">Normal</button>
+                <button data-speed="1.6" class="speed-btn px-2 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-500/20">Fast</button>
+            </div>
+
+            <!-- Personal Best Display -->
+            <div class="flex items-center gap-1.5 text-xs">
+                <span class="text-slate-500 dark:text-slate-400 font-medium">Best:</span>
+                <span id="bestTimeDisplay" class="font-mono font-bold text-emerald-500">—</span>
+            </div>
+        </div>
+
+        <!-- Interactive Wheel Canvas Area -->
+        <div class="relative w-full max-w-[460px] aspect-square flex items-center justify-center my-auto">
+            <canvas id="gameCanvas" class="rounded-full"></canvas>
+
+            <!-- Start / Ready Overlay -->
+            <div id="startOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-sm rounded-full p-6 text-center transition-opacity duration-300">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-xs shadow-2xl">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Ready to Focus?</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                        Tap numbers <strong id="startTargetRange" class="text-slate-800 dark:text-slate-200">1 to 42</strong> in ascending order across counter-rotating rings. Each mistake adds <span class="text-rose-500 font-semibold">+1.0s</span>.
+                    </p>
+                    <button id="startBtn" class="btn-game mt-5 w-full py-3 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold text-sm shadow-lg shadow-indigo-500/30">
+                        Start Game
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Modal Overlay -->
+            <div id="resultOverlay" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-950/75 backdrop-blur-md rounded-3xl p-4 text-center z-20">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-xs shadow-2xl">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold mb-2">
+                        <span>✓ Sequence Complete</span>
+                    </div>
+                    <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">Session Summary</h2>
+
+                    <div class="mt-4 bg-slate-100 dark:bg-slate-800/80 rounded-2xl p-4">
+                        <div class="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold">Adjusted Final Time</div>
+                        <div id="finalAdjustedTime" class="font-mono text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-1">0.0s</div>
+                        <div id="newRecordBadge" class="hidden mt-1.5 text-xs font-bold text-amber-500">★ New Personal Best!</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-3 text-left">
+                        <div class="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-2.5 border border-slate-200/60 dark:border-slate-800">
+                            <div class="text-[11px] text-slate-400">Raw Time</div>
+                            <div id="finalRawTime" class="font-mono text-sm font-bold">0.0s</div>
+                        </div>
+                        <div class="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-2.5 border border-slate-200/60 dark:border-slate-800">
+                            <div class="text-[11px] text-slate-400">Penalty</div>
+                            <div id="finalPenalty" class="font-mono text-sm font-bold text-rose-500">+0.0s (0)</div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 mt-5">
+                        <button id="playAgainBtn" class="btn-game flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-500/25">
+                            Play Again
+                        </button>
+                        <button id="shareBtn" class="btn-game py-3 px-3.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-sm" title="Copy Result">
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Action Buttons -->
+        <div class="w-full max-w-xl flex items-center justify-center gap-3 pb-2">
+            <button id="restartBtn" class="btn-game px-5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Reset Board
+            </button>
+            <button id="howToBtn" class="btn-game px-5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm shadow-sm">
+                How to Play
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Custom Toast Notification (Replaces alert) -->
+    <div id="toastMessage" class="fixed bottom-5 left-1/2 -translate-x-1/2 translate-y-20 opacity-0 pointer-events-none transition-all duration-300 z-50 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2.5 rounded-xl shadow-xl text-xs font-bold flex items-center gap-2">
+        <span id="toastText">Copied to clipboard!</span>
+    </div>
+
+    <!-- How to Play Modal -->
+    <div id="infoModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-extrabold">How to Play</h3>
+                <button id="closeInfoBtn" class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                <p><strong class="text-slate-900 dark:text-white">1. Concentric Rotating Rings:</strong> Numbers (<strong>12, 22, 32, or 42</strong>) are distributed evenly across two or three concentric circular rings.</p>
+                <p><strong class="text-slate-900 dark:text-white">2. Ascending Search:</strong> Start at <strong>1</strong> and tap each number in ascending sequence until you complete the board.</p>
+                <p><strong class="text-slate-900 dark:text-white">3. Independent Motion:</strong> The rings rotate clockwise and counter-clockwise at different speeds, requiring continuous visual tracking and peripheral awareness.</p>
+                <p><strong class="text-slate-900 dark:text-white">4. Accuracy Matters:</strong> Every wrong tap flashes red and adds a <strong>+1.0 second</strong> penalty to your final score.</p>
+            </div>
+            <button id="gotItBtn" class="btn-game mt-6 w-full py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm">
+                Got It
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Rotating Schulte Table - Core Game Engine
+         * Supports 12, 22, 32, and 42 number modes across concentric rotating rings,
+         * Web Audio synthesizer feedback via Tone.js, and responsive high-DPI canvas rendering.
+         */
+        (() => {
+            // DOM Elements
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const targetDisplay = document.getElementById('targetDisplay');
+            const totalDisplay = document.getElementById('totalDisplay');
+            const mistakesDisplay = document.getElementById('mistakesDisplay');
+            const bestTimeDisplay = document.getElementById('bestTimeDisplay');
+            const startOverlay = document.getElementById('startOverlay');
+            const startTargetRange = document.getElementById('startTargetRange');
+            const resultOverlay = document.getElementById('resultOverlay');
+            const startBtn = document.getElementById('startBtn');
+            const playAgainBtn = document.getElementById('playAgainBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            const shareBtn = document.getElementById('shareBtn');
+            const themeToggle = document.getElementById('themeToggle');
+            const soundToggle = document.getElementById('soundToggle');
+            const soundOnIcon = document.getElementById('soundOnIcon');
+            const soundOffIcon = document.getElementById('soundOffIcon');
+            const howToBtn = document.getElementById('howToBtn');
+            const infoModal = document.getElementById('infoModal');
+            const closeInfoBtn = document.getElementById('closeInfoBtn');
+            const gotItBtn = document.getElementById('gotItBtn');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastText = document.getElementById('toastText');
+            const speedBtns = document.querySelectorAll('.speed-btn');
+            const countBtns = document.querySelectorAll('.count-btn');
+
+            // Game Constants & Ring Presets
+            const PENALTY_SECONDS = 1.0;
+            const RING_PRESETS = {
+                12: [
+                    { count: 5, innerRatio: 0.24, outerRatio: 0.58, baseSpeed: 0.42 },
+                    { count: 7, innerRatio: 0.58, outerRatio: 0.94, baseSpeed: -0.30 }
+                ],
+                22: [
+                    { count: 9, innerRatio: 0.24, outerRatio: 0.58, baseSpeed: 0.42 },
+                    { count: 13, innerRatio: 0.58, outerRatio: 0.94, baseSpeed: -0.30 }
+                ],
+                32: [
+                    { count: 8, innerRatio: 0.18, outerRatio: 0.43, baseSpeed: 0.45 },
+                    { count: 10, innerRatio: 0.43, outerRatio: 0.69, baseSpeed: -0.32 },
+                    { count: 14, innerRatio: 0.69, outerRatio: 0.95, baseSpeed: 0.24 }
+                ],
+                42: [
+                    { count: 10, innerRatio: 0.18, outerRatio: 0.43, baseSpeed: 0.45 },
+                    { count: 14, innerRatio: 0.43, outerRatio: 0.69, baseSpeed: -0.32 },
+                    { count: 18, innerRatio: 0.69, outerRatio: 0.95, baseSpeed: 0.24 }
+                ]
+            };
+
+            // Game State
+            let totalNumbers = 42;
+            let ringConfigs = RING_PRESETS[42];
+            let rings = [];
+            let currentTarget = 1;
+            let mistakes = 0;
+            let isPlaying = false;
+            let isFinished = false;
+            let startTime = 0;
+            let elapsedSeconds = 0;
+            let lastFrameTime = 0;
+            let speedMultiplier = 1.0;
+            let soundEnabled = true;
+            let canvasSize = 400;
+            let feedbackPulses = [];
+
+            // Retrieve Personal Best for Active Number Count
+            function getBestTime() {
+                try {
+                    const stored = localStorage.getItem(`rotating_schulte_best_${totalNumbers}`);
+                    return stored ? parseFloat(stored) : null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function saveBestTime(val) {
+                try {
+                    localStorage.setItem(`rotating_schulte_best_${totalNumbers}`, val.toFixed(2));
+                } catch (e) {
+                    // Ignore storage restrictions in sandboxed environments
+                }
+            }
+
+            // Initialize Tone.js Synthesizer
+            let synth = null;
+            function initAudio() {
+                if (!synth && typeof Tone !== 'undefined') {
+                    try {
+                        synth = new Tone.PolySynth(Tone.Synth, {
+                            oscillator: { type: 'sine' },
+                            envelope: { attack: 0.005, decay: 0.1, sustain: 0.02, release: 0.2 }
+                        }).toDestination();
+                        synth.volume.value = -8;
+                    } catch (e) {
+                        synth = null;
+                    }
+                }
+            }
+
+            function playSound(type) {
+                if (!soundEnabled || typeof Tone === 'undefined') return;
+                try {
+                    if (Tone.context && Tone.context.state !== 'running') {
+                        Tone.start();
+                    }
+                    initAudio();
+                    if (!synth) return;
+
+                    if (type === 'correct') {
+                        const notes = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6'];
+                        const note = notes[(currentTarget - 1) % notes.length];
+                        synth.triggerAttackRelease(note, '32n');
+                    } else if (type === 'wrong') {
+                        synth.triggerAttackRelease(['F#3', 'G3'], '16n');
+                    } else if (type === 'win') {
+                        const now = Tone.now();
+                        synth.triggerAttackRelease('C5', '16n', now);
+                        synth.triggerAttackRelease('E5', '16n', now + 0.08);
+                        synth.triggerAttackRelease('G5', '16n', now + 0.16);
+                        synth.triggerAttackRelease('C6', '8n', now + 0.24);
+                    }
+                } catch (e) {
+                    // Fail silently if audio context is blocked
+                }
+            }
+
+            // Show Toast Message
+            let toastTimeout;
+            function showToast(msg) {
+                toastText.textContent = msg;
+                toastMessage.classList.remove('translate-y-20', 'opacity-0');
+                clearTimeout(toastTimeout);
+                toastTimeout = setTimeout(() => {
+                    toastMessage.classList.add('translate-y-20', 'opacity-0');
+                }, 2400);
+            }
+
+            // Shuffle Utility (Fisher-Yates)
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            // Build & Randomize Board Sectors
+            function generateBoard() {
+                ringConfigs = RING_PRESETS[totalNumbers];
+                const allNumbers = Array.from({ length: totalNumbers }, (_, i) => i + 1);
+                shuffleArray(allNumbers);
+
+                let numIndex = 0;
+                rings = ringConfigs.map((cfg, rIdx) => {
+                    const sectors = [];
+                    const sliceAngle = (Math.PI * 2) / cfg.count;
+                    for (let s = 0; s < cfg.count; s++) {
+                        sectors.push({
+                            value: allNumbers[numIndex++],
+                            found: false,
+                            flashType: null,
+                            flashTimer: 0,
+                            startAngleOffset: s * sliceAngle,
+                            endAngleOffset: (s + 1) * sliceAngle
+                        });
+                    }
+                    return {
+                        index: rIdx,
+                        count: cfg.count,
+                        innerRatio: cfg.innerRatio,
+                        outerRatio: cfg.outerRatio,
+                        baseSpeed: cfg.baseSpeed,
+                        angle: Math.random() * Math.PI * 2,
+                        sectors
+                    };
+                });
+
+                currentTarget = 1;
+                mistakes = 0;
+                elapsedSeconds = 0;
+                isFinished = false;
+                feedbackPulses = [];
+                updateHUD();
+            }
+
+            // Update Top HUD & Best Score
+            function updateHUD() {
+                timerDisplay.textContent = `${elapsedSeconds.toFixed(1)}s`;
+                targetDisplay.textContent = currentTarget > totalNumbers ? '✓' : currentTarget;
+                totalDisplay.textContent = `/ ${totalNumbers}`;
+                startTargetRange.textContent = `1 to ${totalNumbers}`;
+                mistakesDisplay.textContent = mistakes;
+
+                const best = getBestTime();
+                bestTimeDisplay.textContent = best !== null ? `${best.toFixed(1)}s` : '—';
+            }
+
+            // Start / Reset Flows
+            function startGame() {
+                initAudio();
+                generateBoard();
+                isPlaying = true;
+                startTime = performance.now();
+                lastFrameTime = startTime;
+                startOverlay.classList.add('opacity-0', 'pointer-events-none');
+                resultOverlay.classList.add('hidden');
+            }
+
+            function resetToReady() {
+                isPlaying = false;
+                isFinished = false;
+                generateBoard();
+                startOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                resultOverlay.classList.add('hidden');
+            }
+
+            function finishGame() {
+                isPlaying = false;
+                isFinished = true;
+                playSound('win');
+
+                const penaltyTotal = mistakes * PENALTY_SECONDS;
+                const adjustedTime = elapsedSeconds + penaltyTotal;
+
+                document.getElementById('finalRawTime').textContent = `${elapsedSeconds.toFixed(2)}s`;
+                document.getElementById('finalPenalty').textContent = `+${penaltyTotal.toFixed(1)}s (${mistakes})`;
+                document.getElementById('finalAdjustedTime').textContent = `${adjustedTime.toFixed(2)}s`;
+
+                const previousBest = getBestTime();
+                const newRecordBadge = document.getElementById('newRecordBadge');
+                if (previousBest === null || adjustedTime < previousBest) {
+                    saveBestTime(adjustedTime);
+                    newRecordBadge.classList.remove('hidden');
+                } else {
+                    newRecordBadge.classList.add('hidden');
+                }
+
+                updateHUD();
+                resultOverlay.classList.remove('hidden');
+            }
+
+            // Responsive High-DPI Canvas Sizing
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                const rect = container.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                canvasSize = Math.max(240, Math.floor(rect.width));
+                canvas.width = canvasSize * dpr;
+                canvas.height = canvasSize * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            // Normalize Angle to [0, 2*PI)
+            function normalizeAngle(rad) {
+                const twoPi = Math.PI * 2;
+                return ((rad % twoPi) + twoPi) % twoPi;
+            }
+
+            // Hit Detection for Clicks & Taps
+            function handleCanvasInput(clientX, clientY) {
+                if (!isPlaying || isFinished) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const x = clientX - rect.left - canvasSize / 2;
+                const y = clientY - rect.top - canvasSize / 2;
+                const dist = Math.hypot(x, y);
+                const maxRadius = canvasSize / 2;
+                const normDist = dist / maxRadius;
+
+                const clickAngle = normalizeAngle(Math.atan2(y, x));
+
+                for (const ring of rings) {
+                    if (normDist >= ring.innerRatio && normDist <= ring.outerRatio) {
+                        const localAngle = normalizeAngle(clickAngle - ring.angle);
+                        const sliceAngle = (Math.PI * 2) / ring.count;
+                        const sectorIdx = Math.floor(localAngle / sliceAngle) % ring.count;
+                        const sector = ring.sectors[sectorIdx];
+
+                        if (!sector || sector.found) return;
+
+                        if (sector.value === currentTarget) {
+                            sector.found = true;
+                            sector.flashType = 'correct';
+                            sector.flashTimer = 0.35;
+                            playSound('correct');
+
+                            feedbackPulses.push({
+                                x: clientX - rect.left,
+                                y: clientY - rect.top,
+                                radius: 8,
+                                alpha: 0.9,
+                                color: '#10b981'
+                            });
+
+                            currentTarget++;
+                            updateHUD();
+
+                            if (currentTarget > totalNumbers) {
+                                finishGame();
+                            }
+                        } else {
+                            mistakes++;
+                            sector.flashType = 'wrong';
+                            sector.flashTimer = 0.45;
+                            playSound('wrong');
+
+                            feedbackPulses.push({
+                                x: clientX - rect.left,
+                                y: clientY - rect.top,
+                                radius: 10,
+                                alpha: 0.9,
+                                color: '#f43f5e'
+                            });
+
+                            updateHUD();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Main Animation & Render Loop
+            function render(timestamp) {
+                if (!lastFrameTime) lastFrameTime = timestamp;
+                const dt = Math.min(0.05, (timestamp - lastFrameTime) / 1000);
+                lastFrameTime = timestamp;
+
+                if (isPlaying && !isFinished) {
+                    elapsedSeconds = (timestamp - startTime) / 1000;
+                    timerDisplay.textContent = `${elapsedSeconds.toFixed(1)}s`;
+                }
+
+                const isDark = document.documentElement.classList.contains('dark');
+                const center = canvasSize / 2;
+                const maxRadius = canvasSize / 2;
+
+                ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+                // Draw Rings from Outer to Inner so inner borders overlap cleanly
+                for (let r = rings.length - 1; r >= 0; r--) {
+                    const ring = rings[r];
+                    const activeSpeedFactor = isPlaying ? speedMultiplier : 0.25;
+                    ring.angle = normalizeAngle(ring.angle + ring.baseSpeed * activeSpeedFactor * dt);
+
+                    const rInner = ring.innerRatio * maxRadius;
+                    const rOuter = ring.outerRatio * maxRadius;
+                    const rMid = (rInner + rOuter) / 2;
+                    const sliceAngle = (Math.PI * 2) / ring.count;
+
+                    for (let s = 0; s < ring.count; s++) {
+                        const sector = ring.sectors[s];
+                        if (sector.flashTimer > 0) {
+                            sector.flashTimer = Math.max(0, sector.flashTimer - dt);
+                        }
+
+                        const a0 = ring.angle + sector.startAngleOffset;
+                        const a1 = ring.angle + sector.endAngleOffset;
+                        const aMid = (a0 + a1) / 2;
+
+                        // Sector Fill Color
+                        let fillStyle;
+                        if (sector.flashTimer > 0 && sector.flashType === 'wrong') {
+                            fillStyle = isDark ? 'rgba(244, 63, 94, 0.55)' : 'rgba(244, 63, 94, 0.35)';
+                        } else if (sector.found) {
+                            fillStyle = isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.14)';
+                        } else {
+                            const alt = s % 2 === 0;
+                            if (isDark) {
+                                fillStyle = alt ? '#0f172a' : '#1e293b';
+                            } else {
+                                fillStyle = alt ? '#ffffff' : '#f1f5f9';
+                            }
+                        }
+
+                        ctx.beginPath();
+                        ctx.arc(center, center, rOuter, a0, a1);
+                        ctx.arc(center, center, rInner, a1, a0, true);
+                        ctx.closePath();
+                        ctx.fillStyle = fillStyle;
+                        ctx.fill();
+
+                        // Sector Border
+                        ctx.strokeStyle = isDark ? '#334155' : '#cbd5e1';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+
+                        // Number Label (Upright orientation for legibility while orbiting)
+                        const tx = center + Math.cos(aMid) * rMid;
+                        const ty = center + Math.sin(aMid) * rMid;
+
+                        ctx.save();
+                        ctx.translate(tx, ty);
+
+                        const fontSize = Math.max(12, Math.min(22, (rOuter - rInner) * 0.42));
+                        ctx.font = `700 ${fontSize}px "JetBrains Mono", monospace`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        if (sector.found) {
+                            ctx.fillStyle = isDark ? 'rgba(52, 211, 153, 0.45)' : 'rgba(5, 150, 105, 0.45)';
+                        } else {
+                            ctx.fillStyle = isDark ? '#f8fafc' : '#0f172a';
+                        }
+
+                        ctx.fillText(String(sector.value), 0, 1);
+                        ctx.restore();
+                    }
+                }
+
+                // Draw Center Hub
+                const hubRadius = rings[0].innerRatio * maxRadius;
+                ctx.beginPath();
+                ctx.arc(center, center, hubRadius, 0, Math.PI * 2);
+                ctx.fillStyle = isDark ? '#020617' : '#e2e8f0';
+                ctx.fill();
+                ctx.strokeStyle = isDark ? '#334155' : '#94a3b8';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Center Target Indicator inside Hub
+                ctx.fillStyle = isDark ? '#818cf8' : '#4f46e5';
+                ctx.font = `800 ${Math.max(14, hubRadius * 0.55)}px "JetBrains Mono", monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(currentTarget > totalNumbers ? '✓' : String(currentTarget), center, center + 1);
+
+                // Draw Tap Feedback Ripples
+                for (let i = feedbackPulses.length - 1; i >= 0; i--) {
+                    const p = feedbackPulses[i];
+                    p.radius += 60 * dt;
+                    p.alpha -= 2.2 * dt;
+                    if (p.alpha <= 0) {
+                        feedbackPulses.splice(i, 1);
+                        continue;
+                    }
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = p.color;
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+
+                requestAnimationFrame(render);
+            }
+
+            // Event Listeners
+            canvas.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                handleCanvasInput(e.clientX, e.clientY);
+            });
+
+            startBtn.addEventListener('click', startGame);
+            playAgainBtn.addEventListener('click', startGame);
+            restartBtn.addEventListener('click', resetToReady);
+
+            // Number Count Selector (12, 22, 32, 42)
+            countBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const selected = parseInt(btn.dataset.count, 10);
+                    if (selected === totalNumbers) return;
+                    totalNumbers = selected;
+
+                    countBtns.forEach(b => {
+                        b.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+                        b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                    });
+                    btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                    btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+
+                    resetToReady();
+                });
+            });
+
+            // Speed Selector
+            speedBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    speedMultiplier = parseFloat(btn.dataset.speed);
+                    speedBtns.forEach(b => {
+                        b.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+                        b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                    });
+                    btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                    btn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+                });
+            });
+
+            // Theme Toggle
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+            });
+
+            // Sound Toggle
+            soundToggle.addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                soundOnIcon.classList.toggle('hidden', !soundEnabled);
+                soundOffIcon.classList.toggle('hidden', soundEnabled);
+                showToast(soundEnabled ? 'Sound effects enabled' : 'Sound muted');
+            });
+
+            // How to Play Modal
+            howToBtn.addEventListener('click', () => infoModal.classList.remove('hidden'));
+            closeInfoBtn.addEventListener('click', () => infoModal.classList.add('hidden'));
+            gotItBtn.addEventListener('click', () => infoModal.classList.add('hidden'));
+            infoModal.addEventListener('click', (e) => {
+                if (e.target === infoModal) infoModal.classList.add('hidden');
+            });
+
+            // Share Result via Clipboard
+            shareBtn.addEventListener('click', () => {
+                const adjusted = (elapsedSeconds + mistakes * PENALTY_SECONDS).toFixed(2);
+                const text = `Rotating Schulte Table (1-${totalNumbers}): ${adjusted}s (${mistakes} mistakes) — Can you beat my focus score?`;
+                const tempInput = document.createElement('textarea');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showToast('Result copied to clipboard!');
+            });
+
+            window.addEventListener('resize', resizeCanvas);
+
+            // Boot Sequence
+            resizeCanvas();
+            generateBoard();
+            requestAnimationFrame(render);
+        })();
+    </script>
+</body>
+</html>

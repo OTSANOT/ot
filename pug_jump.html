@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pug Hurdle Leap - Memory Game</title>
+  <style>
+    :root {
+      --bg-sky: #e0f2fe;
+      --bg-grass: #bbf7d0;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --accent: #f59e0b;
+      --accent-hover: #d97706;
+      --success: #22c55e;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(180deg, var(--bg-sky) 0%, var(--bg-grass) 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .game-container {
+      background: var(--card-bg);
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+      width: 100%;
+      max-width: 680px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    header {
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+    }
+
+    /* Pug Color Selector */
+    .color-picker-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 10px 16px;
+      margin-bottom: 14px;
+    }
+
+    .color-picker-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .color-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .color-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 99px;
+      border: 2px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: none;
+      transition: all 0.15s ease;
+    }
+
+    .color-btn:hover {
+      background: #f1f5f9;
+      transform: translateY(-1px);
+    }
+
+    .color-btn.active {
+      border-color: var(--accent);
+      background: #fffbeb;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+    }
+
+    .color-btn:disabled,
+    .timer-select:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .timer-select {
+      padding: 6px 12px;
+      border-radius: 99px;
+      border: 2px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .timer-select:focus {
+      border-color: var(--accent);
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0, 0, 0, 0.25);
+      display: inline-block;
+    }
+
+    /* HUD */
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 10px 20px;
+      margin-bottom: 14px;
+      font-weight: 800;
+    }
+
+    .hud-item span {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      font-weight: 700;
+    }
+
+    .timer-value.low-time {
+      color: var(--danger);
+      animation: pulseTime 0.8s infinite alternate;
+    }
+
+    @keyframes pulseTime {
+      from { transform: scale(1); }
+      to { transform: scale(1.12); }
+    }
+
+    .status-banner {
+      font-size: 1.05rem;
+      font-weight: 700;
+      min-height: 30px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #0369a1;
+    }
+
+    .status-banner.player-turn {
+      color: #15803d;
+    }
+
+    .status-banner.error {
+      color: var(--danger);
+    }
+
+    /* Agility Arena */
+    .arena {
+      position: relative;
+      background: radial-gradient(circle at center, #dcfce7 0%, #86efac 100%);
+      border: 4px solid #4ade80;
+      border-radius: 20px;
+      height: 360px;
+      width: 100%;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+
+    .arena::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(#22c55e 1.5px, transparent 1.5px);
+      background-size: 28px 28px;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    /* Hurdles */
+    .hurdle {
+      position: absolute;
+      width: 90px;
+      height: 74px;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease;
+      z-index: 2;
+    }
+
+    .hurdle:hover:not(.disabled) {
+      transform: translate(-50%, -54%) scale(1.06);
+    }
+
+    .hurdle:active:not(.disabled) {
+      transform: translate(-50%, -48%) scale(0.96);
+    }
+
+    .hurdle.disabled {
+      cursor: default;
+    }
+
+    .hurdle-bar {
+      width: 80px;
+      height: 14px;
+      border-radius: 6px;
+      background: repeating-linear-gradient(
+        45deg,
+        #ef4444,
+        #ef4444 10px,
+        #ffffff 10px,
+        #ffffff 20px
+      );
+      border: 2px solid #991b1b;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+      position: relative;
+      z-index: 2;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .hurdle-posts {
+      width: 72px;
+      height: 24px;
+      border-left: 5px solid #475569;
+      border-right: 5px solid #475569;
+      margin-top: -2px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .hurdle-posts::before,
+    .hurdle-posts::after {
+      content: "";
+      width: 14px;
+      height: 5px;
+      background: #334155;
+      border-radius: 2px;
+      margin-left: -9px;
+    }
+
+    .hurdle-posts::after {
+      margin-left: 0;
+      margin-right: -9px;
+    }
+
+    /* Active / Highlight States */
+    .hurdle.highlight .hurdle-bar {
+      box-shadow: 0 0 0 6px rgba(250, 204, 21, 0.75), 0 8px 16px rgba(0, 0, 0, 0.2);
+      border-color: #ca8a04;
+    }
+
+    .hurdle.correct .hurdle-bar {
+      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.75);
+      border-color: #15803d;
+    }
+
+    .hurdle.wrong .hurdle-bar {
+      box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.85);
+      border-color: #b91c1c;
+    }
+
+    /* Custom SVG Pug Avatar */
+    .pug {
+      position: absolute;
+      width: 68px;
+      height: 68px;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      pointer-events: none;
+      transition: left 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                  top 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .pug-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.28));
+    }
+
+    .pug.jumping .pug-inner {
+      animation: pugJump 0.44s ease-in-out;
+    }
+
+    @keyframes pugJump {
+      0%   { transform: translateY(0) scale(1); }
+      45%  { transform: translateY(-48px) scale(1.22) rotate(-8deg); }
+      75%  { transform: translateY(-18px) scale(1.1) rotate(5deg); }
+      100% { transform: translateY(0) scale(1) rotate(0deg); }
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .start-btn {
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 14px;
+      padding: 13px 30px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .start-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .start-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .start-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    @media (max-width: 480px) {
+      .game-container {
+        padding: 16px;
+      }
+      .arena {
+        height: 310px;
+      }
+      .hurdle {
+        width: 76px;
+      }
+      .hurdle-bar {
+        width: 68px;
+      }
+      .hurdle-posts {
+        width: 60px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="game-container">
+    <header>
+      <h1>Pug Hurdle Leap</h1>
+      <p class="subtitle">Pick your pug's coat color, watch the jumps, and repeat the order!</p>
+    </header>
+
+    <!-- Pug Coat Color Selector -->
+    <div class="color-picker-bar" role="group" aria-label="Choose Pug Color">
+      <span class="color-picker-label">Pug Color:</span>
+      <div class="color-options" id="colorOptions">
+        <button type="button" class="color-btn active" data-color="fawn">
+          <span class="swatch" style="background: #d9a773;"></span> Fawn
+        </button>
+        <button type="button" class="color-btn" data-color="black">
+          <span class="swatch" style="background: #27272a;"></span> Black
+        </button>
+        <button type="button" class="color-btn" data-color="apricot">
+          <span class="swatch" style="background: #ea8c49;"></span> Apricot
+        </button>
+        <button type="button" class="color-btn" data-color="silver">
+          <span class="swatch" style="background: #cbd5e1;"></span> Silver
+        </button>
+      </div>
+      <span class="color-picker-label" style="margin-left: 6px;">Timer:</span>
+      <select id="timerSelect" class="timer-select" aria-label="Select Session Timer">
+        <option value="1">1 Min</option>
+        <option value="2">2 Mins</option>
+        <option value="3" selected>3 Mins</option>
+        <option value="4">4 Mins</option>
+        <option value="5">5 Mins</option>
+        <option value="6">6 Mins</option>
+        <option value="7">7 Mins</option>
+        <option value="8">8 Mins</option>
+        <option value="9">9 Mins</option>
+        <option value="10">10 Mins</option>
+      </select>
+    </div>
+
+    <!-- Score & Progress HUD -->
+    <div class="hud">
+      <div class="hud-item">
+        <span>Level</span>
+        <div id="levelDisplay">1</div>
+      </div>
+      <div class="hud-item">
+        <span>Sequence</span>
+        <div id="progressDisplay">0 / 2</div>
+      </div>
+      <div class="hud-item">
+        <span>Time Left</span>
+        <div id="timerDisplay" class="timer-value">03:00</div>
+      </div>
+      <div class="hud-item">
+        <span>Best</span>
+        <div id="bestDisplay">1</div>
+      </div>
+    </div>
+
+    <div id="statusBanner" class="status-banner">Press Start to begin!</div>
+
+    <!-- Agility Arena -->
+    <div class="arena" id="arena">
+      <div class="pug" id="pug" style="left: 50%; top: 86%;">
+        <div class="pug-inner">
+          <!-- Custom SVG Pug with dynamic coat parts -->
+          <svg id="pugSvg" viewBox="0 0 100 100" width="66" height="66" aria-label="Pug character">
+            <!-- Curled Tail -->
+            <path id="pugTail" d="M 74 62 Q 92 52 84 40 Q 76 34 74 46" fill="none" stroke="#c08b57" stroke-width="7" stroke-linecap="round" />
+            <!-- Body -->
+            <ellipse id="pugBody" cx="50" cy="68" rx="25" ry="19" fill="#d9a773" stroke="#1e293b" stroke-width="3" />
+            <!-- Collar -->
+            <path d="M 32 55 Q 50 63 68 55" fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round" />
+            <circle cx="50" cy="60" r="3.5" fill="#facc15" />
+            <!-- Front Paws -->
+            <ellipse id="pugPawL" cx="38" cy="84" rx="7" ry="5" fill="#d9a773" stroke="#1e293b" stroke-width="2.5" />
+            <ellipse id="pugPawR" cx="62" cy="84" rx="7" ry="5" fill="#d9a773" stroke="#1e293b" stroke-width="2.5" />
+            <!-- Head -->
+            <rect id="pugHead" x="24" y="18" width="52" height="42" rx="18" fill="#d9a773" stroke="#1e293b" stroke-width="3" />
+            <!-- Forehead Wrinkles -->
+            <path id="pugWrinkle1" d="M 41 25 Q 50 22 59 25" fill="none" stroke="#9a6b3e" stroke-width="2.2" stroke-linecap="round" />
+            <path id="pugWrinkle2" d="M 44 29 Q 50 27 56 29" fill="none" stroke="#9a6b3e" stroke-width="2" stroke-linecap="round" />
+            <!-- Floppy Ears -->
+            <path id="pugEarL" d="M 27 22 Q 13 24 17 41 Q 22 45 28 34 Z" fill="#27272a" stroke="#1e293b" stroke-width="2.5" />
+            <path id="pugEarR" d="M 73 22 Q 87 24 83 41 Q 78 45 72 34 Z" fill="#27272a" stroke="#1e293b" stroke-width="2.5" />
+            <!-- Dark Muzzle Mask -->
+            <ellipse id="pugMuzzle" cx="50" cy="46" rx="16" ry="12" fill="#27272a" />
+            <!-- Eyes -->
+            <circle cx="35" cy="37" r="5.5" fill="#111827" />
+            <circle cx="33.5" cy="35.2" r="2" fill="#ffffff" />
+            <circle cx="65" cy="37" r="5.5" fill="#111827" />
+            <circle cx="63.5" cy="35.2" r="2" fill="#ffffff" />
+            <!-- Nose -->
+            <ellipse cx="50" cy="42" rx="5" ry="3.2" fill="#09090b" />
+            <!-- Cute Pink Tongue -->
+            <path d="M 47 51 Q 50 58 53 51 Z" fill="#fb7185" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button type="button" class="start-btn" id="startBtn">Start Game</button>
+    </div>
+  </div>
+
+  <script>
+    // Coat color themes for the SVG Pug
+    const PUG_COLORS = {
+      fawn: {
+        coat: "#d9a773",
+        tail: "#c08b57",
+        wrinkle: "#9a6b3e",
+        ear: "#27272a",
+        muzzle: "#27272a"
+      },
+      black: {
+        coat: "#2e2e33",
+        tail: "#1f1f23",
+        wrinkle: "#111113",
+        ear: "#18181b",
+        muzzle: "#18181b"
+      },
+      apricot: {
+        coat: "#ea8c49",
+        tail: "#cf712e",
+        wrinkle: "#a85319",
+        ear: "#292524",
+        muzzle: "#292524"
+      },
+      silver: {
+        coat: "#cbd5e1",
+        tail: "#94a3b8",
+        wrinkle: "#64748b",
+        ear: "#334155",
+        muzzle: "#334155"
+      }
+    };
+
+    // Hurdle coordinates (percentages inside the arena)
+    const HURDLE_POSITIONS = [
+      { id: 0, x: 22, y: 24 },
+      { id: 1, x: 50, y: 20 },
+      { id: 2, x: 78, y: 24 },
+      { id: 3, x: 20, y: 58 },
+      { id: 4, x: 50, y: 52 },
+      { id: 5, x: 80, y: 58 }
+    ];
+
+    const HOME_POS = { x: 50, y: 86 };
+
+    const arena = document.getElementById("arena");
+    const pug = document.getElementById("pug");
+    const statusBanner = document.getElementById("statusBanner");
+    const levelDisplay = document.getElementById("levelDisplay");
+    const progressDisplay = document.getElementById("progressDisplay");
+    const timerDisplay = document.getElementById("timerDisplay");
+    const timerSelect = document.getElementById("timerSelect");
+    const bestDisplay = document.getElementById("bestDisplay");
+    const startBtn = document.getElementById("startBtn");
+    const colorButtons = document.querySelectorAll(".color-btn");
+
+    let sequence = [];
+    let playerStep = 0;
+    let level = 1;
+    let bestLevel = Number(localStorage.getItem("pugHurdleBest")) || 1;
+    let isPlayerTurn = false;
+    let isAnimating = false;
+    let isGameOver = false;
+    let runSessionId = 0; // Cancels async loops cleanly when time expires or game resets
+    let timerInterval = null;
+    let secondsRemaining = Number(timerSelect.value) * 60;
+    const hurdleElements = [];
+
+    bestDisplay.textContent = bestLevel;
+
+    // Format seconds into MM:SS
+    function formatTime(totalSeconds) {
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+
+    function updateTimerDisplay() {
+      timerDisplay.textContent = formatTime(Math.max(0, secondsRemaining));
+      timerDisplay.classList.toggle("low-time", secondsRemaining > 0 && secondsRemaining <= 15);
+    }
+
+    // Update preview timer when user changes the 1-10 min dropdown
+    timerSelect.addEventListener("change", () => {
+      if (!timerInterval) {
+        secondsRemaining = Number(timerSelect.value) * 60;
+        updateTimerDisplay();
+      }
+    });
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      timerSelect.disabled = false;
+    }
+
+    function startTimer() {
+      stopTimer();
+      secondsRemaining = Number(timerSelect.value) * 60;
+      timerSelect.disabled = true;
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        secondsRemaining--;
+        updateTimerDisplay();
+
+        if (secondsRemaining <= 0) {
+          handleTimeUp();
+        }
+      }, 1000);
+    }
+
+    function handleTimeUp() {
+      stopTimer();
+      isGameOver = true;
+      isPlayerTurn = false;
+      isAnimating = false;
+      runSessionId++;
+      setHurdlesEnabled(false);
+      playTone(196.00, 0.45, "triangle");
+      statusBanner.className = "status-banner error";
+      statusBanner.textContent = `Time's up! You reached Level ${level}.`;
+      startBtn.disabled = false;
+      startBtn.textContent = "Play Again";
+    }
+
+    // Generate a fresh, non-repeating consecutive random sequence for every round
+    function generateRandomRoute(length) {
+      const route = [];
+      let prevId = -1;
+      for (let i = 0; i < length; i++) {
+        let nextId;
+        do {
+          nextId = Math.floor(Math.random() * HURDLE_POSITIONS.length);
+        } while (nextId === prevId && HURDLE_POSITIONS.length > 1);
+        route.push(nextId);
+        prevId = nextId;
+      }
+      return route;
+    }
+
+    // Apply selected coat colors to SVG elements
+    function setPugColor(colorKey) {
+      const theme = PUG_COLORS[colorKey] || PUG_COLORS.fawn;
+      document.getElementById("pugBody").setAttribute("fill", theme.coat);
+      document.getElementById("pugHead").setAttribute("fill", theme.coat);
+      document.getElementById("pugPawL").setAttribute("fill", theme.coat);
+      document.getElementById("pugPawR").setAttribute("fill", theme.coat);
+      document.getElementById("pugTail").setAttribute("stroke", theme.tail);
+      document.getElementById("pugWrinkle1").setAttribute("stroke", theme.wrinkle);
+      document.getElementById("pugWrinkle2").setAttribute("stroke", theme.wrinkle);
+      document.getElementById("pugEarL").setAttribute("fill", theme.ear);
+      document.getElementById("pugEarR").setAttribute("fill", theme.ear);
+      document.getElementById("pugMuzzle").setAttribute("fill", theme.muzzle);
+
+      colorButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.color === colorKey);
+      });
+      localStorage.setItem("pugHurdleColor", colorKey);
+    }
+
+    // Bind color selection buttons
+    colorButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setPugColor(btn.dataset.color);
+      });
+    });
+
+    // Restore saved pug color if available
+    const savedColor = localStorage.getItem("pugHurdleColor");
+    if (savedColor && PUG_COLORS[savedColor]) {
+      setPugColor(savedColor);
+    }
+
+    // Web Audio sound effects (no external files)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTone(freq, duration = 0.16, type = "sine") {
+      try {
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        // Ignore audio errors if blocked by browser policy
+      }
+    }
+
+    const NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
+
+    // Render hurdles into the arena
+    function createHurdles() {
+      HURDLE_POSITIONS.forEach((pos) => {
+        const el = document.createElement("div");
+        el.className = "hurdle disabled";
+        el.style.left = `${pos.x}%`;
+        el.style.top = `${pos.y}%`;
+        el.dataset.id = pos.id;
+        el.innerHTML = `
+          <div class="hurdle-bar"></div>
+          <div class="hurdle-posts"></div>
+        `;
+        el.addEventListener("click", () => handleHurdleClick(pos.id));
+        arena.appendChild(el);
+        hurdleElements.push(el);
+      });
+    }
+
+    function setHurdlesEnabled(enabled) {
+      hurdleElements.forEach((el) => {
+        el.classList.toggle("disabled", !enabled);
+      });
+    }
+
+    function movePugTo(x, y, shouldJump = true) {
+      return new Promise((resolve) => {
+        pug.style.left = `${x}%`;
+        pug.style.top = `${y}%`;
+
+        if (shouldJump) {
+          pug.classList.remove("jumping");
+          void pug.offsetWidth;
+          pug.classList.add("jumping");
+        }
+
+        setTimeout(() => {
+          pug.classList.remove("jumping");
+          resolve();
+        }, 450);
+      });
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function jumpHurdle(id, stateClass = "highlight") {
+      const target = HURDLE_POSITIONS[id];
+      const el = hurdleElements[id];
+
+      playTone(NOTES[id], 0.2, "triangle");
+      el.classList.add(stateClass);
+      await movePugTo(target.x, target.y - 4, true);
+      await sleep(160);
+      el.classList.remove(stateClass);
+    }
+
+    function updateHUD() {
+      levelDisplay.textContent = level;
+      progressDisplay.textContent = `${playerStep} / ${sequence.length}`;
+      if (level > bestLevel) {
+        bestLevel = level;
+        bestDisplay.textContent = bestLevel;
+        localStorage.setItem("pugHurdleBest", bestLevel);
+      }
+    }
+
+    async function startLevel() {
+      if (isGameOver) return;
+      const currentSession = runSessionId;
+
+      isPlayerTurn = false;
+      isAnimating = true;
+      setHurdlesEnabled(false);
+      playerStep = 0;
+
+      // Generate a brand-new randomized route each level (starts at 2 jumps, grows by 1 per level)
+      const routeLength = level + 1;
+      sequence = generateRandomRoute(routeLength);
+
+      updateHUD();
+      statusBanner.className = "status-banner";
+      statusBanner.textContent = "Watch the pug's new route...";
+
+      await movePugTo(HOME_POS.x, HOME_POS.y, false);
+      if (currentSession !== runSessionId || isGameOver) return;
+      await sleep(450);
+      if (currentSession !== runSessionId || isGameOver) return;
+
+      for (const hurdleId of sequence) {
+        if (currentSession !== runSessionId || isGameOver) return;
+        await jumpHurdle(hurdleId, "highlight");
+        await sleep(200);
+      }
+
+      if (currentSession !== runSessionId || isGameOver) return;
+      await movePugTo(HOME_POS.x, HOME_POS.y, false);
+      if (currentSession !== runSessionId || isGameOver) return;
+
+      isAnimating = false;
+      isPlayerTurn = true;
+      setHurdlesEnabled(true);
+      statusBanner.className = "status-banner player-turn";
+      statusBanner.textContent = "Your turn! Tap the hurdles in order.";
+    }
+
+    async function handleHurdleClick(id) {
+      if (!isPlayerTurn || isAnimating || isGameOver) return;
+      const currentSession = runSessionId;
+
+      isAnimating = true;
+      const expectedId = sequence[playerStep];
+
+      if (id === expectedId) {
+        playerStep++;
+        updateHUD();
+        await jumpHurdle(id, "correct");
+        if (currentSession !== runSessionId || isGameOver) return;
+
+        if (playerStep === sequence.length) {
+          isPlayerTurn = false;
+          setHurdlesEnabled(false);
+          playTone(659.25, 0.25, "sine");
+          statusBanner.className = "status-banner player-turn";
+          statusBanner.textContent = `Clean run! Advancing to Level ${level + 1}...`;
+          level++;
+          await sleep(900);
+          if (currentSession !== runSessionId || isGameOver) return;
+          startLevel();
+          return;
+        }
+      } else {
+        stopTimer();
+        isGameOver = true;
+        isPlayerTurn = false;
+        setHurdlesEnabled(false);
+        const el = hurdleElements[id];
+        el.classList.add("wrong");
+        playTone(150, 0.4, "sawtooth");
+        await movePugTo(HURDLE_POSITIONS[id].x, HURDLE_POSITIONS[id].y + 4, false);
+
+        statusBanner.className = "status-banner error";
+        statusBanner.textContent = `Wrong hurdle! You reached Level ${level}.`;
+        startBtn.disabled = false;
+        startBtn.textContent = "Play Again";
+        setTimeout(() => el.classList.remove("wrong"), 700);
+      }
+
+      isAnimating = false;
+    }
+
+    startBtn.addEventListener("click", () => {
+      level = 1;
+      sequence = [];
+      isGameOver = false;
+      runSessionId++;
+      startBtn.disabled = true;
+      startBtn.textContent = "Running...";
+      startTimer();
+      startLevel();
+    });
+
+    updateTimerDisplay();
+    createHurdles();
+  </script>
+</body>
+</html>
