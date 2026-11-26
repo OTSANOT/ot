@@ -1,265 +1,653 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Focus Sudoku</title>
-<style>
-  :root {
-    --bg: #f4f6f8; --card: #fff; --text: #111; --bdr: #cbd5e1; --gbdr: #111;
-    --fix: #e2e8f0; --usr: #2563eb; --sel: #bfdbfe; --hi: #eff6ff;
-    --bad-bg: #fecaca; --bad-tx: #dc2626; --btn: #fff; --note: #64748b;
-  }
-  body.dark {
-    --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --bdr: #475569; --gbdr: #94a3b8;
-    --fix: #0f172a; --usr: #60a5fa; --sel: #1d4ed8; --hi: #1e3a8a33;
-    --bad-bg: #7f1d1d; --bad-tx: #fca5a5; --btn: #334155; --note: #94a3b8;
-  }
-  * { box-sizing: border-box; }
-  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; padding: 16px; margin: 0; }
-  .box { background: var(--card); padding: 18px; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,.08); width: 100%; max-width: 400px; }
-  .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 10px; }
-  h3 { margin: 0; font-size: 1.2rem; }
-  select, button { padding: 8px 10px; border: 1px solid var(--bdr); border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--btn); color: var(--text); }
-  .blue { background: #2563eb; color: #fff; border: none; margin-left: auto; }
-  .info { font-size: 13px; font-weight: 600; color: var(--note); }
-  .grid { display: grid; border: 3px solid var(--gbdr); margin-bottom: 14px; user-select: none; border-radius: 4px; overflow: hidden; }
-  .cell { aspect-ratio: 1; border: 1px solid var(--bdr); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; cursor: pointer; }
-  .s9 .cell { font-size: 16px; }
-  .fixed { background: var(--fix); }
-  .user { color: var(--usr); }
-  .hi { background: var(--hi); }
-  .sel { background: var(--sel) !important; color: #fff !important; }
-  .wrong { background: var(--bad-bg) !important; color: var(--bad-tx) !important; }
-  .s4 .cell:nth-child(2n) { border-right: 3px solid var(--gbdr); }
-  .s4 .cell:nth-child(4n) { border-right: none; }
-  .s4 .cell:nth-child(n+5):nth-child(-n+8) { border-bottom: 3px solid var(--gbdr); }
-  .s6 .cell:nth-child(3n) { border-right: 3px solid var(--gbdr); }
-  .s6 .cell:nth-child(6n) { border-right: none; }
-  .s6 .cell:nth-child(n+7):nth-child(-n+12), .s6 .cell:nth-child(n+19):nth-child(-n+24) { border-bottom: 3px solid var(--gbdr); }
-  .s9 .cell:nth-child(3n) { border-right: 3px solid var(--gbdr); }
-  .s9 .cell:nth-child(9n) { border-right: none; }
-  .s9 .cell:nth-child(n+19):nth-child(-n+27), .s9 .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 3px solid var(--gbdr); }
-  .notes { display: grid; width: 100%; height: 100%; font-size: 9px; place-items: center; color: var(--note); line-height: 1; }
-  .pad { display: grid; gap: 5px; margin-bottom: 8px; }
-  .pad button { padding: 10px 0; font-size: 16px; }
-  .tools { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-  .note-on { background: #dbeafe !important; border-color: #2563eb !important; color: #1d4ed8 !important; }
-  #msg { text-align: center; font-weight: 700; color: #16a34a; margin-top: 10px; min-height: 20px; }
-</style>
-</head>
-<body>
-<div class="box">
-  <div class="row">
-    <h3>Focus Sudoku</h3>
-    <button type="button" id="thm">Theme</button>
-  </div>
-  <div class="row">
-    <select id="sz"><option value="4">4x4</option><option value="6" selected>6x6</option><option value="9">9x9</option></select>
-    <select id="df"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select>
-    <button type="button" class="blue" id="newBtn">New Game</button>
-  </div>
-  <div class="row info">
-    <span id="tm">00:00</span>
-    <span id="bst">Best: --:--</span>
-    <span id="ms">Mistakes: 0</span>
-  </div>
-  <div id="bd" class="grid"></div>
-  <div id="pd" class="pad"></div>
-  <div class="tools">
-    <button type="button" id="nb">Notes: OFF</button>
-    <button type="button" id="hb">Hint (3)</button>
-    <button type="button" id="eb">Erase</button>
-  </div>
-  <div id="msg"></div>
-</div>
-<script>
-const $ = id => document.getElementById(id);
-const at = (a, i) => a.at(i);
-const putAt = (a, i, v) => a.splice(i, 1, v);
-let N = 6, sol = new Array(), cur = new Array(), fix = new Array(), nts = new Array();
-let sel = null, noteOn = false, err = 0, hints = 3, sec = 0, tmr = null, done = false;
+class="seg-btn" data-size="6">6×6</button>
+        <button class="seg-btn active" data-size="9">9×9</button>
+      </div>
 
-const boxR = n => n === 9 ? 3 : 2;
-const boxC = n => n === 4 ? 2 : 3;
-const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+      <!-- Difficulty Selector -->
 
-function shuffle(a) {
-  const arr = a.slice();
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const t = at(arr, i);
-    putAt(arr, i, at(arr, j));
-    putAt(arr, j, t);
-  }
-  return arr;
-}
 
-function safe(g, n, r, c, v) {
-  const br = boxR(n), bc = boxC(n);
-  for (let i = 0; i < n; i++) {
-    if (at(g, r * n + i) === v || at(g, i * n + c) === v) return false;
-  }
-  const sr = Math.floor(r / br) * br, sc = Math.floor(c / bc) * bc;
-  for (let r0 = 0; r0 < br; r0++) {
-    for (let c0 = 0; c0 < bc; c0++) {
-      if (at(g, (sr + r0) * n + sc + c0) === v) return false;
-    }
-  }
-  return true;
-}
+      <div class="segmented-group" id="diffSelector">
+        <button class="seg-btn active" data-diff="easy">Easy</button>
+        <button class="seg-btn" data-diff="medium">Medium</button>
+        <button class="seg-btn" data-diff="hard">Hard</button>
+      </div>
+    </div>
 
-function countSol(g, n) {
-  let cnt = 0;
-  function bt() {
-    if (cnt > 1) return;
-    let bestIdx = -1, bestCands = null;
-    for (let i = 0; i < n * n; i++) {
-      if (at(g, i) === 0) {
-        const r = Math.floor(i / n), c = i % n, cs = new Array();
-        for (let v = 1; v <= n; v++) if (safe(g, n, r, c, v)) cs.push(v);
-        if (!cs.length) return;
-        if (!bestCands || cs.length < bestCands.length) {
-          bestIdx = i; bestCands = cs;
-          if (cs.length === 1) break;
+    <div class="board-wrapper">
+      <div class="sudoku-board" id="sudokuBoard"></div>
+
+      <!-- Pause / Victory Overlay -->
+      <div class="board-overlay" id="boardOverlay">
+        <div class="overlay-title" id="overlayTitle">Game Paused</div>
+        <div class="overlay-sub" id="overlaySub">Take a breather. Your progress is safe.</div>
+        <button class="primary-btn" id="overlayActionBtn">Resume</button>
+      </div>
+    </div>
+
+    <div class="tools-bar">
+      <button class="tool-btn" id="undoBtn" title="Undo (Ctrl+Z)">
+
+
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7v6h6"></path>
+          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+        </svg>
+        <span>Undo</span>
+      </button>
+
+      <button class="tool-btn" id="eraseBtn" title="Erase (Backspace)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path>
+          <path d="M22 21H7"></path>
+          <path d="m5 11 9 9"></path>
+        </svg>
+        <span>Erase</span>
+      </button>
+
+      <button class="tool-btn" id="notesBtn" title="Toggle Notes (N)">
+        <span class="badge" id="notesBadge">OFF</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"></path>
+
+
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+        </svg>
+        <span>Notes</span>
+      </button>
+
+      <button class="tool-btn" id="newGameBtn" title="Start New Puzzle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+          <path d="M21 3v5h-5"></path>
+        </svg>
+        <span>New</span>
+      </button>
+    </div>
+
+    <div class="numpad" id="numpad"></div>
+    <div class="status-banner" id="statusBanner">Tip: Press 'N' to toggle pencil notes, or use arrow keys to move.</div>
+  </div>
+
+  <script>
+    (() => {
+
+
+      // Grid configuration for 4x4, 6x6, and 9x9
+      const CONFIG = {
+        4: { size: 4, boxRows: 2, boxCols: 2, noteCols: 2, remove: { easy: 6, medium: 8, hard: 10 } },
+        6: { size: 6, boxRows: 2, boxCols: 3, noteCols: 3, remove: { easy: 14, medium: 19, hard: 23 } },
+        9: { size: 9, boxRows: 3, boxCols: 3, noteCols: 3, remove: { easy: 32, medium: 43, hard: 52 } }
+      };
+
+      // Application State
+      let gridSize = 9;
+      let difficulty = "easy";
+      let solution = [];
+      let puzzle = [];
+      let board = [];
+      let notes = []; // 2D array of Sets
+      let history = [];
+      let selected = { r: 0, c: 0 };
+      let notesMode = false;
+      let isPaused = false;
+      let isWon = false;
+      let secondsElapsed = 0;
+
+
+      let timerInterval = null;
+
+      // DOM Elements
+      const boardEl = document.getElementById("sudokuBoard");
+      const numpadEl = document.getElementById("numpad");
+      const timerDisplay = document.getElementById("timerDisplay");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const pauseIcon = document.getElementById("pauseIcon");
+      const boardOverlay = document.getElementById("boardOverlay");
+      const overlayTitle = document.getElementById("overlayTitle");
+      const overlaySub = document.getElementById("overlaySub");
+      const overlayActionBtn = document.getElementById("overlayActionBtn");
+      const notesBtn = document.getElementById("notesBtn");
+      const notesBadge = document.getElementById("notesBadge");
+      const undoBtn = document.getElementById("undoBtn");
+      const eraseBtn = document.getElementById("eraseBtn");
+      const newGameBtn = document.getElementById("newGameBtn");
+      const statusBanner = document.getElementById("statusBanner");
+
+      // --- Puzzle Generation ---
+
+
+      function shuffle(arr) {
+        const copy = [...arr];
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function isValidPlacement(grid, r, c, num, size, boxRows, boxCols) {
+        for (let i = 0; i < size; i++) {
+          if (grid[r][i] === num || grid[i][c] === num) return false;
+        }
+        const startR = Math.floor(r / boxRows) * boxRows;
+        const startC = Math.floor(c / boxCols) * boxCols;
+        for (let i = 0; i < boxRows; i++) {
+          for (let j = 0; j < boxCols; j++) {
+            if (grid[startR + i][startC + j] === num) return false;
+          }
+        }
+
+
+        return true;
+      }
+
+      function generateSolvedBoard(size, boxRows, boxCols) {
+        const grid = Array.from({ length: size }, () => Array(size).fill(0));
+        const nums = Array.from({ length: size }, (_, i) => i + 1);
+
+        function fill(cellIdx) {
+          if (cellIdx === size * size) return true;
+          const r = Math.floor(cellIdx / size);
+          const c = cellIdx % size;
+
+          for (const num of shuffle(nums)) {
+            if (isValidPlacement(grid, r, c, num, size, boxRows, boxCols)) {
+              grid[r][c] = num;
+              if (fill(cellIdx + 1)) return true;
+              grid[r][c] = 0;
+            }
+          }
+          return false;
+
+
+        }
+
+        fill(0);
+        return grid;
+      }
+
+      function countSolutions(grid, size, boxRows, boxCols, limit = 2) {
+        let count = 0;
+
+        function solve() {
+          if (count >= limit) return;
+          let emptyR = -1;
+          let emptyC = -1;
+
+          for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+              if (grid[r][c] === 0) {
+                emptyR = r;
+                emptyC = c;
+                break;
+
+
+              }
+            }
+            if (emptyR !== -1) break;
+          }
+
+          if (emptyR === -1) {
+            count++;
+            return;
+          }
+
+          for (let num = 1; num <= size; num++) {
+            if (isValidPlacement(grid, emptyR, emptyC, num, size, boxRows, boxCols)) {
+              grid[emptyR][emptyC] = num;
+              solve();
+              grid[emptyR][emptyC] = 0;
+              if (count >= limit) return;
+            }
+          }
+        }
+
+
+
+        solve();
+        return count;
+      }
+
+      function createPuzzle(size, diff) {
+        const { boxRows, boxCols, remove } = CONFIG[size];
+        const solved = generateSolvedBoard(size, boxRows, boxCols);
+        const puz = solved.map(row => [...row]);
+
+        const coords = [];
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            coords.push([r, c]);
+          }
+        }
+
+        let removed = 0;
+        const target = remove[diff];
+
+        for (const [r, c] of shuffle(coords)) {
+
+
+          if (removed >= target) break;
+          const backup = puz[r][c];
+          puz[r][c] = 0;
+
+          // Ensure unique solution
+          const testGrid = puz.map(row => [...row]);
+          if (countSolutions(testGrid, size, boxRows, boxCols, 2) !== 1) {
+            puz[r][c] = backup;
+          } else {
+            removed++;
+          }
+        }
+
+        return { solved, puz };
+      }
+
+      // --- Timer ---
+      function formatTime(sec) {
+        const m = String(Math.floor(sec / 60)).padStart(2, "0");
+        const s = String(sec % 60).padStart(2, "0");
+
+
+        return `${m}:${s}`;
+      }
+
+      function startTimer() {
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          if (!isPaused && !isWon) {
+            secondsElapsed++;
+            timerDisplay.textContent = formatTime(secondsElapsed);
+          }
+        }, 1000);
+      }
+
+      function updatePauseIcon() {
+        if (isPaused) {
+          pauseIcon.innerHTML = `<polygon points="6 4 20 12 6 20 6 4"></polygon>`;
+        } else {
+          pauseIcon.innerHTML = `<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>`;
         }
       }
-    }
-    if (bestIdx === -1) { cnt++; return; }
-    for (const v of bestCands) {
-      putAt(g, bestIdx, v);
-      bt();
-      putAt(g, bestIdx, 0);
-    }
-  }
-  bt();
-  return cnt;
-}
 
-function makePuzzle(n, d) {
-  const g = new Array(n * n).fill(0);
-  const nums = Array.from({ length: n }, (_, i) => i + 1);
-  function fill(i) {
-    if (i === n * n) return true;
-    const r = Math.floor(i / n), c = i % n;
-    for (const v of shuffle(nums)) {
-      if (safe(g, n, r, c, v)) {
-        putAt(g, i, v);
-        if (fill(i + 1)) return true;
-        putAt(g, i, 0);
+
+
+      function togglePause() {
+        if (isWon) return;
+        isPaused = !isPaused;
+        updatePauseIcon();
+
+        if (isPaused) {
+          overlayTitle.textContent = "Game Paused";
+          overlaySub.textContent = "Take a breather. Your progress is safe.";
+          overlayActionBtn.textContent = "Resume";
+          boardOverlay.classList.add("visible");
+        } else {
+          boardOverlay.classList.remove("visible");
+        }
       }
-    }
-    return false;
-  }
-  fill(0);
-  const solved = g.slice(), puz = g.slice();
-  const blanks = n === 4 ? (d === 'easy' ? 6 : d === 'medium' ? 8 : 10)
-               : n === 6 ? (d === 'easy' ? 14 : d === 'medium' ? 19 : 23)
-               : (d === 'easy' ? 32 : d === 'medium' ? 40 : 48);
-  let rem = 0;
-  for (const idx of shuffle(Array.from({ length: n * n }, (_, i) => i))) {
-    if (rem >= blanks) break;
-    const bak = at(puz, idx);
-    putAt(puz, idx, 0);
-    if (countSol(puz.slice(), n) === 1) rem++;
-    else putAt(puz, idx, bak);
-  }
-  return { solved, puz };
-}
 
-function updateBest(save) {
-  let b = {};
-  try { b = JSON.parse(localStorage.getItem('fs_best') || '{}'); } catch (e) {}
-  const k = N + '_' + $('df').value;
-  const prev = Reflect.get(b, k);
-  if (save && (prev === undefined || sec < prev)) {
-    Reflect.set(b, k, sec);
-    try { localStorage.setItem('fs_best', JSON.stringify(b)); } catch (e) {}
-  }
-  const curBest = Reflect.get(b, k);
-  $('bst').textContent = curBest !== undefined ? 'Best: ' + fmt(curBest) : 'Best: --:--';
-}
+      // --- Game Initialization ---
+      function initGame() {
+        const { solved, puz } = createPuzzle(gridSize, difficulty);
+        solution = solved;
 
-function start() {
-  N = Number($('sz').value);
-  done = false; err = 0; hints = 3; sel = null;
-  $('msg').textContent = '';
-  $('ms').textContent = 'Mistakes: 0';
-  $('hb').textContent = 'Hint (3)';
-  const res = makePuzzle(N, $('df').value);
-  sol = res.solved;
-  cur = res.puz;
-  fix = cur.map(v => v !== 0);
-  nts = Array.from({ length: N * N }, () => new Set());
-  updateBest(false);
-  drawPad();
-  drawBoard();
-  clearInterval(tmr);
-  sec = 0;
-  $('tm').textContent = '00:00';
-  tmr = setInterval(() => { if (!done) $('tm').textContent = fmt(++sec); }, 1000);
-}
 
-function drawPad() {
-  const pd = $('pd');
-  pd.innerHTML = '';
-  pd.style.gridTemplateColumns = 'repeat(' + N + ',1fr)';
-  for (let v = 1; v <= N; v++) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = v;
-    b.onclick = () => put(v);
-    pd.appendChild(b);
-  }
-}
+        puzzle = puz;
+        board = puz.map(row => [...row]);
+        notes = Array.from({ length: gridSize }, () =>
+          Array.from({ length: gridSize }, () => new Set())
+        );
+        history = [];
+        selected = { r: 0, c: 0 };
+        isPaused = false;
+        isWon = false;
+        secondsElapsed = 0;
 
-function drawBoard() {
-  const bd = $('bd'), bc = boxC(N);
-  bd.innerHTML = '';
-  bd.className = 'grid s' + N;
-  bd.style.gridTemplateColumns = 'repeat(' + N + ',1fr)';
-  const sr = sel !== null ? Math.floor(sel / N) : -1;
-  const sc = sel !== null ? sel % N : -1;
-  const sv = sel !== null ? at(cur, sel) : 0;
+        timerDisplay.textContent = "00:00";
+        updatePauseIcon();
+        boardOverlay.classList.remove("visible");
+        statusBanner.textContent = `${gridSize}×${gridSize} • ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Mode`;
 
-  for (let i = 0; i < N * N; i++) {
-    const c = document.createElement('div');
-    c.className = 'cell';
-    const r = Math.floor(i / N), col = i % N, val = at(cur, i);
-    if (at(fix, i)) c.classList.add('fixed');
-    else if (val) c.classList.add('user');
-    if (i === sel) c.classList.add('sel');
-    else if ((sv && val === sv) || r === sr || col === sc) c.classList.add('hi');
-    if (val && val !== at(sol, i)) c.classList.add('wrong');
+        buildBoardDOM();
+        buildNumpadDOM();
+        renderBoard();
+        startTimer();
 
-    if (val) {
-      c.textContent = val;
-    } else if (at(nts, i).size) {
-      const ng = document.createElement('div');
-      ng.className = 'notes';
-      ng.style.gridTemplateColumns = 'repeat(' + bc + ',1fr)';
-      for (let k = 1; k <= N; k++) {
-        const s = document.createElement('span');
-        s.textContent = at(nts, i).has(k) ? k : '';
-        ng.appendChild(s);
+
       }
-      c.appendChild(ng);
-    }
-    c.onclick = () => { sel = i; drawBoard(); };
-    bd.appendChild(c);
-  }
-}
 
-function put(v) {
-  if (done || sel === null || at(fix, sel)) return;
-  if (noteOn) {
-    if (!at(cur, sel)) {
-      const s = at(nts, sel);
-      s.has(v) ? s.delete(v) : s.add(v);
-    }
-  } else {
-    putAt(cur, sel, v);
-    at(nts, sel).clear();
-    if (v !== at(sol, sel)) {
-      $('ms').textContent = 'Mistakes: ' + (++err);
-    } else {
+      // --- Rendering ---
+      function buildBoardDOM() {
+        const { boxRows, boxCols } = CONFIG[gridSize];
+        boardEl.innerHTML = "";
+        boardEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+        boardEl.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+
+        const fontSizeMap = { 4: "clamp(1.6rem, 6vw, 2.3rem)", 6: "clamp(1.3rem, 5vw, 1.9rem)", 9: "clamp(1.1rem, 4.2vw, 1.6rem)" };
+        boardEl.style.fontSize = fontSizeMap[gridSize];
+
+        for (let r = 0; r < gridSize; r++) {
+          for (let c = 0; c < gridSize; c++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.r = r;
+            cell.dataset.c = c;
+
+            // Thick box borders
+
+
+            if ((c + 1) % boxCols === 0 && c !== gridSize - 1) {
+              cell.style.borderRight = "2.5px solid var(--border-thick)";
+            }
+            if ((r + 1) % boxRows === 0 && r !== gridSize - 1) {
+              cell.style.borderBottom = "2.5px solid var(--border-thick)";
+            }
+
+            cell.addEventListener("click", () => {
+              if (isPaused || isWon) return;
+              selected = { r, c };
+              renderBoard();
+            });
+
+            boardEl.appendChild(cell);
+          }
+        }
+      }
+
+      function buildNumpadDOM() {
+        numpadEl.innerHTML = "";
+
+
+        numpadEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+
+        for (let num = 1; num <= gridSize; num++) {
+          const btn = document.createElement("button");
+          btn.className = "num-btn";
+          btn.textContent = num;
+          btn.dataset.num = num;
+          btn.addEventListener("click", () => handleNumberInput(num));
+          numpadEl.appendChild(btn);
+        }
+      }
+
+      function hasConflict(r, c, val) {
+        if (val === 0) return false;
+        const { boxRows, boxCols } = CONFIG[gridSize];
+        for (let i = 0; i < gridSize; i++) {
+          if (i !== c && board[r][i] === val) return true;
+          if (i !== r && board[i][c] === val) return true;
+        }
+        const startR = Math.floor(r / boxRows) * boxRows;
+
+
+        const startC = Math.floor(c / boxCols) * boxCols;
+        for (let i = 0; i < boxRows; i++) {
+          for (let j = 0; j < boxCols; j++) {
+            const nr = startR + i;
+            const nc = startC + j;
+            if ((nr !== r || nc !== c) && board[nr][nc] === val) return true;
+          }
+        }
+        return false;
+      }
+
+      function renderBoard() {
+        const { boxRows, boxCols, noteCols } = CONFIG[gridSize];
+        const selVal = board[selected.r][selected.c];
+        const selBoxR = Math.floor(selected.r / boxRows);
+        const selBoxC = Math.floor(selected.c / boxCols);
+
+        const counts = Array(gridSize + 1).fill(0);
+        const cells = boardEl.children;
+
+
+
+        for (let r = 0; r < gridSize; r++) {
+          for (let c = 0; c < gridSize; c++) {
+            const idx = r * gridSize + c;
+            const cell = cells[idx];
+            const val = board[r][c];
+            if (val > 0) counts[val]++;
+
+            cell.className = "cell";
+            if (puzzle[r][c] !== 0) {
+              cell.classList.add("given");
+            } else if (val !== 0) {
+              cell.classList.add("user-val");
+            }
+
+            const sameBox = Math.floor(r / boxRows) === selBoxR && Math.floor(c / boxCols) === selBoxC;
+            if (r === selected.r || c === selected.c || sameBox) {
+              cell.classList.add("peer");
+            }
+
+            if (selVal !== 0 && val === selVal) {
+
+
+              cell.classList.add("same-number");
+            }
+
+            if (r === selected.r && c === selected.c) {
+              cell.classList.add("selected");
+            }
+
+            if (val !== 0 && hasConflict(r, c, val)) {
+              cell.classList.add("error");
+            }
+
+            // Content: Number or Pencil Notes
+            if (val !== 0) {
+              cell.textContent = val;
+            } else if (notes[r][c].size > 0) {
+              const noteRows = Math.ceil(gridSize / noteCols);
+              let html = `<div class="notes-grid" style="grid-template-columns: repeat(${noteCols}, 1fr); grid-template-rows: repeat(${noteRows}, 1fr);">`;
+              for (let n = 1; n <= gridSize; n++) {
+                const hasN = notes[r][c].has(n);
+                const hl = hasN && selVal === n ? "highlight-note" : "";
+
+
+                html += `<span class="note-num ${hl}">${hasN ? n : ""}</span>`;
+              }
+              html += `</div>`;
+              cell.innerHTML = html;
+            } else {
+              cell.textContent = "";
+            }
+          }
+        }
+
+        // Update numpad completion states
+        Array.from(numpadEl.children).forEach(btn => {
+          const n = Number(btn.dataset.num);
+          btn.classList.toggle("completed", counts[n] >= gridSize);
+        });
+      }
+
+      // --- Gameplay Actions ---
+      function saveHistory() {
+        history.push({
+
+
+          board: board.map(row => [...row]),
+          notes: notes.map(row => row.map(s => new Set(s)))
+        });
+        if (history.length > 60) history.shift();
+      }
+
+      function clearPeerNotes(r, c, num) {
+        const { boxRows, boxCols } = CONFIG[gridSize];
+        for (let i = 0; i < gridSize; i++) {
+          notes[r][i].delete(num);
+          notes[i][c].delete(num);
+        }
+        const startR = Math.floor(r / boxRows) * boxRows;
+        const startC = Math.floor(c / boxCols) * boxCols;
+        for (let i = 0; i < boxRows; i++) {
+          for (let j = 0; j < boxCols; j++) {
+            notes[startR + i][startC + j].delete(num);
+          }
+        }
+      }
+
+
+
+      function handleNumberInput(num) {
+        if (isPaused || isWon || num < 1 || num > gridSize) return;
+        const { r, c } = selected;
+        if (puzzle[r][c] !== 0) return;
+
+        saveHistory();
+
+        if (notesMode) {
+          if (board[r][c] !== 0) {
+            board[r][c] = 0;
+          }
+          if (notes[r][c].has(num)) {
+            notes[r][c].delete(num);
+          } else {
+            notes[r][c].add(num);
+          }
+        } else {
+          if (board[r][c] === num) {
+            board[r][c] = 0;
+
+
+          } else {
+            board[r][c] = num;
+            notes[r][c].clear();
+            clearPeerNotes(r, c, num);
+          }
+        }
+
+        renderBoard();
+        checkWin();
+      }
+
+      function handleErase() {
+        if (isPaused || isWon) return;
+        const { r, c } = selected;
+        if (puzzle[r][c] !== 0) return;
+        if (board[r][c] === 0 && notes[r][c].size === 0) return;
+
+        saveHistory();
+        board[r][c] = 0;
+        notes[r][c].clear();
+
+
+        renderBoard();
+      }
+
+      function handleUndo() {
+        if (isPaused || isWon || history.length === 0) return;
+        const prev = history.pop();
+        board = prev.board;
+        notes = prev.notes;
+        renderBoard();
+      }
+
+      function toggleNotesMode() {
+        notesMode = !notesMode;
+        notesBtn.classList.toggle("active", notesMode);
+        notesBadge.textContent = notesMode ? "ON" : "OFF";
+      }
+
+      function checkWin() {
+        for (let r = 0; r < gridSize; r++) {
+          for (let c = 0; c < gridSize; c++) {
+
+
+            if (board[r][c] === 0 || hasConflict(r, c, board[r][c])) {
+              return;
+            }
+          }
+        }
+        isWon = true;
+        clearInterval(timerInterval);
+        overlayTitle.textContent = "Puzzle Solved!";
+        overlaySub.textContent = `Completed ${gridSize}×${gridSize} (${difficulty}) in ${formatTime(secondsElapsed)}.`;
+        overlayActionBtn.textContent = "Play Again";
+        boardOverlay.classList.add("visible");
+      }
+
+      // --- Event Listeners ---
+      document.querySelectorAll("#sizeSelector .seg-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#sizeSelector .seg-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          gridSize = Number(btn.dataset.size);
+          initGame();
+
+
+        });
+      });
+
+      document.querySelectorAll("#diffSelector .seg-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#diffSelector .seg-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          difficulty = btn.dataset.diff;
+          initGame();
+        });
+      });
+
+      pauseBtn.addEventListener("click", togglePause);
+      overlayActionBtn.addEventListener("click", () => {
+        if (isWon) {
+          initGame();
+        } else {
+          togglePause();
+        }
+      });
+
+
+
+      undoBtn.addEventListener("click", handleUndo);
+      eraseBtn.addEventListener("click", handleErase);
+      notesBtn.addEventListener("click", toggleNotesMode);
+      newGameBtn.addEventListener("click", initGame);
+
+      // Keyboard Support
+      document.addEventListener("keydown", e => {
+        if (isPaused || isWon) return;
+
+        if (e.key >= "1" && e.key <= String(gridSize)) {
+          e.preventDefault();
+          handleNumberInput(Number(e.key));
+        } else if (e.key === "Backspace" || e.key === "Delete" || e.key === "0") {
+          e.preventDefault();
+          handleErase();
+        } else if (e.key.toLowerCase() === "n") {
+          e.preventDefault();
+          toggleNotesMode();
+        } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+
+
+          e.preventDefault();
+          handleUndo();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          selected.r = (selected.r - 1 + gridSize) % gridSize;
+          renderBoard();
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          selected.r = (selected.r + 1) % gridSize;
+          renderBoard();
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          selected.c = (selected.c - 1 + gridSize) % gridSize;
+          renderBoard();
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          selected.c = (selected.c + 1) % gridSize;
+          renderBoard();
+        }
+      });
+
+
+
+      // Boot
+      initGame();
+    })();
+  </script>
+</body>
+
+</html>
