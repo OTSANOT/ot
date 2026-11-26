@@ -3,143 +3,206 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mini Sudoku</title>
+<title>Focus Sudoku</title>
 <style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --text: #111827;
+    --border: #cbd5e1;
+    --grid-border: #111827;
+    --fixed-bg: #e2e8f0;
+    --user-text: #2563eb;
+    --selected-bg: #bfdbfe;
+    --highlight-bg: #eff6ff;
+    --same-num-bg: #dbeafe;
+    --wrong-bg: #fecaca;
+    --wrong-text: #dc2626;
+    --btn-bg: #ffffff;
+    --note-text: #64748b;
+  }
+
+  body.dark {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --border: #475569;
+    --grid-border: #94a3b8;
+    --fixed-bg: #0f172a;
+    --user-text: #60a5fa;
+    --selected-bg: #1d4ed8;
+    --highlight-bg: #1e3a8a33;
+    --same-num-bg: #1e40af66;
+    --wrong-bg: #7f1d1d;
+    --wrong-text: #fca5a5;
+    --btn-bg: #334155;
+    --note-text: #94a3b8;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
   body {
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
-    color: #111;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
     display: flex;
     justify-content: center;
     padding: 20px;
     margin: 0;
+    transition: background 0.2s, color 0.2s;
   }
-  body.dark {
-    background: #121826;
-    color: #f4f6f8;
-  }
+
   .box {
-    background: #fff;
+    background: var(--card);
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
     width: 100%;
-    max-width: 400px;
+    max-width: 420px;
   }
-  body.dark .box {
-    background: #1e293b;
-  }
-  .top {
+
+  .top, .bar, .info {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
   }
+
+  .top h3 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
   .bar {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
+    gap: 8px;
   }
+
   select, button {
-    padding: 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
     font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
-    background: #fff;
-    color: #111;
+    background: var(--btn-bg);
+    color: var(--text);
+    transition: opacity 0.15s, transform 0.05s;
   }
-  body.dark select, body.dark button {
-    background: #334155;
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  .btn-primary {
+    background: #2563eb;
     color: #fff;
-    border-color: #475569;
-  }
-  .btn-blue {
-    background: #2563eb !important;
-    color: #fff !important;
-    border: none !important;
+    border: none;
     margin-left: auto;
   }
+
   .info {
-    display: flex;
-    justify-content: space-between;
-    font-weight: bold;
-    margin-bottom: 12px;
-    font-size: 14px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--note-text);
   }
+
   .grid {
     display: grid;
-    border: 3px solid #111;
-    margin-bottom: 15px;
+    border: 3px solid var(--grid-border);
+    margin-bottom: 16px;
     user-select: none;
+    border-radius: 4px;
+    overflow: hidden;
   }
-  body.dark .grid {
-    border-color: #94a3b8;
-  }
+
   .cell {
     aspect-ratio: 1;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    font-weight: bold;
+    font-size: 20px;
+    font-weight: 700;
     cursor: pointer;
   }
-  body.dark .cell {
-    border-color: #475569;
+
+  .s9 .cell {
+    font-size: 17px;
   }
-  .fixed { background: #e2e8f0; }
-  body.dark .fixed { background: #0f172a; }
-  .user { color: #2563eb; }
-  body.dark .user { color: #60a5fa; }
-  .selected { background: #bfdbfe !important; color: #111 !important; }
-  .wrong { background: #fecaca !important; color: #dc2626 !important; }
 
-  /* 4x4 Borders */
-  .s4 .cell:nth-child(2n) { border-right: 3px solid #111; }
+  .cell.fixed { background: var(--fixed-bg); }
+  .cell.user { color: var(--user-text); }
+  .cell.highlight { background: var(--highlight-bg); }
+  .cell.same-num { background: var(--same-num-bg); }
+  .cell.selected { background: var(--selected-bg) !important; color: #fff !important; }
+  .cell.wrong {
+    background: var(--wrong-bg) !important;
+    color: var(--wrong-text) !important;
+  }
+
+  /* 4x4 Subgrid Borders */
+  .s4 .cell:nth-child(2n) { border-right: 3px solid var(--grid-border); }
   .s4 .cell:nth-child(4n) { border-right: none; }
-  .s4 .cell:nth-child(n+5):nth-child(-n+8) { border-bottom: 3px solid #111; }
+  .s4 .cell:nth-child(n+5):nth-child(-n+8) { border-bottom: 3px solid var(--grid-border); }
 
-  /* 6x6 Borders */
-  .s6 .cell:nth-child(3n) { border-right: 3px solid #111; }
+  /* 6x6 Subgrid Borders */
+  .s6 .cell:nth-child(3n) { border-right: 3px solid var(--grid-border); }
   .s6 .cell:nth-child(6n) { border-right: none; }
   .s6 .cell:nth-child(n+7):nth-child(-n+12),
-  .s6 .cell:nth-child(n+19):nth-child(-n+24) { border-bottom: 3px solid #111; }
+  .s6 .cell:nth-child(n+19):nth-child(-n+24) { border-bottom: 3px solid var(--grid-border); }
+
+  /* 9x9 Subgrid Borders */
+  .s9 .cell:nth-child(3n) { border-right: 3px solid var(--grid-border); }
+  .s9 .cell:nth-child(9n) { border-right: none; }
+  .s9 .cell:nth-child(n+19):nth-child(-n+27),
+  .s9 .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 3px solid var(--grid-border); }
 
   .notes {
     display: grid;
     width: 100%;
     height: 100%;
-    font-size: 10px;
+    font-size: 9px;
+    font-weight: 600;
     place-items: center;
-    color: #64748b;
+    color: var(--note-text);
+    line-height: 1;
   }
+
   .pad {
     display: grid;
-    gap: 6px;
+    gap: 5px;
     margin-bottom: 10px;
   }
+
   .pad button {
     padding: 10px 0;
     font-size: 16px;
-    font-weight: bold;
+    font-weight: 700;
   }
+
+  .pad button.depleted {
+    opacity: 0.35;
+  }
+
   .tools {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 6px;
   }
+
   .note-on {
     background: #dbeafe !important;
     border-color: #2563eb !important;
-    color: #2563eb !important;
+    color: #1d4ed8 !important;
   }
+
   #msg {
     text-align: center;
-    font-weight: bold;
+    font-weight: 700;
     color: #16a34a;
-    margin-top: 10px;
+    margin-top: 12px;
     min-height: 20px;
   }
 </style>
@@ -148,233 +211,214 @@
 
 <div class="box">
   <div class="top">
-    <h3 style="margin:0;">Mini Sudoku</h3>
-    <button type="button" onclick="document.body.classList.toggle('dark')">Theme</button>
+    <h3>Focus Sudoku</h3>
+    <button type="button" id="themeBtn">Theme</button>
   </div>
 
   <div class="bar">
-    <select id="sz">
+    <select id="sizeSelect" aria-label="Grid Size">
       <option value="4">4x4</option>
       <option value="6" selected>6x6</option>
+      <option value="9">9x9</option>
     </select>
-    <select id="df">
+    <select id="diffSelect" aria-label="Difficulty">
       <option value="easy">Easy</option>
       <option value="medium" selected>Medium</option>
       <option value="hard">Hard</option>
     </select>
-    <button type="button" class="btn-blue" onclick="start()">New Game</button>
+    <button type="button" class="btn-primary" id="newGameBtn">New Game</button>
   </div>
 
   <div class="info">
-    <span id="tm">00:00</span>
-    <span id="ms">Mistakes: 0</span>
+    <span id="timerDisplay">00:00</span>
+    <span id="bestDisplay">Best: --:--</span>
+    <span id="mistakesDisplay">Mistakes: 0</span>
   </div>
 
-  <div id="bd" class="grid"></div>
-  <div id="pd" class="pad"></div>
+  <div id="board" class="grid"></div>
+  <div id="numPad" class="pad"></div>
 
   <div class="tools">
-    <button type="button" id="nb" onclick="toggleNote()">Notes: OFF</button>
-    <button type="button" onclick="erase()">Erase</button>
+    <button type="button" id="noteBtn">Notes: OFF</button>
+    <button type="button" id="hintBtn">Hint (3)</button>
+    <button type="button" id="eraseBtn">Erase</button>
   </div>
 
   <div id="msg"></div>
 </div>
 
 <script>
-var N = 6, sol = [], cur = [], fix = [], nts = [], sel = null, noteOn = false, err = 0, sec = 0, tmr = null, done = false;
+const STORAGE_KEY = 'focus_sudoku_state_v1';
+const BEST_KEY = 'focus_sudoku_best_v1';
 
-function makeBoard(n) {
-  var br = 2, bc = (n === 4 ? 2 : 3);
-  var g = [];
-  for (var i = 0; i < n; i++) {
-    g[i] = [];
-    for (var j = 0; j < n; j++) g[i][j] = 0;
+const state = {
+  size: 6,
+  difficulty: 'medium',
+  solution: [],
+  current: [],
+  fixed: [],
+  notes: [],
+  selected: null,
+  noteMode: false,
+  mistakes: 0,
+  hintsLeft: 3,
+  seconds: 0,
+  timer: null,
+  completed: false
+};
+
+const els = {
+  board: document.getElementById('board'),
+  pad: document.getElementById('numPad'),
+  size: document.getElementById('sizeSelect'),
+  diff: document.getElementById('diffSelect'),
+  timer: document.getElementById('timerDisplay'),
+  best: document.getElementById('bestDisplay'),
+  mistakes: document.getElementById('mistakesDisplay'),
+  noteBtn: document.getElementById('noteBtn'),
+  hintBtn: document.getElementById('hintBtn'),
+  msg: document.getElementById('msg')
+};
+
+function getBoxDimensions(n) {
+  if (n === 4) return { boxRows: 2, boxCols: 2 };
+  if (n === 6) return { boxRows: 2, boxCols: 3 };
+  return { boxRows: 3, boxCols: 3 };
+}
+
+function shuffle(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  function ok(r, c, v) {
-    for (var i = 0; i < n; i++) {
-      if (g[r][i] === v || g[i][c] === v) return false;
-    }
-    var sr = Math.floor(r / br) * br, sc = Math.floor(c / bc) * bc;
-    for (var r0 = 0; r0 < br; r0++) {
-      for (var c0 = 0; c0 < bc; c0++) {
-        if (g[sr + r0][sc + c0] === v) return false;
-      }
-    }
-    return true;
+  return arr;
+}
+
+function isSafe(grid, n, r, c, val) {
+  const { boxRows, boxCols } = getBoxDimensions(n);
+  for (let i = 0; i < n; i++) {
+    if (grid[r][i] === val || grid[i][c] === val) return false;
   }
-  function fill(idx) {
+  const startR = Math.floor(r / boxRows) * boxRows;
+  const startC = Math.floor(c / boxCols) * boxCols;
+  for (let r0 = 0; r0 < boxRows; r0++) {
+    for (let c0 = 0; c0 < boxCols; c0++) {
+      if (grid[startR + r0][startC + c0] === val) return false;
+    }
+  }
+  return true;
+}
+
+function generateSolvedGrid(n) {
+  const grid = Array.from({ length: n }, () => Array(n).fill(0));
+  const numbers = Array.from({ length: n }, (_, i) => i + 1);
+
+  function fill(idx = 0) {
     if (idx === n * n) return true;
-    var r = Math.floor(idx / n), c = idx % n;
-    var nums = [];
-    for (var i = 1; i <= n; i++) nums.push(i);
-    nums.sort(function() { return Math.random() - 0.5; });
-    for (var i = 0; i < nums.length; i++) {
-      if (ok(r, c, nums[i])) {
-        g[r][c] = nums[i];
+    const r = Math.floor(idx / n);
+    const c = idx % n;
+
+    for (const num of shuffle(numbers)) {
+      if (isSafe(grid, n, r, c, num)) {
+        grid[r][c] = num;
         if (fill(idx + 1)) return true;
-        g[r][c] = 0;
+        grid[r][c] = 0;
       }
     }
     return false;
   }
-  fill(0);
-  var flat = [];
-  for (var i = 0; i < n; i++) {
-    for (var j = 0; j < n; j++) flat.push(g[i][j]);
-  }
-  return flat;
+
+  fill();
+  return grid;
 }
 
-function start() {
-  N = parseInt(document.getElementById('sz').value, 10);
-  var d = document.getElementById('df').value;
-  done = false;
-  err = 0;
-  sel = null;
-  document.getElementById('msg').innerText = '';
-  document.getElementById('ms').innerText = 'Mistakes: 0';
+// Counts solutions up to `limit` to verify unique solvability
+function countSolutions(grid, n, limit = 2) {
+  let count = 0;
 
-  sol = makeBoard(N);
-  cur = sol.slice();
-  fix = [];
-  nts = [];
-  for (var i = 0; i < N * N; i++) {
-    fix[i] = true;
-    nts[i] = [];
-  }
+  function backtrack() {
+    if (count >= limit) return;
 
-  var rem = (N === 4) ? { easy: 6, medium: 8, hard: 10 }[d] : { easy: 14, medium: 19, hard: 24 }[d];
-  var idxs = [];
-  for (var i = 0; i < N * N; i++) idxs.push(i);
-  idxs.sort(function() { return Math.random() - 0.5; });
-
-  for (var i = 0; i < rem; i++) {
-    cur[idxs[i]] = 0;
-    fix[idxs[i]] = false;
-  }
-
-  drawPad();
-  drawBoard();
-
-  clearInterval(tmr);
-  sec = 0;
-  document.getElementById('tm').innerText = '00:00';
-  tmr = setInterval(function() {
-    if (!done) {
-      sec++;
-      var m = ('0' + Math.floor(sec / 60)).slice(-2);
-      var s = ('0' + (sec % 60)).slice(-2);
-      document.getElementById('tm').innerText = m + ':' + s;
-    }
-  }, 1000);
-}
-
-function drawPad() {
-  var pd = document.getElementById('pd');
-  pd.innerHTML = '';
-  pd.style.gridTemplateColumns = 'repeat(' + N + ', 1fr)';
-  for (var i = 1; i <= N; i++) {
-    (function(num) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.innerText = num;
-      b.onclick = function() { put(num); };
-      pd.appendChild(b);
-    })(i);
-  }
-}
-
-function drawBoard() {
-  var bd = document.getElementById('bd');
-  bd.innerHTML = '';
-  bd.className = 'grid s' + N;
-  bd.style.gridTemplateColumns = 'repeat(' + N + ', 1fr)';
-
-  for (var i = 0; i < N * N; i++) {
-    (function(idx) {
-      var c = document.createElement('div');
-      c.className = 'cell';
-      if (fix[idx]) c.className += ' fixed';
-      else if (cur[idx] !== 0) c.className += ' user';
-      if (idx === sel) c.className += ' selected';
-      if (cur[idx] !== 0 && cur[idx] !== sol[idx]) c.className += ' wrong';
-
-      if (cur[idx] !== 0) {
-        c.innerText = cur[idx];
-      } else if (nts[idx].length > 0) {
-        var ng = document.createElement('div');
-        ng.className = 'notes';
-        ng.style.gridTemplateColumns = 'repeat(' + (N === 4 ? 2 : 3) + ', 1fr)';
-        for (var k = 1; k <= N; k++) {
-          var sp = document.createElement('span');
-          sp.innerText = nts[idx].indexOf(k) > -1 ? k : '';
-          ng.appendChild(sp);
+    let emptyR = -1;
+    let emptyC = -1;
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (grid[r][c] === 0) {
+          emptyR = r;
+          emptyC = c;
+          break;
         }
-        c.appendChild(ng);
       }
+      if (emptyR !== -1) break;
+    }
 
-      c.onclick = function() {
-        sel = idx;
-        drawBoard();
-      };
-      bd.appendChild(c);
-    })(i);
-  }
-}
+    if (emptyR === -1) {
+      count++;
+      return;
+    }
 
-function put(num) {
-  if (done || sel === null || fix[sel]) return;
-  if (noteOn) {
-    if (cur[sel] !== 0) return;
-    var pos = nts[sel].indexOf(num);
-    if (pos > -1) nts[sel].splice(pos, 1);
-    else nts[sel].push(num);
-  } else {
-    cur[sel] = num;
-    nts[sel] = [];
-    if (num !== sol[sel]) {
-      err++;
-      document.getElementById('ms').innerText = 'Mistakes: ' + err;
-    } else {
-      var win = true;
-      for (var i = 0; i < N * N; i++) {
-        if (cur[i] !== sol[i]) win = false;
-      }
-      if (win) {
-        done = true;
-        clearInterval(tmr);
-        document.getElementById('msg').innerText = 'Solved in ' + document.getElementById('tm').innerText + '!';
+    for (let num = 1; num <= n; num++) {
+      if (isSafe(grid, n, emptyR, emptyC, num)) {
+        grid[emptyR][emptyC] = num;
+        backtrack();
+        grid[emptyR][emptyC] = 0;
+        if (count >= limit) return;
       }
     }
   }
-  drawBoard();
+
+  backtrack();
+  return count;
 }
 
-function erase() {
-  if (done || sel === null || fix[sel]) return;
-  cur[sel] = 0;
-  nts[sel] = [];
-  drawBoard();
+function createPuzzle(n, difficulty) {
+  const solvedGrid = generateSolvedGrid(n);
+  const puzzleGrid = solvedGrid.map(row => [...row]);
+
+  const targetBlanksMap = {
+    4: { easy: 6, medium: 8, hard: 10 },
+    6: { easy: 14, medium: 19, hard: 23 },
+    9: { easy: 32, medium: 42, hard: 50 }
+  };
+
+  const targetBlanks = targetBlanksMap[n][difficulty];
+  const indices = shuffle(Array.from({ length: n * n }, (_, i) => i));
+  let removed = 0;
+
+  for (const idx of indices) {
+    if (removed >= targetBlanks) break;
+    const r = Math.floor(idx / n);
+    const c = idx % n;
+    const backup = puzzleGrid[r][c];
+    puzzleGrid[r][c] = 0;
+
+    if (countSolutions(puzzleGrid.map(row => [...row]), n, 2) === 1) {
+      removed++;
+    } else {
+      puzzleGrid[r][c] = backup;
+    }
+  }
+
+  return {
+    solution: solvedGrid.flat(),
+    current: puzzleGrid.flat()
+  };
 }
 
-function toggleNote() {
-  noteOn = !noteOn;
-  var nb = document.getElementById('nb');
-  nb.innerText = 'Notes: ' + (noteOn ? 'ON' : 'OFF');
-  if (noteOn) nb.className = 'note-on';
-  else nb.className = '';
+function formatTime(totalSeconds) {
+  const mins = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const secs = String(totalSeconds % 60).padStart(2, '0');
+  return `${mins}:${secs}`;
 }
 
-document.onkeydown = function(e) {
-  if (e.key === 'n' || e.key === 'N') toggleNote();
-  if (e.key === 'Backspace' || e.key === 'Delete') erase();
-  var v = parseInt(e.key, 10);
-  if (v >= 1 && v <= N) put(v);
-};
+function updateBestDisplay() {
+  const bests = JSON.parse(localStorage.getItem(BEST_KEY) || '{}');
+  const key = `${state.size}_${state.difficulty}`;
+  els.best.textContent = bests[key] !== undefined
+    ? `Best: ${formatTime(bests[key])}`
+    : 'Best: --:--';
+}
 
-start();
-</script>
-
-</body>
-</html>
+function recordBestTime() {
+  const bests = JSON.parse(localStorage.getItem(BEST_KEY) || '{}');
