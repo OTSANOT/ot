@@ -48,12 +48,14 @@
 
     #status {
       min-height: 28px;
+      margin-bottom: 12px;
       color: var(--muted);
       font-size: 18px;
       font-weight: bold;
     }
 
-    select, button {
+    select,
+    button {
       border: 0;
       border-radius: 8px;
       font-weight: bold;
@@ -63,19 +65,21 @@
       padding: 10px 14px;
       background: #334155;
       color: white;
+      font-size: 15px;
     }
 
     #board {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
       aspect-ratio: 1;
     }
 
     .macro-cell {
-      position: relative;
+      min-width: 0;
+      min-height: 0;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 3px;
       padding: 5px;
       border: 3px solid var(--border);
@@ -89,13 +93,17 @@
       box-shadow: 0 0 14px rgba(250, 204, 21, 0.25);
     }
 
+    /* A won mini-board contains one centered mark, not a 3x3 grid. */
     .macro-cell.winner-X,
     .macro-cell.winner-O,
     .macro-cell.winner-D {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       place-items: center;
-      font-size: clamp(38px, 12vw, 100px);
-      font-weight: bold;
+      text-align: center;
+      line-height: 1;
+      font-size: clamp(36px, 12vw, 100px);
+      font-weight: 800;
     }
 
     .macro-cell.winner-X { color: var(--x); }
@@ -103,14 +111,16 @@
     .macro-cell.winner-D { color: var(--muted); }
 
     .mini-cell {
+      min-width: 0;
+      min-height: 0;
       display: grid;
       place-items: center;
+      padding: 0;
       border: 1px solid #334155;
       border-radius: 4px;
       background: #0f172a;
       color: var(--text);
       font-size: clamp(14px, 5vw, 32px);
-      font-weight: bold;
       cursor: pointer;
       aspect-ratio: 1;
     }
@@ -123,8 +133,8 @@
     .mini-cell.X { color: var(--x); }
     .mini-cell.O { color: var(--o); }
 
-    #reset {
-      margin-top: 18px;
+    #reset,
+    #playAgain {
       padding: 12px 24px;
       background: #38bdf8;
       color: #06202d;
@@ -132,7 +142,9 @@
       cursor: pointer;
     }
 
-    #reset:hover { background: #7dd3fc; }
+    #reset { margin-top: 18px; }
+    #reset:hover,
+    #playAgain:hover { background: #7dd3fc; }
 
     #celebration {
       position: fixed;
@@ -140,24 +152,25 @@
       z-index: 100;
       display: grid;
       place-items: center;
-      background: rgba(0, 0, 0, 0.55);
-      animation: fade-in 300ms ease-out;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.65);
+      animation: fade-in 250ms ease-out;
     }
 
     #celebration[hidden] { display: none; }
 
     .celebration-card {
-      min-width: min(320px, 80vw);
+      width: min(380px, 90vw);
       padding: 28px;
       border: 2px solid #facc15;
       border-radius: 18px;
       background: #1e293b;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-      animation: celebrate-pop 500ms cubic-bezier(.2, 1.4, .4, 1);
+      animation: celebrate-pop 450ms cubic-bezier(.2, 1.4, .4, 1);
     }
 
     .celebration-card h2 {
-      margin: 8px 0 0;
+      margin: 8px 0 20px;
       color: #facc15;
       font-size: clamp(30px, 8vw, 48px);
     }
@@ -165,6 +178,10 @@
     #celebrationIcon {
       font-size: 68px;
       animation: trophy-bounce 700ms ease-in-out infinite alternate;
+    }
+
+    #playAgain {
+      min-width: 160px;
     }
 
     #confetti {
@@ -193,7 +210,6 @@
 
     @media (max-width: 500px) {
       body { padding: 10px; }
-
       .controls { flex-direction: column; }
       #board { gap: 4px; }
 
@@ -201,9 +217,20 @@
         gap: 2px;
         padding: 3px;
         border-width: 2px;
+        border-radius: 7px;
       }
 
       .mini-cell { border-radius: 2px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
     }
   </style>
 </head>
@@ -227,8 +254,9 @@
 
   <div id="celebration" aria-live="assertive" hidden>
     <div class="celebration-card">
-      <div id="celebrationIcon">🏆</div>
-      <h2 id="celebrationTitle">X Wins!</h2>
+      <div id="celebrationIcon" aria-hidden="true">🏆</div>
+      <h2 id="celebrationTitle">You Win!</h2>
+      <button id="playAgain" type="button">Play Again</button>
     </div>
   </div>
 
@@ -238,6 +266,7 @@
     const boardElement = document.getElementById("board");
     const statusElement = document.getElementById("status");
     const resetButton = document.getElementById("reset");
+    const playAgainButton = document.getElementById("playAgain");
     const difficultySelect = document.getElementById("difficulty");
     const celebration = document.getElementById("celebration");
     const celebrationTitle = document.getElementById("celebrationTitle");
@@ -300,28 +329,27 @@
     function humanMove(event) {
       if (aiThinking || currentPlayer !== "X" || gameWinner) return;
 
-      const button = event.currentTarget;
-      const macroIndex = Number(button.dataset.macro);
-      const miniIndex = Number(button.dataset.mini);
+      const macroIndex = Number(event.currentTarget.dataset.macro);
+      const miniIndex = Number(event.currentTarget.dataset.mini);
 
       if (!isLegalMove(macroIndex, miniIndex)) return;
 
       makeMove(macroIndex, miniIndex, "X");
 
-      if (!gameWinner) {
-        currentPlayer = "O";
-        updateStatus();
-        aiThinking = true;
+      if (gameWinner) return;
 
-        window.setTimeout(() => {
-          if (!gameWinner) aiMove();
-          aiThinking = false;
-        }, 320);
-      }
+      currentPlayer = "O";
+      aiThinking = true;
+      updateStatus();
+
+      window.setTimeout(aiMove, 320);
     }
 
     function aiMove() {
-      if (gameWinner) return;
+      if (gameWinner) {
+        aiThinking = false;
+        return;
+      }
 
       let move;
 
@@ -336,9 +364,9 @@
           move = chooseMediumMove();
       }
 
-      if (!move) return;
+      if (move) makeMove(move.macro, move.mini, "O");
 
-      makeMove(move.macro, move.mini, "O");
+      aiThinking = false;
 
       if (!gameWinner) {
         currentPlayer = "X";
@@ -360,6 +388,7 @@
       const button = document.querySelector(
         `.mini-cell[data-macro="${macroIndex}"][data-mini="${miniIndex}"]`
       );
+
       button.textContent = player;
       button.classList.add(player);
       button.disabled = true;
@@ -392,9 +421,7 @@
         if (activeMacro !== null && activeMacro !== macro) continue;
 
         for (let mini = 0; mini < 9; mini++) {
-          if (!miniBoards[macro][mini]) {
-            moves.push({ macro, mini });
-          }
+          if (!miniBoards[macro][mini]) moves.push({ macro, mini });
         }
       }
 
@@ -429,16 +456,15 @@
       for (const move of moves) {
         let score = 1;
 
-        const testBoard = miniBoards[move.macro].slice();
-        testBoard[move.mini] = "O";
+        const aiBoard = miniBoards[move.macro].slice();
+        aiBoard[move.mini] = "O";
+        if (getWinner(aiBoard) === "O") score += 100;
 
-        if (getWinner(testBoard) === "O") score += 100;
+        const blockBoard = miniBoards[move.macro].slice();
+        blockBoard[move.mini] = "X";
+        if (getWinner(blockBoard) === "X") score += 90;
+
         if (macroBoard[move.mini]) score += 15;
-
-        const opponentBoard = miniBoards[move.macro].slice();
-        opponentBoard[move.mini] = "X";
-        if (getWinner(opponentBoard) === "X") score += 90;
-
         if (move.mini === 4) score += 12;
         if ([0, 2, 6, 8].includes(move.mini)) score += 6;
         if (move.macro === 4) score += 8;
@@ -474,10 +500,10 @@
     }
 
     function minimax(depth, alpha, beta, maximizing) {
-      const overallWinner = getWinner(macroBoard);
+      const winner = getWinner(macroBoard);
 
-      if (overallWinner === "O") return 100000 + depth;
-      if (overallWinner === "X") return -100000 - depth;
+      if (winner === "O") return 100000 + depth;
+      if (winner === "X") return -100000 - depth;
       if (depth === 0) return evaluatePosition();
 
       const moves = getLegalMoves();
@@ -518,10 +544,10 @@
 
       miniBoards[move.macro][move.mini] = player;
 
-      const miniWinner = getWinner(miniBoards[move.macro]);
+      const localWinner = getWinner(miniBoards[move.macro]);
 
-      if (miniWinner) {
-        macroBoard[move.macro] = miniWinner;
+      if (localWinner) {
+        macroBoard[move.macro] = localWinner;
       } else if (miniBoards[move.macro].every(Boolean)) {
         macroBoard[move.macro] = "D";
       }
@@ -568,10 +594,10 @@
       for (const [a, b, c] of winLines) {
         const values = [cells[a], cells[b], cells[c]];
         const playerCount = values.filter(value => value === player).length;
-        const emptyCount = values.filter(value => !value || value === "D").length;
+        const openCount = values.filter(value => !value || value === "D").length;
 
-        if (playerCount === 2 && emptyCount === 1) score += 5;
-        if (playerCount === 1 && emptyCount === 2) score += 1;
+        if (playerCount === 2 && openCount === 1) score += 5;
+        if (playerCount === 1 && openCount === 2) score += 1;
       }
 
       return score;
@@ -598,10 +624,9 @@
           }
         });
 
-        statusElement.textContent =
-          aiThinking
-            ? "AI is thinking..."
-            : `${currentPlayer}'s turn — choose any board`;
+        statusElement.textContent = aiThinking
+          ? "AI is thinking..."
+          : `${currentPlayer}'s turn — choose any board`;
       } else {
         const activeCell = document.querySelector(
           `.macro-cell[data-macro="${activeMacro}"]`
@@ -609,10 +634,9 @@
 
         if (activeCell) activeCell.classList.add("active");
 
-        statusElement.textContent =
-          aiThinking
-            ? "AI is thinking..."
-            : `${currentPlayer}'s turn — play in board ${activeMacro + 1}`;
+        statusElement.textContent = aiThinking
+          ? "AI is thinking..."
+          : `${currentPlayer}'s turn — play in board ${activeMacro + 1}`;
       }
     }
 
@@ -625,10 +649,8 @@
         celebrationIcon.textContent = "🤝";
       } else {
         statusElement.textContent = `${winner} wins the game!`;
-        celebrationTitle.textContent =
-          winner === "X" ? "You Win!" : "AI Wins!";
-        celebrationIcon.textContent =
-          winner === "X" ? "🏆" : "🤖";
+        celebrationTitle.textContent = winner === "X" ? "You Win!" : "AI Wins!";
+        celebrationIcon.textContent = winner === "X" ? "🏆" : "🤖";
       }
 
       document.querySelectorAll(".mini-cell").forEach(cell => {
@@ -642,11 +664,6 @@
       celebration.hidden = false;
       startConfetti();
       playVictorySound(winner);
-
-      celebration.onclick = () => {
-        celebration.hidden = true;
-        stopConfetti();
-      };
     }
 
     function startConfetti() {
@@ -715,9 +732,9 @@
     }
 
     function playVictorySound(winner) {
-      if (!window.AudioContext && !window.webkitAudioContext) return;
-
       const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+
       const context = new AudioContext();
       const notes = winner === "X"
         ? [523, 659, 784, 1047]
@@ -737,14 +754,17 @@
         gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.25);
 
         oscillator.connect(gain);
-        gain.gain.connect(context.destination);
-
+        gain.connect(context.destination);
         oscillator.start(start);
         oscillator.stop(start + 0.26);
       });
+
+      window.setTimeout(() => context.close(), notes.length * 1400);
     }
 
     resetButton.addEventListener("click", initializeGame);
+    playAgainButton.addEventListener("click", initializeGame);
+
     initializeGame();
   </script>
 </body>
