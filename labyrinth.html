@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Grid Labyrinth: Dungeon Edition</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 14px;
+      box-sizing: border-box;
+      touch-action: manipulation;
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 1.5rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      padding: 7px 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background-color: #2c2c2c;
+      color: #fff;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:hover { background-color: #444; }
+    button:active { transform: scale(0.96); }
+    button.active { background-color: #3b82f6; }
+    button.fog-active { background-color: #8b5cf6; }
+    button.sound-on { background-color: #059669; }
+
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      background: #1e1e1e;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+
+    .stats span {
+      color: #3b82f6;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stats span.armed { color: #f59e0b; }
+
+    #maze {
+      display: grid;
+      border: 4px solid #3b82f6;
+      background-color: #1e1e1e;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      user-select: none;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .cell {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      font-size: 1.1rem;
+    }
+
+    /* Maze Walls */
+    .top    { border-top: 2px solid #888; }
+    .right  { border-right: 2px solid #888; }
+    .bottom { border-bottom: 2px solid #888; }
+    .left   { border-left: 2px solid #888; }
+
+    /* Fog of War */
+    .cell.fog {
+      background-color: #09090b;
+      border-color: #09090b !important;
+    }
+    .cell.fog > * { display: none; }
+
+    /* Entities */
+    .player {
+      width: 78%;
+      height: 78%;
+      max-width: 28px;
+      max-height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+      position: relative;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+      transition: transform 0.12s ease;
+    }
+
+    .player.has-sword {
+      filter: drop-shadow(0 0 6px #f59e0b);
+    }
+
+    .goal {
+      width: 78%;
+      height: 78%;
+      max-width: 28px;
+      max-height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+      filter: drop-shadow(0 0 6px rgba(244, 114, 182, 0.75));
+      animation: princessFloat 1.2s infinite alternate ease-in-out;
+    }
+
+    @keyframes princessFloat {
+      from { transform: translateY(-1px) scale(0.98); }
+      to   { transform: translateY(1px) scale(1.03); }
+    }
+
+    .weapon {
+      z-index: 2;
+      animation: pulse 1.2s infinite alternate;
+    }
+
+    .enemy {
+      width: 78%;
+      height: 78%;
+      max-width: 28px;
+      max-height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+      animation: monsterFloat 0.9s infinite alternate ease-in-out;
+    }
+
+    @keyframes monsterFloat {
+      from { transform: translateY(-1px) scale(0.97); }
+      to   { transform: translateY(1px) scale(1.03); }
+    }
+
+    .slash-fx {
+      position: absolute;
+      inset: 0;
+      background: rgba(245, 158, 11, 0.45);
+      border-radius: 4px;
+      pointer-events: none;
+      animation: fadeOut 0.25s forwards;
+      z-index: 4;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(0.9); }
+      to   { transform: scale(1.15); }
+    }
+
+    @keyframes fadeOut {
+      to { opacity: 0; }
+    }
+
+    #status {
+      margin-top: 12px;
+      font-size: 1rem;
+      min-height: 24px;
+      color: #10b981;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    #status.dead { color: #ef4444; }
+
+    /* On-Screen Controls */
+    .controls-bottom {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-top: 14px;
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-areas:
+        ". up ."
+        "left down right";
+      gap: 6px;
+    }
+
+    .dpad button {
+      width: 52px;
+      height: 46px;
+      font-size: 1.2rem;
+      background-color: #262626;
+      border: 1px solid #3f3f46;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .dpad button:active { background-color: #3b82f6; }
+    .btn-up    { grid-area: up; }
+    .btn-left  { grid-area: left; }
+    .btn-down  { grid-area: down; }
+    .btn-right { grid-area: right; }
+
+    .btn-attack {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background-color: #b45309;
+      border: 2px solid #f59e0b;
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-attack:disabled {
+      background-color: #262626;
+      border-color: #3f3f46;
+      color: #666;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .instructions {
+      margin-top: 12px;
+      font-size: 0.82rem;
+      color: #888;
+      text-align: center;
+      max-width: 420px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Grid Labyrinth</h1>
+
+  <div class="controls">
+    <button id="btn-8" class="active" onclick="startGame(8)">8x8</button>
+    <button id="btn-10" onclick="startGame(10)">10x10</button>
+    <button id="btn-12" onclick="startGame(12)">12x12</button>
+    <button id="btn-14" onclick="startGame(14)">14x14</button>
+    <button id="btn-fog" onclick="toggleFog()">Fog: OFF</button>
+    <button id="btn-sound" class="sound-on" onclick="toggleSound()">Sound: ON</button>
+    <button onclick="startGame(currentSize)">New Maze</button>
+  </div>
+
+  <div class="stats">
+    <div>Time: <span id="timer">0.0s</span></div>
+    <div>Moves: <span id="moves">0</span></div>
+    <div>Weapon: <span id="weapon-status" class="armed">🗡️ Sword</span></div>
+    <div>Enemies: <span id="enemy-count">0</span></div>
+  </div>
+
+  <div id="maze"></div>
+  <div id="status"></div>
+
+  <div class="controls-bottom">
+    <div class="dpad">
+      <button class="btn-up" onclick="movePlayer('up')" aria-label="Up">▲</button>
+      <button class="btn-left" onclick="movePlayer('left')" aria-label="Left">◀</button>
+      <button class="btn-down" onclick="movePlayer('down')" aria-label="Down">▼</button>
+      <button class="btn-right" onclick="movePlayer('right')" aria-label="Right">▶</button>
+    </div>
+
+    <button id="btn-attack" class="btn-attack" onclick="attack()">
+      <span style="font-size: 1.4rem;">⚔️</span>
+      <span>Attack</span>
+    </button>
+  </div>
+
+  <div class="instructions">
+    You are armed with a <strong>🗡️ Sword</strong>! Press <strong>Spacebar</strong> or <strong>Attack</strong> to defeat nearby <strong>👾 Enemies</strong> and rescue the <strong>👸 Princess</strong>.
+  </div>
+
+  <script>
+    let currentSize = 8;
+    let grid = [];
+    let player = { r: 0, c: 0, hasSword: true };
+    let enemies = [];
+    let slashCells = [];
+
+    let gameOver = false;
+    let fogMode = false;
+    let soundEnabled = true;
+
+    let moves = 0;
+    let startTime = null;
+    let timerInterval = null;
+    let enemyInterval = null;
+    let hasMoved = false;
+
+    const mazeEl = document.getElementById('maze');
+    const statusEl = document.getElementById('status');
+    const timerEl = document.getElementById('timer');
+    const movesEl = document.getElementById('moves');
+    const weaponEl = document.getElementById('weapon-status');
+    const enemyCountEl = document.getElementById('enemy-count');
+    const fogBtn = document.getElementById('btn-fog');
+    const soundBtn = document.getElementById('btn-sound');
+    const attackBtn = document.getElementById('btn-attack');
+
+    // --- Web Audio API Synthesizer ---
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = AudioContextClass ? new AudioContextClass() : null;
+
+    function playSound(type) {
+      if (!soundEnabled || !audioCtx) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'step') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.05);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } else if (type === 'bump') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(110, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'pickup') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(660, now + 0.08);
+        osc.frequency.setValueAtTime(880, now + 0.16);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc.start(now);
+        osc.stop(now + 0.28);
+      } else if (type === 'slash') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.14);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      } else if (type === 'hit') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.exponentialRampToValueAtTime(75, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      } else if (type === 'win') {
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + i * 0.09);
+          gain.gain.setValueAtTime(0.16, now + i * 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.25);
+          osc.start(now + i * 0.09);
+          osc.stop(now + i * 0.09 + 0.25);
+        });
+      } else if (type === 'lose') {
+        const notes = [300, 240, 180, 110];
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now + i * 0.12);
+          gain.gain.setValueAtTime(0.16, now + i * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.25);
+          osc.start(now + i * 0.12);
+          osc.stop(now + i * 0.12 + 0.25);
+        });
+      }
+    }
+
+    // --- Toggles ---
+    function toggleFog() {
+      fogMode = !fogMode;
+      fogBtn.textContent = `Fog: ${fogMode ? 'ON' : 'OFF'}`;
+      fogBtn.classList.toggle('fog-active', fogMode);
+      render();
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      soundBtn.textContent = `Sound: ${soundEnabled ? 'ON' : 'OFF'}`;
+      soundBtn.classList.toggle('sound-on', soundEnabled);
+    }
+
+    // --- Maze Generation (Recursive Backtracker + Extra Loops) ---
+    function generateMaze(size) {
+      grid = Array.from({ length: size }, (_, r) =>
+        Array.from({ length: size }, (_, c) => ({
+          r,
+          c,
+          walls: { top: true, right: true, bottom: true, left: true },
+          visited: false
+        }))
+      );
+
+      const stack = [];
+      let current = grid[0][0];
+      current.visited = true;
+      stack.push(current);
+
+      const dirs = [
+        { dr: -1, dc: 0, wall: 'top', opp: 'bottom' },
+        { dr: 0, dc: 1, wall: 'right', opp: 'left' },
+        { dr: 1, dc: 0, wall: 'bottom', opp: 'top' },
+        { dr: 0, dc: -1, wall: 'left', opp: 'right' }
+      ];
+
+      while (stack.length > 0) {
+        current = stack[stack.length - 1];
+        const neighbors = [];
+
+        for (const d of dirs) {
+          const nr = current.r + d.dr;
+          const nc = current.c + d.dc;
+          if (nr >= 0 && nr < size && nc >= 0 && nc < size && !grid[nr][nc].visited) {
+            neighbors.push({ cell: grid[nr][nc], d });
+          }
+        }
+
+        if (neighbors.length > 0) {
+          const { cell: next, d } = neighbors[Math.floor(Math.random() * neighbors.length)];
+          current.walls[d.wall] = false;
+          next.walls[d.opp] = false;
+          next.visited = true;
+          stack.push(next);
+        } else {
+          stack.pop();
+        }
+      }
+
+      // Carve a few extra openings so players can outmaneuver enemies
+      const extraOpenings = Math.floor(size * 0.8);
+      for (let i = 0; i < extraOpenings; i++) {
+        const r = Math.floor(Math.random() * (size - 2)) + 1;
+        const c = Math.floor(Math.random() * (size - 2)) + 1;
+        const d = dirs[Math.floor(Math.random() * dirs.length)];
+        grid[r][c].walls[d.wall] = false;
+        grid[r + d.dr][c + d.dc].walls[d.opp] = false;
+      }
+    }
+
+    // --- Game Setup ---
+    function startGame(size) {
+      currentSize = size;
+      gameOver = false;
+      hasMoved = false;
+      moves = 0;
+      slashCells = [];
+      player = { r: 0, c: 0, hasSword: true };
+
+      timerEl.textContent = '0.0s';
+      statusEl.textContent = '';
+      statusEl.className = '';
+
+      clearInterval(timerInterval);
+      clearInterval(enemyInterval);
+
+      // Update size buttons
+      [8, 10, 12, 14].forEach(s => {
+        document.getElementById(`btn-${s}`).classList.toggle('active', s === size);
+      });
+
+      generateMaze(size);
+
+      // Spawn strictly 2 Enemies away from player start
+      const enemyCount = 2;
+      enemies = [];
+      const enemyCandidates = [];
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const distFromStart = r + c;
+          const isGoal = r === size - 1 && c === size - 1;
+          if (!isGoal && distFromStart >= Math.floor(size * 0.6)) {
+            enemyCandidates.push({ r, c });
+          }
+        }
+      }
+
+      for (let i = 0; i < enemyCount && enemyCandidates.length > 0; i++) {
+        const idx = Math.floor(Math.random() * enemyCandidates.length);
+        const pos = enemyCandidates.splice(idx, 1)[0];
+        enemies.push({ r: pos.r, c: pos.c });
+      }
+
+      updateStats();
+      setupGridDimensions();
+      render();
+
+      // Enemy movement loop
+      enemyInterval = setInterval(moveEnemies, 950);
+    }
+
+    function setupGridDimensions() {
+      const maxBoardPx = Math.min(window.innerWidth - 36, 440);
+      const cellSize = Math.floor(maxBoardPx / currentSize);
+      mazeEl.style.gridTemplateColumns = `repeat(${currentSize}, ${cellSize}px)`;
+      mazeEl.style.gridTemplateRows = `repeat(${currentSize}, ${cellSize}px)`;
+    }
+
+    function startTimerIfNeeded() {
+      if (!hasMoved) {
+        hasMoved = true;
+        startTime = performance.now();
+        timerInterval = setInterval(() => {
+          if (!gameOver) {
+            const elapsed = (performance.now() - startTime) / 1000;
+            timerEl.textContent = `${elapsed.toFixed(1)}s`;
+          }
+        }, 100);
+      }
+    }
+
+    function updateStats() {
+      movesEl.textContent = moves;
+      enemyCountEl.textContent = enemies.length;
+      if (player.hasSword) {
+        weaponEl.textContent = '🗡️ Sword';
+        weaponEl.className = 'armed';
+        attackBtn.disabled = false;
+      } else {
+        weaponEl.textContent = 'None';
+        weaponEl.className = '';
+        attackBtn.disabled = true;
+      }
+    }
+
+    // --- Player Movement & Combat ---
+    function movePlayer(dir) {
+      if (gameOver) return;
+      startTimerIfNeeded();
+
+      const cell = grid[player.r][player.c];
+      let nr = player.r;
+      let nc = player.c;
+
+      if (dir === 'up' && !cell.walls.top) nr--;
+      else if (dir === 'right' && !cell.walls.right) nc++;
+      else if (dir === 'down' && !cell.walls.bottom) nr++;
+      else if (dir === 'left' && !cell.walls.left) nc--;
+      else {
+        playSound('bump');
+        return;
+      }
+
+      player.r = nr;
+      player.c = nc;
+      moves++;
+      playSound('step');
+
+      // Check Enemy Collision
+      if (checkPlayerDeath()) {
+        render();
+        return;
+      }
+
+      // Check Win Condition
+      if (player.r === currentSize - 1 && player.c === currentSize - 1) {
+        endGame(true);
+        return;
+      }
+
+      updateStats();
+      render();
+    }
+
+    function attack() {
+      if (gameOver || !player.hasSword) return;
+      startTimerIfNeeded();
+      playSound('slash');
+
+      const cell = grid[player.r][player.c];
+      const targets = [{ r: player.r, c: player.c }];
+
+      // Attack reaches current cell + open adjacent passages
+      if (!cell.walls.top) targets.push({ r: player.r - 1, c: player.c });
+      if (!cell.walls.right) targets.push({ r: player.r, c: player.c + 1 });
+      if (!cell.walls.bottom) targets.push({ r: player.r + 1, c: player.c });
+      if (!cell.walls.left) targets.push({ r: player.r, c: player.c - 1 });
+
+      slashCells = targets;
+
+      const beforeCount = enemies.length;
+      enemies = enemies.filter(
+        e => !targets.some(t => t.r === e.r && t.c === e.c)
+      );
+      const defeated = beforeCount - enemies.length;
+
+      if (defeated > 0) {
+        playSound('hit');
+        statusEl.textContent = `Defeated ${defeated} ${defeated === 1 ? 'enemy' : 'enemies'}!`;
+        statusEl.className = '';
+      }
+
+      updateStats();
+      render();
+
+      setTimeout(() => {
+        slashCells = [];
+        render();
+      }, 250);
+    }
+
+    // --- Enemy AI ---
+    function moveEnemies() {
+      if (gameOver || !hasMoved || enemies.length === 0) return;
+
+      const dirs = [
+        { dr: -1, dc: 0, wall: 'top' },
+        { dr: 0, dc: 1, wall: 'right' },
+        { dr: 1, dc: 0, wall: 'bottom' },
+        { dr: 0, dc: -1, wall: 'left' }
+      ];
+
+      enemies.forEach(enemy => {
+        const cell = grid[enemy.r][enemy.c];
+        const validMoves = [];
+
+        for (const d of dirs) {
+          if (!cell.walls[d.wall]) {
+            const nr = enemy.r + d.dr;
+            const nc = enemy.c + d.dc;
+            // Avoid stepping onto the exit tile
+            if (!(nr === currentSize - 1 && nc === currentSize - 1)) {
+              validMoves.push({ r: nr, c: nc });
+            }
+          }
+        }
+
+        if (validMoves.length > 0) {
+          // 50% chance to move toward player if closer, 50% random patrol
+          validMoves.sort((a, b) => {
+            const distA = Math.abs(a.r - player.r) + Math.abs(a.c - player.c);
+            const distB = Math.abs(b.r - player.r) + Math.abs(b.c - player.c);
+            return distA - distB;
+          });
+
+          const choice = Math.random() < 0.5
+            ? validMoves[0]
+            : validMoves[Math.floor(Math.random() * validMoves.length)];
+
+          enemy.r = choice.r;
+          enemy.c = choice.c;
+        }
+      });
+
+      checkPlayerDeath();
+      render();
+    }
+
+    function checkPlayerDeath() {
+      const hit = enemies.some(e => e.r === player.r && e.c === player.c);
+      if (hit) {
+        endGame(false);
+        return true;
+      }
+      return false;
+    }
+
+    function endGame(won) {
+      gameOver = true;
+      clearInterval(timerInterval);
+      clearInterval(enemyInterval);
+      attackBtn.disabled = true;
+
+      if (won) {
+        playSound('win');
+        statusEl.textContent = `🎉 Rescued the Princess in ${timerEl.textContent} with ${moves} moves!`;
+        statusEl.className = '';
+      } else {
+        playSound('lose');
+        statusEl.textContent = '💀 Caught by a dungeon monster! Click New Maze to retry.';
+        statusEl.className = 'dead';
+      }
+    }
+
+    // --- Render Maze & Entities ---
+    function render() {
+      mazeEl.innerHTML = '';
+
+      for (let r = 0; r < currentSize; r++) {
+        for (let c = 0; c < currentSize; c++) {
+          const cell = grid[r][c];
+          const cellDiv = document.createElement('div');
+          cellDiv.className = 'cell';
+
+          if (cell.walls.top) cellDiv.classList.add('top');
+          if (cell.walls.right) cellDiv.classList.add('right');
+          if (cell.walls.bottom) cellDiv.classList.add('bottom');
+          if (cell.walls.left) cellDiv.classList.add('left');
+
+          // Fog of War check
+          const dist = Math.abs(r - player.r) + Math.abs(c - player.c);
+          if (fogMode && !gameOver && dist > 2) {
+            cellDiv.classList.add('fog');
+          }
+
+          // Rescue Goal (Detailed Princess SVG)
+          if (r === currentSize - 1 && c === currentSize - 1) {
+            const goalEl = document.createElement('div');
+            goalEl.className = 'goal';
+            goalEl.innerHTML = `
+              <svg viewBox="0 0 36 36" width="100%" height="100%" aria-hidden="true">
+                <!-- Golden Back Hair -->
+                <path d="M9 14 C7 22, 8 29, 10 31 H26 C28 29, 29 22, 27 14 Z" fill="#facc15" stroke="#ca8a04" stroke-width="0.9"/>
+                <!-- Royal Pink Gown -->
+                <path d="M11 20 L7 32 H29 L25 20 Z" fill="#ec4899" stroke="#9d174d" stroke-width="1"/>
+                <path d="M15 20 L13 32 H23 L21 20 Z" fill="#f9a8d4"/>
+                <!-- Face -->
+                <circle cx="18" cy="14" r="6" fill="#fde68a" stroke="#d97706" stroke-width="0.8"/>
+                <!-- Front Bangs -->
+                <path d="M12 13 C13 9, 23 9, 24 13 C21 11, 15 11, 12 13 Z" fill="#facc15"/>
+                <!-- Crown -->
+                <polygon points="13,9 14.5,4.5 16.5,7.5 18,3.5 19.5,7.5 21.5,4.5 23,9" fill="#fbbf24" stroke="#b45309" stroke-width="0.8"/>
+                <circle cx="18" cy="7" r="0.9" fill="#ef4444"/>
+                <!-- Eyes & Smile -->
+                <circle cx="16" cy="14.5" r="0.9" fill="#1e293b"/>
+                <circle cx="20" cy="14.5" r="0.9" fill="#1e293b"/>
+                <path d="M16.5 17 Q18 18.2 19.5 17" stroke="#be185d" stroke-width="1" fill="none" stroke-linecap="round"/>
+              </svg>
+            `;
+            cellDiv.appendChild(goalEl);
+          }
+
+          // Enemies (Detailed Dungeon Demon/Goblin SVG)
+          if (enemies.some(e => e.r === r && e.c === c)) {
+            const enemyEl = document.createElement('div');
+            enemyEl.className = 'enemy';
+            enemyEl.innerHTML = `
+              <svg viewBox="0 0 36 36" width="100%" height="100%" aria-hidden="true">
+                <!-- Horns -->
+                <path d="M9 12 C5 7, 7 3, 12 8 Z" fill="#e2e8f0" stroke="#475569" stroke-width="1"/>
+                <path d="M27 12 C31 7, 29 3, 24 8 Z" fill="#e2e8f0" stroke="#475569" stroke-width="1"/>
+                <!-- Monster Head & Shoulders -->
+                <path d="M7 29 C7 22, 11 20, 18 20 C25 20, 29 22, 29 29 Z" fill="#7f1d1d"/>
+                <rect x="9" y="8" width="18" height="15" rx="7" fill="#dc2626" stroke="#450a0a" stroke-width="1.2"/>
+                <!-- Glowing Eyes -->
+                <polygon points="11,14 16,16 11,17" fill="#fef08a"/>
+                <polygon points="25,14 20,16 25,17" fill="#fef08a"/>
+                <!-- Fanged Mouth -->
+                <path d="M13 20 Q18 18 23 20" stroke="#450a0a" stroke-width="1.5" fill="none"/>
+                <polygon points="14,19.5 15.5,22 17,19.5" fill="#f8fafc"/>
+                <polygon points="19,19.5 20.5,22 22,19.5" fill="#f8fafc"/>
+              </svg>
+            `;
+            cellDiv.appendChild(enemyEl);
+          }
+
+          // Player (Detailed Armored Knight SVG, holding sword when equipped)
+          if (r === player.r && c === player.c) {
+            const playerEl = document.createElement('div');
+            playerEl.className = 'player' + (player.hasSword ? ' has-sword' : '');
+            const swordSvg = player.hasSword
+              ? `<g transform="translate(26, 4) rotate(18)">
+                   <rect x="1.5" y="0" width="3" height="14" rx="1" fill="#f8fafc" stroke="#94a3b8" stroke-width="0.6"/>
+                   <rect x="-1" y="13" width="8" height="2.2" rx="1" fill="#f59e0b"/>
+                   <rect x="2" y="15" width="2" height="4" fill="#78350f"/>
+                 </g>`
+              : '';
+            playerEl.innerHTML = `
+              <svg viewBox="0 0 36 36" width="100%" height="100%" aria-hidden="true">
+                <!-- Cape -->
+                <path d="M9 21 L6 31 L30 31 L27 21 Z" fill="#1d4ed8"/>
+                <!-- Armored Torso -->
+                <rect x="10" y="19" width="16" height="11" rx="4" fill="#94a3b8" stroke="#334155" stroke-width="1.2"/>
+                <!-- Shield -->
+                <path d="M6 19 H13 V25 C13 28 9.5 30 9.5 30 C9.5 30 6 28 6 25 Z" fill="#3b82f6" stroke="#eff6ff" stroke-width="1"/>
+                <!-- Knight Helmet -->
+                <rect x="10" y="6" width="16" height="14" rx="6" fill="#cbd5e1" stroke="#334155" stroke-width="1.2"/>
+                <!-- Helmet Plume -->
+                <path d="M16 6 Q18 1 22 5" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                <!-- Visor Slit -->
+                <rect x="12" y="12" width="12" height="3" rx="1.5" fill="#0f172a"/>
+                <circle cx="15" cy="13.5" r="1" fill="#38bdf8"/>
+                <circle cx="21" cy="13.5" r="1" fill="#38bdf8"/>
+                ${swordSvg}
+              </svg>
+            `;
+            cellDiv.appendChild(playerEl);
+          }
+
+          // Slash Visual Effect
+          if (slashCells.some(s => s.r === r && s.c === c)) {
+            const slashEl = document.createElement('div');
+            slashEl.className = 'slash-fx';
+            cellDiv.appendChild(slashEl);
+          }
+
+          mazeEl.appendChild(cellDiv);
+        }
+      }
+    }
+
+    // --- Keyboard & Swipe Controls ---
+    document.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') movePlayer('up');
+      else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') movePlayer('right');
+      else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') movePlayer('down');
+      else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') movePlayer('left');
+      else if (e.key === ' ') attack();
+    });
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    mazeEl.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    mazeEl.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      const dy = e.changedTouches[0].screenY - touchStartY;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        movePlayer(dx > 0 ? 'right' : 'left');
+      } else {
+        movePlayer(dy > 0 ? 'down' : 'up');
+      }
+    }, { passive: true });
+
+    window.addEventListener('resize', setupGridDimensions);
+
+    window.onload = () => {
+      startGame(8);
+    };
+  </script>
+</body>
+</html>
